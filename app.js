@@ -302,7 +302,6 @@ const SMS = {
   },
 
   bindNav(){
-    // Close sidebar on mobile when nav item is tapped
     document.querySelectorAll('.nav-item[data-page]').forEach(item=>item.addEventListener('click',()=>{
       this.nav(item.dataset.page);
       if(window.innerWidth < 769){

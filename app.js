@@ -527,7 +527,7 @@ const SMS = {
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
         <div class="mini-info"><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
-        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger);white-space:nowrap">Owes fees</div>
+        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger);flex-shrink:0;white-space:nowrap">Owes fees</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
   },
 

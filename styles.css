@@ -415,6 +415,11 @@ img { max-width: 100%; height: auto; }
   overflow: hidden;
 }
 .sidebar.open { transform: translateX(0); }
+/* Desktop: offset topbar + main when sidebar is visible */
+@media (min-width: 769px) {
+  .has-sidebar .topbar { margin-left: var(--sidebar-w); }
+  .has-sidebar .main   { margin-left: var(--sidebar-w); }
+}
 .sidebar-header { padding: .9rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .sb-close { position: absolute; top: .75rem; right: .75rem; background: none; border: none; font-size: 1rem; color: var(--t4); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; }
 .sb-close:hover { background: var(--surface-3); }
@@ -458,11 +463,6 @@ img { max-width: 100%; height: auto; }
 
 /* MAIN */
 .main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0; }
-/* Desktop layout when sidebar is visible */
-@media (min-width: 769px) {
-  #app.sidebar-open .topbar { margin-left: var(--sidebar-w); }
-  #app.sidebar-open .main  { margin-left: var(--sidebar-w); }
-}
 .page-wrap { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
 
 /* ══ PAGES ══ */

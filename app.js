@@ -254,7 +254,7 @@ const SMS = {
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('login-screen').style.display='none';
     const app=document.getElementById('app');
-    app.style.display='flex';
+    app.style.display='grid';
     this.setupTopbar();
     this.bindNav();
     this.bindForms();

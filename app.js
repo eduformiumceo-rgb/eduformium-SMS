@@ -3,26 +3,24 @@
 //  © 2026 Eduformium · Shape Knowledge, Build Mastery
 // ══════════════════════════════════════════
 
-// Firebase loaded via CDN script tags in index.html (window.FDB, window.FAuth, window.Migration)
-
 const DB = {
   get: (k, def=null)=>{ try{ const v=localStorage.getItem('sms_'+k); return v?JSON.parse(v):def; }catch{ return def; } },
-  set: (k,v)=>{ try{ localStorage.setItem('sms_'+k,JSON.stringify(v)); }catch{}
-    // Background sync to Firestore (non-blocking)
-    const sid=window.SMS?.schoolId;
-    if(sid && k!=='session' && k!=='seeded' && k!=='darkMode' && k!=='themeColors' && k!=='fontSize'){
-      if(k==='school') FDB.saveSchoolProfile(sid,v).catch(()=>{});
-      else if(Array.isArray(v)) FDB.batchWrite(sid,k,v).catch(()=>{});
+  set: (k,v)=>{
+    try{ localStorage.setItem('sms_'+k,JSON.stringify(v)); }catch{}
+    const sid=window.SMS&&window.SMS.schoolId;
+    if(sid&&k!=='session'&&k!=='seeded'&&k!=='darkMode'&&k!=='themeColors'&&k!=='fontSize'){
+      if(k==='school') window.FDB&&FDB.saveSchoolProfile(sid,v).catch(()=>{});
+      else if(Array.isArray(v)) window.FDB&&FDB.batchWrite(sid,k,v).catch(()=>{});
     }
   },
-  del: (k)=>{ try{ localStorage.removeItem('sms_'+k); }catch{} },
-  loadFromFirestore: async (schoolId)=>{
+  del:(k)=>{ try{ localStorage.removeItem('sms_'+k); }catch{} },
+  loadFromFirestore: async (sid)=>{
+    if(!window.FDB) return;
     const cols=['students','staff','classes','subjects','feePayments','feeStructure',
-      'exams','grades','attendance','events','messages','leaves','homework',
-      'books','expenses','payroll','auditLog','users'];
-    const results=await Promise.all(cols.map(c=>FDB.getAll(schoolId,c).then(d=>({c,d}))));
-    results.forEach(({c,d})=>{ if(d.length>0){ localStorage.setItem('sms_'+c,JSON.stringify(d)); } });
-    const school=await FDB.getSchoolProfile(schoolId);
+      'exams','grades','attendance','events','messages','leaves','homework','books','expenses','payroll','auditLog','users'];
+    const results=await Promise.all(cols.map(c=>FDB.getAll(sid,c).then(d=>({c,d}))));
+    results.forEach(({c,d})=>{ if(d.length>0) localStorage.setItem('sms_'+c,JSON.stringify(d)); });
+    const school=await FDB.getSchoolProfile(sid);
     if(school) localStorage.setItem('sms_school',JSON.stringify(school));
   },
 };
@@ -220,23 +218,27 @@ const SMS = {
   _auditPage: 1,
 
   init() {
-    FAuth.onAuthChange(async (firebaseUser) => {
-      if (firebaseUser) {
-        this.schoolId = firebaseUser.uid;
-        // Load from Firestore into localStorage cache
-        try { await DB.loadFromFirestore(this.schoolId); } catch(e) { console.warn('Load error, using cache:', e); }
-        try { await Migration.run(this.schoolId); } catch(e) {}
-        const school = DB.get('school', {});
-        _currency = school.currency || 'GHS';
-        const users = DB.get('users', []);
-        this.currentUser = users.find(u => u.id === this.schoolId) || {
-          id: this.schoolId, name: school.adminName || firebaseUser.email,
-          email: firebaseUser.email, role: 'admin',
-        };
+    if(!window.FAuth){ // fallback if Firebase didn't load
+      seedData();
+      const school=DB.get('school',{});
+      _currency=school.currency||'GHS';
+      const session=DB.get('session');
+      if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this.boot(); return; } }
+      this.showLogin(); return;
+    }
+    FAuth.onAuthChange(async (firebaseUser)=>{
+      if(firebaseUser){
+        this.schoolId=firebaseUser.uid;
+        try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ console.warn('Load error:',e); }
+        try{ await Migration.run(this.schoolId); }catch(e){}
+        const school=DB.get('school',{});
+        _currency=school.currency||'GHS';
+        const users=DB.get('users',[]);
+        this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this.boot();
       } else {
-        this.schoolId = null;
-        this.currentUser = null;
+        this.schoolId=null; this.currentUser=null;
+        seedData();
         this.showLogin();
       }
     });
@@ -245,6 +247,7 @@ const SMS = {
   showLogin(){
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('login-screen').style.display='flex';
+    this.bindForms(); // bind login/register buttons
   },
 
   boot(){
@@ -326,8 +329,8 @@ const SMS = {
 
   async logout(){
     this.audit('Logout','login',`${this.currentUser.name} signed out`);
-    await FAuth.logout();
-    this.currentUser=null; this.schoolId=null;
+    if(window.FAuth) await FAuth.logout();
+    DB.del('session'); this.currentUser=null; this.schoolId=null;
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     const lu=document.getElementById('l-user'); if(lu) lu.value='';
@@ -420,19 +423,20 @@ const SMS = {
   },
 
   async login(){
-    const email = document.getElementById('l-user').value.trim();
-    const pass  = document.getElementById('l-pass').value;
-    const errEl = document.getElementById('l-err');
-    const btn   = document.getElementById('login-btn');
+    const email=document.getElementById('l-user').value.trim();
+    const pass=document.getElementById('l-pass').value;
+    const errEl=document.getElementById('l-err');
+    const btn=document.getElementById('login-btn');
     if(!email||!pass){ errEl.style.display='flex'; errEl.textContent='Please enter your email and password.'; return; }
-    btn.disabled=true; btn.textContent='Signing in…';
-    errEl.style.display='none';
-    const result = await FAuth.login(email, pass);
-    if(!result.success){
-      errEl.style.display='flex'; errEl.textContent=result.error;
-      btn.disabled=false; btn.textContent='Sign In →';
+    btn.disabled=true; btn.textContent='Signing in…'; errEl.style.display='none';
+    if(!window.FAuth){ // localStorage fallback
+      const users=DB.get('users',[]); const user=users.find(u=>u.email===email&&u.password===pass);
+      if(user){ this.currentUser=user; this.boot(); errEl.style.display='none'; }
+      else{ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.textContent='Sign In →'; }
+      return;
     }
-    // success: onAuthChange handles boot automatically
+    const result=await FAuth.login(email,pass);
+    if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.textContent='Sign In →'; }
   },
 
   async register(){
@@ -446,16 +450,17 @@ const SMS = {
     if(!school||!name||!email||!pwd){ errEl.textContent='Please fill in all required fields.'; errEl.style.display='flex'; return; }
     if(pwd!==cpwd){ errEl.textContent='Passwords do not match.'; errEl.style.display='flex'; return; }
     if(pwd.length<6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='flex'; return; }
-    btn.disabled=true; btn.textContent='Creating account…';
-    errEl.style.display='none';
-    const result = await FAuth.register(school, name, email, pwd);
-    if(result.success){
-      this.toast(`Welcome, ${name.split(' ')[0]}! Setting up your school…`,'success');
-      // onAuthChange handles boot
-    } else {
-      errEl.textContent=result.error; errEl.style.display='flex';
-      btn.disabled=false; btn.textContent='Create School Account';
+    btn.disabled=true; btn.textContent='Creating account…'; errEl.style.display='none';
+    if(!window.FAuth){
+      const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.textContent='Email already registered.'; errEl.style.display='flex'; btn.disabled=false; btn.textContent='Create School Account'; return; }
+      const sc=DB.get('school',{}); sc.name=school; DB.set('school',sc);
+      const newUser={id:uid('u'),email,password:pwd,name,role:'admin',phone:'',createdAt:new Date().toISOString(),lastLogin:null};
+      users.push(newUser); DB.set('users',users); DB.set('session',{userId:newUser.id}); this.currentUser=newUser;
+      this.toast(`Welcome, ${name.split(' ')[0]}!`,'success'); this.boot(); return;
     }
+    const result=await FAuth.register(school,name,email,pwd);
+    if(result.success){ this.toast(`Welcome, ${name.split(' ')[0]}!`,'success'); }
+    else{ errEl.textContent=result.error; errEl.style.display='flex'; btn.disabled=false; btn.textContent='Create School Account'; }
   },
 
   // ══ DASHBOARD ══

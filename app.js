@@ -323,7 +323,7 @@ const SMS = {
     document.getElementById('theme-btn')?.addEventListener('click',()=>this.toggleTheme());
     document.getElementById('search-btn')?.addEventListener('click',()=>{ const so=document.getElementById('search-overlay'); so.style.display='flex'; document.getElementById('global-search-input').focus(); });
     document.getElementById('global-search-input')?.addEventListener('input',e=>this.globalSearch(e.target.value));
-    document.getElementById('notif-btn')?.addEventListener('click',()=>{ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
+    document.getElementById('notif-btn')?.addEventListener('click',(e)=>{ e.stopPropagation(); const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
     document.getElementById('notif-clear')?.addEventListener('click',()=>{ document.getElementById('notif-list').innerHTML='<div class="notif-empty">No new notifications</div>'; document.getElementById('notif-badge').style.display='none'; document.getElementById('notif-panel').style.display='none'; });
     document.addEventListener('click',e=>{ if(!document.getElementById('notif-wrap')?.contains(e.target)) document.getElementById('notif-panel').style.display='none'; });
     document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); }));
@@ -508,7 +508,7 @@ const SMS = {
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>`
       <div class="mini-item">
         <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
-        <div class="mini-info"><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
+        <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students yet</div>';
     // Events
@@ -518,7 +518,7 @@ const SMS = {
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>`
       <div class="mini-item">
         <div class="mini-av" style="background:${evColors[e.type]||'var(--brand-lt)'};color:white"></div>
-        <div class="mini-info"><div class="mini-name">${e.title}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
+        <div><div class="mini-name">${e.title}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
         <div class="mini-right"><span class="badge badge-info" style="font-size:.65rem">${e.type}</span></div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
     // Defaulters
@@ -526,8 +526,8 @@ const SMS = {
     document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
-        <div class="mini-info"><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
-        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger);flex-shrink:0;white-space:nowrap">Owes fees</div>
+        <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
+        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger)">Owes fees</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
   },
 
@@ -1834,15 +1834,24 @@ const SMS = {
     const students=DB.get('students',[]); const events=DB.get('events',[]); const leaves=DB.get('leaves',[]);
     const notifs=[];
     const defaults=students.filter(s=>+(s.feesPaid?.term1||0)<850||+(s.feesPaid?.term2||0)<850);
-    if(defaults.length>0) notifs.push(`${defaults.length} students have outstanding fee balances`);
+    if(defaults.length>0) notifs.push({text:`${defaults.length} student(s) have outstanding fee balances`,icon:'💰',page:'fees'});
     const soon=events.filter(e=>{ const d=new Date(e.start); const n=new Date(); return d>=n&&(d-n)<7*86400000; });
-    if(soon.length>0) notifs.push(`${soon.length} event(s) coming up in the next 7 days`);
+    if(soon.length>0) notifs.push({text:`${soon.length} event(s) coming up in the next 7 days`,icon:'📅',page:'events'});
     const pending=leaves.filter(l=>l.status==='pending');
-    if(pending.length>0) notifs.push(`${pending.length} leave request(s) awaiting your approval`);
+    if(pending.length>0) notifs.push({text:`${pending.length} leave request(s) awaiting approval`,icon:'📋',page:'leave'});
+    const hw=DB.get('homework',[]).filter(h=>h.status==='pending');
+    if(hw.length>0) notifs.push({text:`${hw.length} homework assignment(s) pending`,icon:'📝',page:'homework'});
+    const list=document.getElementById('notif-list'); const badge=document.getElementById('notif-badge');
     if(notifs.length>0){
-      const list=document.getElementById('notif-list'); const badge=document.getElementById('notif-badge');
-      list.innerHTML=notifs.map(n=>`<div class="notif-item"><div style="font-size:.8rem;color:var(--t2)">${n}</div></div>`).join('');
+      list.innerHTML=notifs.map(n=>`
+        <div class="notif-item" onclick="SMS.nav('${n.page}');document.getElementById('notif-panel').style.display='none';" style="display:flex;align-items:flex-start;gap:.6rem">
+          <span style="font-size:1rem;flex-shrink:0">${n.icon}</span>
+          <span style="font-size:.8rem;color:var(--t2);line-height:1.4">${n.text}</span>
+        </div>`).join('');
       badge.style.display='flex'; badge.textContent=notifs.length;
+    } else {
+      list.innerHTML='<div class="notif-empty">No new notifications</div>';
+      badge.style.display='none';
     }
   },
 

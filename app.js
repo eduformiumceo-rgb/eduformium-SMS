@@ -508,7 +508,7 @@ const SMS = {
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>`
       <div class="mini-item">
         <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
+        <div class="mini-info"><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students yet</div>';
     // Events
@@ -518,7 +518,7 @@ const SMS = {
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>`
       <div class="mini-item">
         <div class="mini-av" style="background:${evColors[e.type]||'var(--brand-lt)'};color:white"></div>
-        <div><div class="mini-name">${e.title}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
+        <div class="mini-info"><div class="mini-name">${e.title}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
         <div class="mini-right"><span class="badge badge-info" style="font-size:.65rem">${e.type}</span></div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
     // Defaulters
@@ -526,8 +526,8 @@ const SMS = {
     document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
-        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger)">Owes fees</div>
+        <div class="mini-info"><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
+        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger);white-space:nowrap">Owes fees</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
   },
 

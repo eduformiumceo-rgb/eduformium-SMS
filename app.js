@@ -226,6 +226,12 @@ const SMS = {
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this.boot(); return; } }
       this.showLogin(); return;
     }
+    // Check localStorage session immediately so refresh doesn't flash login screen
+    const quickSession=DB.get('session');
+    if(quickSession){
+      const quickUser=DB.get('users',[]).find(u=>u.id===quickSession.userId);
+      if(quickUser){ this.currentUser=quickUser; this.boot(); }
+    }
     FAuth.onAuthChange(async (firebaseUser)=>{
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
@@ -303,8 +309,14 @@ const SMS = {
 
   bindNav(){
     document.querySelectorAll('.nav-item[data-page]').forEach(item=>item.addEventListener('click',()=>this.nav(item.dataset.page)));
+    // Auto-open sidebar on desktop
+    if(window.innerWidth >= 769){
+      document.getElementById('sidebar')?.classList.add('open');
+      document.getElementById('app')?.classList.add('sidebar-open');
+    }
     document.getElementById('menu-btn').addEventListener('click',()=>{
       const sb=document.getElementById('sidebar'); sb.classList.toggle('open');
+      document.getElementById('app')?.classList.toggle('sidebar-open');
       let ov=document.getElementById('sidebar-overlay');
       if(!ov){ ov=document.createElement('div'); ov.id='sidebar-overlay'; ov.className='sidebar-overlay'; ov.addEventListener('click',()=>{ sb.classList.remove('open'); ov.classList.remove('show'); }); document.body.appendChild(ov); }
       ov.classList.toggle('show');

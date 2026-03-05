@@ -302,12 +302,7 @@ const SMS = {
   },
 
   bindNav(){
-    // Auto-open sidebar on desktop
-    if(window.innerWidth >= 769){
-      document.getElementById('sidebar')?.classList.add('open');
-      document.getElementById('app')?.classList.add('has-sidebar');
-    }
-    // On mobile: close sidebar when a nav item is tapped
+    // Close sidebar on mobile when nav item is tapped
     document.querySelectorAll('.nav-item[data-page]').forEach(item=>item.addEventListener('click',()=>{
       this.nav(item.dataset.page);
       if(window.innerWidth < 769){
@@ -317,7 +312,6 @@ const SMS = {
     }));
     document.getElementById('menu-btn').addEventListener('click',()=>{
       const sb=document.getElementById('sidebar'); sb.classList.toggle('open');
-      if(window.innerWidth >= 769) document.getElementById('app')?.classList.toggle('has-sidebar');
       let ov=document.getElementById('sidebar-overlay');
       if(!ov){ ov=document.createElement('div'); ov.id='sidebar-overlay'; ov.className='sidebar-overlay'; ov.addEventListener('click',()=>{ sb.classList.remove('open'); ov.classList.remove('show'); }); document.body.appendChild(ov); }
       ov.classList.toggle('show');

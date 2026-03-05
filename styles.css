@@ -361,7 +361,21 @@ img { max-width: 100%; height: auto; }
   .auth-title { font-size:1.4rem; }
 }
 
+/* ── APP SHELL LAYOUT ── */
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas:
+    "sidebar topbar"
+    "sidebar main";
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .topbar {
+  grid-area: topbar;
   height: var(--topbar-h); background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: .75rem;
@@ -405,20 +419,14 @@ img { max-width: 100%; height: auto; }
 
 /* SIDEBAR */
 .sidebar {
-  position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
+  grid-area: sidebar;
   width: var(--sidebar-w);
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
-  transform: translateX(-100%);
-  transition: transform .28s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
-}
-.sidebar.open { transform: translateX(0); }
-/* Desktop: offset topbar + main when sidebar is visible */
-@media (min-width: 769px) {
-  .has-sidebar .topbar { margin-left: var(--sidebar-w); }
-  .has-sidebar .main   { margin-left: var(--sidebar-w); }
+  position: relative;
+  z-index: 200;
 }
 .sidebar-header { padding: .9rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .sb-close { position: absolute; top: .75rem; right: .75rem; background: none; border: none; font-size: 1rem; color: var(--t4); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; }
@@ -462,7 +470,7 @@ img { max-width: 100%; height: auto; }
 .sidebar-overlay.show { display: block; }
 
 /* MAIN */
-.main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0; }
+.main { grid-area: main; overflow-y: auto; overflow-x: hidden; padding: 0; }
 .page-wrap { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
 
 /* ══ PAGES ══ */
@@ -878,6 +886,20 @@ img { max-width: 100%; height: auto; }
 
 /* ══ RESPONSIVE ══ */
 @media (max-width: 768px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--topbar-h) 1fr;
+    grid-template-areas:
+      "topbar"
+      "main";
+  }
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    transform: translateX(-100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .sidebar.open { transform: translateX(0); }
   .login-hero { display: none; }
   .login-form-panel { width: 100%; min-height: 100vh; }
   .mobile-brand { display: flex; }

@@ -152,7 +152,7 @@
 
         <div class="demo-hint">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span><strong>Demo:</strong> admin@school.edu &nbsp;/&nbsp; admin123</span>
+          <span><strong>Demo:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3051545d595e704353585f5f5c1e555445">[email&#160;protected]</a> &nbsp;/&nbsp; admin123</span>
         </div>
 
         <div class="auth-divider"><span>New to Eduformium?</span></div>
@@ -241,7 +241,7 @@
           <span class="notif-badge" id="notif-badge" style="display:none">0</span>
         </button>
         <div class="notif-panel" id="notif-panel" style="display:none">
-          <div class="notif-hd"><span>Notifications</span><button id="notif-clear" class="link-btn">Clear all</button></div>
+          <div class="notif-hd"><span>Recent Activity</span><button id="notif-clear" class="link-btn" onclick="DB.set('auditLog',[]);SMS.loadNotifications();">Clear</button></div>
           <div class="notif-list" id="notif-list"><div class="notif-empty">No new notifications</div></div>
         </div>
       </div>
@@ -1665,7 +1665,7 @@
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <!-- Firebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1684,13 +1684,4 @@ window.addEventListener('error', function(e){
   if(ls) ls.style.display = 'flex';
 });
 setTimeout(function(){
-  var ol = document.getElementById('loading-overlay');
-  if(ol && ol.style.display !== 'none'){
-    ol.style.display = 'none';
-    var ls = document.getElementById('login-screen');
-    if(ls) ls.style.display = 'flex';
-  }
-}, 4000);
-</script>
-</body>
-</html>
+  var ol = document.getElementBy

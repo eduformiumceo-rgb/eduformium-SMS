@@ -429,12 +429,19 @@ const SMS = {
     const btn=document.getElementById('login-btn');
     if(!email||!pass){ errEl.style.display='flex'; errEl.textContent='Please enter your email and password.'; return; }
     btn.disabled=true; btn.textContent='Signing in…'; errEl.style.display='none';
-    if(!window.FAuth){ // localStorage fallback
-      const users=DB.get('users',[]); const user=users.find(u=>u.email===email&&u.password===pass);
-      if(user){ this.currentUser=user; this.boot(); errEl.style.display='none'; }
-      else{ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.textContent='Sign In →'; }
-      return;
+
+    // Always check localStorage first (covers demo account + offline use)
+    const users=DB.get('users',[]);
+    const localUser=users.find(u=>u.email===email&&u.password===pass);
+    if(localUser){
+      localUser.lastLogin=new Date().toISOString(); DB.set('users',users);
+      DB.set('session',{userId:localUser.id});
+      this.currentUser=localUser; this.audit('Login','login',`${localUser.name} signed in`);
+      this.boot(); errEl.style.display='none'; return;
     }
+
+    // Try Firebase if available
+    if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.textContent='Sign In →'; return; }
     const result=await FAuth.login(email,pass);
     if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.textContent='Sign In →'; }
   },

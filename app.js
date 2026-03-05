@@ -323,7 +323,7 @@ const SMS = {
     document.getElementById('theme-btn')?.addEventListener('click',()=>this.toggleTheme());
     document.getElementById('search-btn')?.addEventListener('click',()=>{ const so=document.getElementById('search-overlay'); so.style.display='flex'; document.getElementById('global-search-input').focus(); });
     document.getElementById('global-search-input')?.addEventListener('input',e=>this.globalSearch(e.target.value));
-    document.getElementById('notif-btn')?.addEventListener('click',(e)=>{ e.stopPropagation(); const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
+    document.getElementById('notif-btn')?.addEventListener('click',()=>{ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
     document.getElementById('notif-clear')?.addEventListener('click',()=>{ document.getElementById('notif-list').innerHTML='<div class="notif-empty">No new notifications</div>'; document.getElementById('notif-badge').style.display='none'; document.getElementById('notif-panel').style.display='none'; });
     document.addEventListener('click',e=>{ if(!document.getElementById('notif-wrap')?.contains(e.target)) document.getElementById('notif-panel').style.display='none'; });
     document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); }));
@@ -1831,28 +1831,49 @@ const SMS = {
 
   // ══ NOTIFICATIONS ══
   loadNotifications(){
-    const students=DB.get('students',[]); const events=DB.get('events',[]); const leaves=DB.get('leaves',[]);
-    const notifs=[];
-    const defaults=students.filter(s=>+(s.feesPaid?.term1||0)<850||+(s.feesPaid?.term2||0)<850);
-    if(defaults.length>0) notifs.push({text:`${defaults.length} student(s) have outstanding fee balances`,icon:'💰',page:'fees'});
-    const soon=events.filter(e=>{ const d=new Date(e.start); const n=new Date(); return d>=n&&(d-n)<7*86400000; });
-    if(soon.length>0) notifs.push({text:`${soon.length} event(s) coming up in the next 7 days`,icon:'📅',page:'events'});
-    const pending=leaves.filter(l=>l.status==='pending');
-    if(pending.length>0) notifs.push({text:`${pending.length} leave request(s) awaiting approval`,icon:'📋',page:'leave'});
-    const hw=DB.get('homework',[]).filter(h=>h.status==='pending');
-    if(hw.length>0) notifs.push({text:`${hw.length} homework assignment(s) pending`,icon:'📝',page:'homework'});
-    const list=document.getElementById('notif-list'); const badge=document.getElementById('notif-badge');
-    if(notifs.length>0){
-      list.innerHTML=notifs.map(n=>`
-        <div class="notif-item" onclick="SMS.nav('${n.page}');document.getElementById('notif-panel').style.display='none';" style="display:flex;align-items:flex-start;gap:.6rem">
-          <span style="font-size:1rem;flex-shrink:0">${n.icon}</span>
-          <span style="font-size:.8rem;color:var(--t2);line-height:1.4">${n.text}</span>
-        </div>`).join('');
-      badge.style.display='flex'; badge.textContent=notifs.length;
-    } else {
-      list.innerHTML='<div class="notif-empty">No new notifications</div>';
-      badge.style.display='none';
+    const log=DB.get('auditLog',[]);
+    const recent=[...log].reverse().slice(0,15);
+    const list=document.getElementById('notif-list');
+    const badge=document.getElementById('notif-badge');
+    const icons={create:'✅',edit:'✏️',delete:'🗑️',login:'🔐',default:'🔔'};
+    const colors={create:'var(--success)',edit:'var(--info)',delete:'var(--danger)',login:'var(--brand-teal)',default:'var(--t3)'};
+    const pageMap={
+      'Enroll Student':'students','Edit Student':'students','Delete Student':'students',
+      'Add Staff':'staff','Edit Staff':'staff','Delete Staff':'staff',
+      'Fee Payment':'fees','Payroll':'payroll',
+      'Attendance':'attendance','Grades Entry':'exams','Create Exam':'exams',
+      'Add Event':'events','Add Class':'classes','Add Subject':'classes',
+      'Send Message':'messages','Leave':'leave','Add Book':'library',
+      'Login':'dashboard','Logout':'dashboard',
+    };
+    function timeAgo(t){
+      const s=Math.floor((Date.now()-new Date(t))/1000);
+      if(s<60) return 'just now';
+      if(s<3600) return Math.floor(s/60)+'m ago';
+      if(s<86400) return Math.floor(s/3600)+'h ago';
+      return Math.floor(s/86400)+'d ago';
     }
+    if(recent.length===0){
+      list.innerHTML='<div class="notif-empty">No activity yet</div>';
+      badge.style.display='none';
+      return;
+    }
+    list.innerHTML=recent.map(l=>{
+      const icon=icons[l.type]||icons.default;
+      const color=colors[l.type]||colors.default;
+      const page=pageMap[l.action]||'dashboard';
+      return `
+        <div class="notif-item" onclick="SMS.nav('${page}');document.getElementById('notif-panel').style.display='none';" style="display:flex;align-items:flex-start;gap:.7rem;padding:.8rem 1rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+          <div style="width:30px;height:30px;border-radius:8px;background:${color}15;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;margin-top:.1rem">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.8rem;font-weight:600;color:var(--t1);margin-bottom:.15rem">${l.action}</div>
+            <div style="font-size:.75rem;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details||''}</div>
+            <div style="font-size:.68rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${l.user}</div>
+          </div>
+        </div>`;
+    }).join('');
+    badge.style.display='flex';
+    badge.textContent=Math.min(recent.length,9)+( recent.length>9?'+ ':'');
   },
 
   // ══ HELPERS ══

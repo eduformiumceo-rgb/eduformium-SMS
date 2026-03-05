@@ -361,12 +361,23 @@ img { max-width: 100%; height: auto; }
   .auth-title { font-size:1.4rem; }
 }
 
+/* ══ APP SHELL LAYOUT ══ */
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  grid-template-areas: "sidebar topbar" "sidebar main";
+  height: 100vh; height: 100dvh;
+  overflow: hidden;
+}
+
 .topbar {
   height: var(--topbar-h); background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: .75rem;
   padding: 0 1.25rem; flex-shrink: 0;
   box-shadow: var(--shadow-sm); z-index: 100; position: relative;
+  grid-area: topbar;
 }
 .topbar-menu { background: none; border: none; width: 36px; height: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: var(--radius-sm); flex-shrink: 0; }
 .topbar-menu:hover { background: var(--surface-3); }
@@ -403,18 +414,6 @@ img { max-width: 100%; height: auto; }
 .user-chip-name { font-size: .78rem; font-weight: 600; color: var(--t1); line-height: 1.2; }
 .user-chip-role { font-size: .65rem; color: var(--t4); }
 
-/* APP SHELL — CSS Grid layout */
-.shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  grid-template-rows: var(--topbar-h) 1fr;
-  grid-template-areas: "sidebar topbar" "sidebar main";
-  height: 100vh; height: 100dvh;
-  overflow: hidden;
-}
-.topbar { grid-area: topbar; }
-.main   { grid-area: main !important; overflow-y: auto; overflow-x: hidden; padding: 0; }
-
 /* SIDEBAR */
 .sidebar {
   grid-area: sidebar;
@@ -424,7 +423,7 @@ img { max-width: 100%; height: auto; }
   display: flex; flex-direction: column;
   overflow: hidden; z-index: 200;
 }
-.sidebar.open { transform: none; }
+.sidebar.open { }
 .sidebar-header { padding: .9rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .sb-close { position: absolute; top: .75rem; right: .75rem; background: none; border: none; font-size: 1rem; color: var(--t4); cursor: pointer; width: 28px; height: 28px; border-radius: 6px; }
 .sb-close:hover { background: var(--surface-3); }
@@ -467,7 +466,7 @@ img { max-width: 100%; height: auto; }
 .sidebar-overlay.show { display: block; }
 
 /* MAIN */
-.main-placeholder { display:none; } /* main defined in .shell grid above */
+.main { grid-area: main; overflow-y: auto; overflow-x: hidden; padding: 0; }
 .page-wrap { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
 
 /* ══ PAGES ══ */

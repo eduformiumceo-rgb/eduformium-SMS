@@ -226,6 +226,10 @@ const SMS = {
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this.boot(); return; } }
       this.showLogin(); return;
     }
+    // Keep loading overlay visible until Firebase confirms auth state
+    document.getElementById('loading-overlay').style.display='flex';
+    // Set persistence to LOCAL so session survives page refresh
+    _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     FAuth.onAuthChange(async (firebaseUser)=>{
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
@@ -1831,49 +1835,19 @@ const SMS = {
 
   // ══ NOTIFICATIONS ══
   loadNotifications(){
-    const log=DB.get('auditLog',[]);
-    const recent=[...log].reverse().slice(0,15);
-    const list=document.getElementById('notif-list');
-    const badge=document.getElementById('notif-badge');
-    const icons={create:'✅',edit:'✏️',delete:'🗑️',login:'🔐',default:'🔔'};
-    const colors={create:'var(--success)',edit:'var(--info)',delete:'var(--danger)',login:'var(--brand-teal)',default:'var(--t3)'};
-    const pageMap={
-      'Enroll Student':'students','Edit Student':'students','Delete Student':'students',
-      'Add Staff':'staff','Edit Staff':'staff','Delete Staff':'staff',
-      'Fee Payment':'fees','Payroll':'payroll',
-      'Attendance':'attendance','Grades Entry':'exams','Create Exam':'exams',
-      'Add Event':'events','Add Class':'classes','Add Subject':'classes',
-      'Send Message':'messages','Leave':'leave','Add Book':'library',
-      'Login':'dashboard','Logout':'dashboard',
-    };
-    function timeAgo(t){
-      const s=Math.floor((Date.now()-new Date(t))/1000);
-      if(s<60) return 'just now';
-      if(s<3600) return Math.floor(s/60)+'m ago';
-      if(s<86400) return Math.floor(s/3600)+'h ago';
-      return Math.floor(s/86400)+'d ago';
+    const students=DB.get('students',[]); const events=DB.get('events',[]); const leaves=DB.get('leaves',[]);
+    const notifs=[];
+    const defaults=students.filter(s=>+(s.feesPaid?.term1||0)<850||+(s.feesPaid?.term2||0)<850);
+    if(defaults.length>0) notifs.push(`${defaults.length} students have outstanding fee balances`);
+    const soon=events.filter(e=>{ const d=new Date(e.start); const n=new Date(); return d>=n&&(d-n)<7*86400000; });
+    if(soon.length>0) notifs.push(`${soon.length} event(s) coming up in the next 7 days`);
+    const pending=leaves.filter(l=>l.status==='pending');
+    if(pending.length>0) notifs.push(`${pending.length} leave request(s) awaiting your approval`);
+    if(notifs.length>0){
+      const list=document.getElementById('notif-list'); const badge=document.getElementById('notif-badge');
+      list.innerHTML=notifs.map(n=>`<div class="notif-item"><div style="font-size:.8rem;color:var(--t2)">${n}</div></div>`).join('');
+      badge.style.display='flex'; badge.textContent=notifs.length;
     }
-    if(recent.length===0){
-      list.innerHTML='<div class="notif-empty">No activity yet</div>';
-      badge.style.display='none';
-      return;
-    }
-    list.innerHTML=recent.map(l=>{
-      const icon=icons[l.type]||icons.default;
-      const color=colors[l.type]||colors.default;
-      const page=pageMap[l.action]||'dashboard';
-      return `
-        <div class="notif-item" onclick="SMS.nav('${page}');document.getElementById('notif-panel').style.display='none';" style="display:flex;align-items:flex-start;gap:.7rem;padding:.8rem 1rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
-          <div style="width:30px;height:30px;border-radius:8px;background:${color}15;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0;margin-top:.1rem">${icon}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.8rem;font-weight:600;color:var(--t1);margin-bottom:.15rem">${l.action}</div>
-            <div style="font-size:.75rem;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.details||''}</div>
-            <div style="font-size:.68rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${l.user}</div>
-          </div>
-        </div>`;
-    }).join('');
-    badge.style.display='flex';
-    badge.textContent=Math.min(recent.length,9)+( recent.length>9?'+ ':'');
   },
 
   // ══ HELPERS ══

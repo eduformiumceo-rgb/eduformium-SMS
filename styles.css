@@ -410,7 +410,7 @@ img { max-width: 100%; height: auto; }
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
-  transform: translateX(-100%);
+  transform: translateX(0);
   transition: transform .28s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
 }
@@ -457,7 +457,7 @@ img { max-width: 100%; height: auto; }
 .sidebar-overlay.show { display: block; }
 
 /* MAIN */
-.main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0; }
+.main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0; padding-left: var(--sidebar-w); }
 .page-wrap { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
 
 /* ══ PAGES ══ */
@@ -873,6 +873,9 @@ img { max-width: 100%; height: auto; }
 
 /* ══ RESPONSIVE ══ */
 @media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { padding-left: 0; }
   .login-hero { display: none; }
   .login-form-panel { width: 100%; min-height: 100vh; }
   .mobile-brand { display: flex; }

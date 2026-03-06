@@ -435,6 +435,8 @@ const SMS = {
     this._formsBound = true;
     document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
       this._demoMode = true;
+      // Force reseed so demo credentials always exist regardless of prior state
+      DB.set('seeded', false);
       seedData();
       const users = DB.get('users',[]);
       const demoUser = users.find(u=>u.email==='demo@brightfutureacademy.edu.gh');

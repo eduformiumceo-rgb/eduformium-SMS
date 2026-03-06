@@ -498,19 +498,19 @@ const SMS = {
     ['fee-class-f','fee-term-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderFees()));
     document.getElementById('exp-fees-btn')?.addEventListener('click',()=>this.exportFees());
     document.getElementById('send-reminder-btn')?.addEventListener('click',()=>this.toast('Fee reminders sent via SMS!','success'));
-    document.getElementById('add-fee-struct-btn')?.addEventListener('click',()=>this.toast('Fee structure editor — coming soon','warn'));
-    document.getElementById('add-expense-btn')?.addEventListener('click',()=>this.toast('Expense form — update coming soon','warn'));
+    document.getElementById('add-fee-struct-btn')?.addEventListener('click',()=>this.openFeeStructModal());
+    document.getElementById('add-expense-btn')?.addEventListener('click',()=>this.openExpenseModal());
     document.getElementById('add-event-btn')?.addEventListener('click',()=>this.openEventModal());
     document.getElementById('save-event-btn')?.addEventListener('click',()=>this.saveEvent());
     document.getElementById('compose-btn')?.addEventListener('click',()=>this.openComposeModal());
     document.getElementById('send-msg-btn')?.addEventListener('click',()=>this.sendMessage());
     document.getElementById('msg-to')?.addEventListener('change',e=>{ document.getElementById('msg-class-field').style.display=e.target.value==='specific-class'?'block':'none'; });
-    document.getElementById('add-book-btn')?.addEventListener('click',()=>this.toast('Book management — coming soon','warn'));
-    document.getElementById('borrow-btn')?.addEventListener('click',()=>this.toast('Book issuing — coming soon','warn'));
+    document.getElementById('add-book-btn')?.addEventListener('click',()=>this.openBookModal());
+    document.getElementById('borrow-btn')?.addEventListener('click',()=>this.openBookIssueModal());
     document.getElementById('lib-search')?.addEventListener('input',()=>this.renderLibrary());
     ['lib-cat-f','lib-status-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderLibrary()));
-    document.getElementById('add-hw-btn')?.addEventListener('click',()=>this.toast('Homework form — coming soon','warn'));
-    document.getElementById('add-leave-btn')?.addEventListener('click',()=>this.toast('Leave form — coming soon','warn'));
+    document.getElementById('add-hw-btn')?.addEventListener('click',()=>this.openHomeworkModal());
+    document.getElementById('add-leave-btn')?.addEventListener('click',()=>this.openLeaveModal());
     document.getElementById('process-payroll-btn')?.addEventListener('click',()=>this.processPayroll());
     document.getElementById('exp-audit-btn')?.addEventListener('click',()=>this.exportAudit());
     document.getElementById('exp-payroll-btn')?.addEventListener('click',()=>this.exportPayroll());
@@ -1385,25 +1385,78 @@ const SMS = {
 
   renderTimetable(){
     const classId=document.getElementById('tt-class-sel').value;
-    const timetable=DB.get('timetable',{}); const classData=timetable[classId];
+    const timetable=DB.get('timetable',{}); const classData=timetable[classId]||{};
     const grid=document.getElementById('timetable-grid');
-    if(!classId){ grid.innerHTML='<div style="padding:2rem;text-align:center;color:var(--t4)">Select a class to view timetable</div>'; return; }
+    if(!classId){ grid.innerHTML='<div style="padding:2rem;text-align:center;color:var(--t4)">Select a class to view or edit timetable</div>'; return; }
     const days=['Monday','Tuesday','Wednesday','Thursday','Friday'];
-    const periods=['7:30-8:30','8:30-9:30','9:30-10:30','10:30-11:00','11:00-12:00','12:00-1:00'];
-    if(!classData){ grid.innerHTML='<div style="padding:2rem;text-align:center;color:var(--t4)">No timetable set for this class.<br><button class="btn btn-primary btn-sm" style="margin-top:.75rem">Set Timetable</button></div>'; return; }
-    let html=`<table class="tt-table"><thead><tr><th>Period</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
+    const periods=['7:30–8:30','8:30–9:30','9:30–10:30','10:30–11:00 (Break)','11:00–12:00','12:00–1:00','1:00–2:00'];
+    const isBreak=p=>p.includes('Break');
+    let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+      <span style="font-size:.8rem;color:var(--t3)">Click any slot to add or edit a subject. Changes are saved automatically.</span>
+      <button class="btn btn-secondary btn-sm" onclick="SMS.clearTimetable('${classId}')">Clear All</button>
+    </div>
+    <div style="overflow-x:auto"><table class="tt-table" style="width:100%;min-width:700px"><thead><tr><th style="width:120px">Period</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
     periods.forEach(period=>{
-      html+=`<tr><td class="time-col">${period}</td>`;
+      html+=`<tr><td class="time-col" style="font-size:.72rem;font-weight:600">${period}</td>`;
       days.forEach(day=>{
+        if(isBreak(period)){ html+=`<td style="background:var(--surface-2);color:var(--t4);font-size:.7rem;font-weight:600;text-align:center;letter-spacing:.05em">BREAK</td>`; return; }
         const slot=classData[day]?.[period];
-        if(slot?.subject==='BREAK') html+=`<td style="background:var(--surface-2);color:var(--t4);font-size:.72rem;font-weight:600;text-align:center">Break</td>`;
-        else if(slot) html+=`<td><div class="tt-cell">${slot.subject}<div style="font-size:.65rem;font-weight:400;color:var(--t3);margin-top:.15rem">${slot.teacher}</div></div></td>`;
-        else html+=`<td></td>`;
+        const penc=encodeURIComponent(period);
+        if(slot&&slot.subject){ html+=`<td style="cursor:pointer;padding:.3rem" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')"><div class="tt-cell" style="background:var(--brand-fade,rgba(26,58,107,.08));border-radius:6px;padding:.35rem .5rem"><div style="font-weight:600;font-size:.78rem">${slot.subject}</div><div style="font-size:.65rem;color:var(--t3);margin-top:.1rem">${slot.teacher||''}</div></div></td>`; }
+        else { html+=`<td style="cursor:pointer;padding:.3rem;text-align:center" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')" title="Click to add subject"><span style="color:var(--t4);font-size:1.1rem;line-height:1">+</span></td>`; }
       });
       html+=`</tr>`;
     });
-    html+=`</tbody></table>`;
+    html+=`</tbody></table></div>`;
     grid.innerHTML=html;
+  },
+
+  openTimetableSlot(classId,day,period){
+    period=decodeURIComponent(period);
+    const timetable=DB.get('timetable',{}); const classData=timetable[classId]||{};
+    const slot=classData[day]?.[period]||{};
+    const subjects=DB.get('subjects',[]).filter(s=>!s.classId||s.classId===classId);
+    const staff=DB.get('staff',[]);
+    document.getElementById('receipt-title').textContent=`${day} · ${period}`;
+    document.getElementById('receipt-body').innerHTML=`
+      <div style="display:grid;gap:.75rem;margin-top:.25rem">
+        <div><label style="font-size:.8rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">Subject</label>
+          <input id="tt-subj-inp" list="tt-subj-list" value="${slot.subject||''}" placeholder="Type or select subject…" class="form-input" style="width:100%">
+          <datalist id="tt-subj-list">${subjects.map(s=>`<option value="${s.name}">`).join('')}</datalist></div>
+        <div><label style="font-size:.8rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">Teacher</label>
+          <input id="tt-teacher-inp" list="tt-teacher-list" value="${slot.teacher||''}" placeholder="Type or select teacher…" class="form-input" style="width:100%">
+          <datalist id="tt-teacher-list">${staff.map(s=>`<option value="${s.fname+' '+s.lname}">`).join('')}</datalist></div>
+        <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
+          ${slot.subject?`<button class="btn btn-secondary btn-sm" onclick="SMS.clearTimetableSlot('${classId}','${day}','${period}')">Clear Slot</button>`:''}
+          <button class="btn btn-primary btn-sm" onclick="SMS.saveTimetableSlot('${classId}','${day}','${period}')">Save</button>
+        </div>
+      </div>`;
+    this.openModal('m-receipt');
+  },
+
+  saveTimetableSlot(classId,day,period){
+    const subj=document.getElementById('tt-subj-inp').value.trim();
+    const teacher=document.getElementById('tt-teacher-inp').value.trim();
+    if(!subj){ this.toast('Enter a subject','warn'); return; }
+    const timetable=DB.get('timetable',{});
+    if(!timetable[classId]) timetable[classId]={};
+    if(!timetable[classId][day]) timetable[classId][day]={};
+    timetable[classId][day][period]={subject:subj,teacher};
+    DB.set('timetable',timetable);
+    this.closeModal('m-receipt'); this.renderTimetable();
+    this.toast(`${subj} saved for ${day} · ${period}`,'success');
+  },
+
+  clearTimetableSlot(classId,day,period){
+    const timetable=DB.get('timetable',{});
+    if(timetable[classId]?.[day]?.[period]) delete timetable[classId][day][period];
+    DB.set('timetable',timetable); this.closeModal('m-receipt'); this.renderTimetable();
+  },
+
+  clearTimetable(classId){
+    this.confirmDelete('Clear entire timetable for this class?',()=>{
+      const timetable=DB.get('timetable',{}); delete timetable[classId]; DB.set('timetable',timetable); this.renderTimetable(); this.toast('Timetable cleared','warn');
+    });
   },
 
   // ══ HOMEWORK ══
@@ -1425,6 +1478,7 @@ const SMS = {
         <div class="hw-card-footer">
           <span>Due: <strong>${fmtDate(h.dueDate)}</strong></span>
           <span>Assigned: ${fmtDate(h.assignedDate)}</span>
+          <div style="display:flex;gap:.4rem;margin-left:auto"><button class="btn btn-ghost btn-sm" onclick="SMS.openHomeworkModal('${h.id}')" style="color:var(--brand);padding:.25rem .5rem;font-size:.72rem">✏ Edit</button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this homework?',()=>SMS.deleteHomework('${h.id}'))" style="color:var(--danger);padding:.25rem .5rem;font-size:.72rem">✕ Delete</button></div>
         </div>
       </div>`).join('')||'<div style="color:var(--t4);padding:1.5rem">No homework assignments found.</div>';
   },
@@ -1575,7 +1629,7 @@ const SMS = {
         <td>${fmt(f.term1)}</td><td>${fmt(f.term2)}</td><td>${fmt(f.term3)}</td>
         <td class="fee-struct-total">${fmt(total)}</td>
         <td style="font-size:.75rem;color:var(--t3)">Tuition, Books, Activities</td>
-        <td><button class="btn btn-ghost btn-sm" style="padding:.3rem .5rem;color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="SMS.openFeeStructModal('${f.classId}')" style="padding:.3rem .5rem;color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>
       </tr>`;
     }).join('')||SMS._emptyState('fees','No Fee Structure Set','Define term fees for each class so the system can track balances.','');
   },
@@ -1944,7 +1998,7 @@ const SMS = {
       <td style="font-weight:700;color:var(--danger)">${fmt(e.amount)}</td>
       <td>${e.paidTo}</td>
       <td>${e.approvedBy}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this expense?',()=>SMS.deleteExpense('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+      <td style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openExpenseModal('${e.id}')" style="color:var(--brand);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this expense?',()=>SMS.deleteExpense('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
     </tr>`).join('')||SMS._emptyState('expenses','No Expenses Recorded','Track school expenditure here. Add your first expense entry.','');
     this.renderExpenseCharts(bycat,expenses);
   },
@@ -2032,7 +2086,7 @@ const SMS = {
       <td style="text-align:center">${b.copies}</td>
       <td style="text-align:center;font-weight:700;color:${b.available>0?'var(--success)':'var(--danger)'}">${b.available}</td>
       <td>${b.available>0?statusBadge('available'):statusBadge('borrowed')}</td>
-      <td><button class="btn btn-ghost btn-sm" style="color:var(--brand);padding:.3rem .5rem">Issue</button></td>
+      <td style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openBookModal('${b.id}')" style="color:var(--brand);padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>${b.available>0?`<button class="btn btn-ghost btn-sm" onclick="SMS.openBookIssueModal('${b.id}')" style="color:var(--teal);padding:.3rem .5rem;font-size:.7rem;font-weight:600">Issue</button>`:''}<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this book?',()=>SMS.deleteBook('${b.id}'))" style="color:var(--danger);padding:.3rem .5rem" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
     </tr>`).join('')||SMS._emptyState('books','No Books Found','Try a different search or category filter.','');
   },
 
@@ -2467,7 +2521,274 @@ const SMS = {
 
   darken(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.max(0,Math.floor(r*(1-pct))); g=Math.max(0,Math.floor(g*(1-pct))); b=Math.max(0,Math.floor(b*(1-pct))); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
 
+
+
   hexToRgba(hex,a){ hex=hex.replace('#',''); const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; },
+
+  deleteBook(id){
+    const issues=DB.get('bookIssues',[]).filter(i=>!i.returnedDate&&i.bookId===id);
+    if(issues.length>0){ this.toast('Cannot delete: book has active borrowings','error'); return; }
+    DB.set('books',DB.get('books',[]).filter(b=>b.id!==id));
+    this.toast('Book deleted','warn'); this.loadLibrary();
+  },
+
+  // ══ STUDENT PROMOTION WIZARD ══
+  openPromotionWizard(){
+    const classes=DB.get('classes',[]).sort((a,b)=>a.name.localeCompare(b.name));
+    const students=DB.get('students',[]).filter(s=>s.status==='active');
+    document.getElementById('receipt-title').textContent='🎓 Year-End Student Promotion';
+    document.getElementById('receipt-body').innerHTML=`
+      <div style="font-size:.82rem;color:var(--t3);margin-bottom:.9rem">Move all active students from one class to the next at the end of the academic year.</div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:.5rem;align-items:center;margin-bottom:.75rem">
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">From Class</label>
+          <select id="promo-from" class="form-select" style="width:100%" onchange="SMS._updatePromotionPreview()">
+            <option value="">— Select —</option>${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </div>
+        <div style="text-align:center;font-size:1.2rem;padding-top:1.2rem">→</div>
+        <div>
+          <label style="font-size:.78rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">To Class</label>
+          <select id="promo-to" class="form-select" style="width:100%" onchange="SMS._updatePromotionPreview()">
+            <option value="">— Select —</option>${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div id="promo-preview" style="display:none;background:var(--surface-2);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.82rem"></div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn btn-secondary btn-sm" onclick="SMS.closeModal('m-receipt')">Cancel</button>
+        <button class="btn btn-primary btn-sm" id="promo-confirm-btn" onclick="SMS.runPromotion()" style="display:none">Promote Students</button>
+      </div>`;
+    this.openModal('m-receipt');
+  },
+
+  _updatePromotionPreview(){
+    const fromId=document.getElementById('promo-from').value;
+    const toId=document.getElementById('promo-to').value;
+    const preview=document.getElementById('promo-preview');
+    const btn=document.getElementById('promo-confirm-btn');
+    if(!fromId||!toId||fromId===toId){ preview.style.display='none'; btn.style.display='none'; return; }
+    const students=DB.get('students',[]).filter(s=>s.classId===fromId&&s.status==='active');
+    const toName=DB.get('classes',[]).find(c=>c.id===toId)?.name||'';
+    const fromName=DB.get('classes',[]).find(c=>c.id===fromId)?.name||'';
+    preview.style.display='block';
+    btn.style.display='block';
+    if(students.length===0){ preview.innerHTML=`<span style="color:var(--warn)">⚠ No active students found in ${fromName}.</span>`; btn.style.display='none'; return; }
+    preview.innerHTML=`<strong>${students.length} student(s)</strong> will be moved from <strong>${fromName}</strong> → <strong>${toName}</strong>:<br><div style="margin-top:.4rem;max-height:100px;overflow-y:auto">${students.map(s=>`<span style="display:inline-block;margin:.15rem .3rem;background:var(--surface-3,rgba(0,0,0,.06));border-radius:4px;padding:.1rem .4rem">${s.fname} ${s.lname}</span>`).join('')}</div>`;
+  },
+
+  runPromotion(){
+    const fromId=document.getElementById('promo-from').value;
+    const toId=document.getElementById('promo-to').value;
+    if(!fromId||!toId||fromId===toId){ this.toast('Select valid from/to classes','warn'); return; }
+    const students=DB.get('students',[]);
+    let count=0;
+    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; count++; } });
+    DB.set('students',students);
+    const fromName=DB.get('classes',[]).find(c=>c.id===fromId)?.name||fromId;
+    const toName=DB.get('classes',[]).find(c=>c.id===toId)?.name||toId;
+    this.audit('Student Promotion','edit',`Promoted ${count} students from ${fromName} → ${toName}`);
+    this.toast(`${count} student(s) promoted to ${toName}!`,'success');
+    this.closeModal('m-receipt');
+  },
+
+  openExpenseModal(id=null){
+    ['exp-id','exp-desc','exp-paidto','exp-approved','exp-ref','exp-notes'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
+    document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('exp-amount').value='';
+    document.getElementById('exp-category').value='';
+    document.getElementById('exp-err').style.display='none';
+    document.getElementById('expense-modal-title').textContent='Add Expense';
+    if(id){
+      const ex=DB.get('expenses',[]).find(x=>x.id===id); if(!ex) return;
+      document.getElementById('exp-id').value=ex.id;
+      document.getElementById('exp-date').value=ex.date;
+      document.getElementById('exp-category').value=ex.category;
+      document.getElementById('exp-desc').value=ex.desc;
+      document.getElementById('exp-amount').value=ex.amount;
+      document.getElementById('exp-paidto').value=ex.paidTo;
+      document.getElementById('exp-approved').value=ex.approvedBy;
+      document.getElementById('exp-notes').value=ex.notes||'';
+      document.getElementById('expense-modal-title').textContent='Edit Expense';
+    }
+    document.getElementById('save-expense-btn').onclick=()=>this.saveExpense();
+    this.openModal('m-expense');
+  },
+
+  saveExpense(){
+    const date=document.getElementById('exp-date').value;
+    const category=document.getElementById('exp-category').value;
+    const desc=document.getElementById('exp-desc').value.trim();
+    const amount=+document.getElementById('exp-amount').value;
+    const paidTo=document.getElementById('exp-paidto').value.trim();
+    const errEl=document.getElementById('exp-err');
+    if(!date||!category||!desc||!amount||!paidTo){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields.'; return; }
+    errEl.style.display='none';
+    const expenses=DB.get('expenses',[]);
+    const existId=document.getElementById('exp-id').value;
+    const data={date,category,desc,amount,paidTo,approvedBy:document.getElementById('exp-approved').value.trim()||this.currentUser.name,ref:document.getElementById('exp-ref').value,notes:document.getElementById('exp-notes').value};
+    if(existId){ const i=expenses.findIndex(e=>e.id===existId); if(i>-1){ expenses[i]={...expenses[i],...data}; DB.set('expenses',expenses); this.toast('Expense updated','success'); this.audit('Edit Expense','edit',`Updated: ${desc} — ${fmt(amount)}`); } }
+    else { expenses.push({id:uid('e'),...data}); DB.set('expenses',expenses); this.audit('Add Expense','create',`New expense: ${desc} — ${fmt(amount)} (${category})`); this.toast(`Expense of ${fmt(amount)} recorded!`,'success'); }
+    this.closeModal('m-expense'); this.renderExpenses();
+  },
+
+  // ══ HOMEWORK FORM ══
+  openHomeworkModal(id=null){
+    const classes=DB.get('classes',[]); const subjects=DB.get('subjects',[]);
+    const sel=document.getElementById('hw-class-sel');
+    if(sel) sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    const ssel=document.getElementById('hw-subject-sel');
+    if(ssel) ssel.innerHTML='<option value="">— Select Subject —</option>'+subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    ['hw-id','hw-title','hw-desc'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
+    document.getElementById('hw-due').value='';
+    document.getElementById('hw-status-sel').value='pending';
+    document.getElementById('hw-err').style.display='none';
+    document.getElementById('hw-modal-title').textContent=id?'Edit Homework':'Assign Homework';
+    if(id){
+      const hw=DB.get('homework',[]).find(x=>x.id===id); if(!hw) return;
+      document.getElementById('hw-id').value=hw.id; document.getElementById('hw-title').value=hw.title;
+      document.getElementById('hw-class-sel').value=hw.classId; document.getElementById('hw-subject-sel').value=hw.subjectId||'';
+      document.getElementById('hw-due').value=hw.dueDate; document.getElementById('hw-status-sel').value=hw.status;
+      document.getElementById('hw-desc').value=hw.desc||'';
+    }
+    document.getElementById('hw-class-sel').onchange=()=>{ const cid=document.getElementById('hw-class-sel').value; const filtered=subjects.filter(s=>!cid||s.classId===cid); document.getElementById('hw-subject-sel').innerHTML='<option value="">— Select Subject —</option>'+filtered.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); };
+    document.getElementById('save-hw-btn').onclick=()=>this.saveHomework();
+    this.openModal('m-homework');
+  },
+
+  saveHomework(){
+    const title=document.getElementById('hw-title').value.trim(); const classId=document.getElementById('hw-class-sel').value; const dueDate=document.getElementById('hw-due').value;
+    const errEl=document.getElementById('hw-err');
+    if(!title||!classId||!dueDate){ errEl.style.display='block'; errEl.textContent='Title, class, and due date are required.'; return; }
+    errEl.style.display='none';
+    const hw=DB.get('homework',[]); const existId=document.getElementById('hw-id').value;
+    const data={title,classId,subjectId:document.getElementById('hw-subject-sel').value,dueDate,status:document.getElementById('hw-status-sel').value,desc:document.getElementById('hw-desc').value,assignedBy:this.currentUser.id};
+    if(existId){ const i=hw.findIndex(h=>h.id===existId); if(i>-1){ hw[i]={...hw[i],...data}; DB.set('homework',hw); this.toast('Homework updated','success'); this.audit('Edit Homework','edit',`Updated: ${title}`); } }
+    else { hw.push({id:uid('hw'),...data,assignedDate:new Date().toISOString()}); DB.set('homework',hw); this.audit('Assign Homework','create',`New homework: ${title} — Due: ${dueDate}`); this.toast('Homework assigned!','success'); }
+    this.closeModal('m-homework'); this.renderHomework();
+  },
+
+  deleteHomework(id){ DB.set('homework',DB.get('homework',[]).filter(x=>x.id!==id)); this.toast('Homework deleted','warn'); this.renderHomework(); },
+
+  // ══ LEAVE FORM ══
+  openLeaveModal(){
+    const staff=DB.get('staff',[]);
+    const sel=document.getElementById('lv-staff');
+    if(sel) sel.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname} (${s.role})</option>`).join('');
+    ['lv-id','lv-reason'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
+    document.getElementById('lv-from').value=''; document.getElementById('lv-to').value='';
+    document.getElementById('lv-type').value='Annual'; document.getElementById('lv-err').style.display='none';
+    document.getElementById('lv-days-preview').style.display='none';
+    const calcDays=()=>{ const from=document.getElementById('lv-from').value, to=document.getElementById('lv-to').value; const prev=document.getElementById('lv-days-preview'); if(from&&to){ const days=Math.ceil((new Date(to)-new Date(from))/86400000)+1; if(days>0){ prev.style.display='block'; prev.textContent=`📅 Duration: ${days} day(s) — from ${fmtDate(from)} to ${fmtDate(to)}`; } else prev.style.display='none'; } };
+    document.getElementById('lv-from').onchange=calcDays; document.getElementById('lv-to').onchange=calcDays;
+    document.getElementById('save-leave-btn').onclick=()=>this.saveLeave();
+    this.openModal('m-leave');
+  },
+
+  saveLeave(){
+    const staffId=document.getElementById('lv-staff').value; const type=document.getElementById('lv-type').value;
+    const from=document.getElementById('lv-from').value; const to=document.getElementById('lv-to').value;
+    const reason=document.getElementById('lv-reason').value.trim();
+    const errEl=document.getElementById('lv-err');
+    if(!staffId||!from||!to||!reason){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields.'; return; }
+    if(new Date(to)<new Date(from)){ errEl.style.display='block'; errEl.textContent='End date must be on or after start date.'; return; }
+    errEl.style.display='none';
+    const days=Math.ceil((new Date(to)-new Date(from))/86400000)+1;
+    const leaves=DB.get('leaves',[]);
+    leaves.push({id:uid('l'),staffId,type,from,to,days,reason,status:'pending',appliedDate:new Date().toISOString()});
+    DB.set('leaves',leaves);
+    const s=DB.get('staff',[]).find(x=>x.id===staffId);
+    this.audit('Leave Application','create',`${s?.fname} ${s?.lname} applied for ${type} leave (${days} days)`);
+    this.toast(`Leave application submitted for ${s?.fname} ${s?.lname}`,'success');
+    this.closeModal('m-leave'); this.renderLeave();
+  },
+
+  // ══ BOOK FORM ══
+  openBookModal(id=null){
+    ['bk-id','bk-isbn','bk-title','bk-author','bk-publisher','bk-location'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
+    document.getElementById('bk-copies').value='1'; document.getElementById('bk-cat').value=''; document.getElementById('bk-err').style.display='none';
+    document.getElementById('book-modal-title').textContent=id?'Edit Book':'Add Book';
+    if(id){ const b=DB.get('books',[]).find(x=>x.id===id); if(!b) return; document.getElementById('bk-id').value=b.id; document.getElementById('bk-isbn').value=b.isbn||''; document.getElementById('bk-title').value=b.title; document.getElementById('bk-author').value=b.author; document.getElementById('bk-publisher').value=b.publisher||''; document.getElementById('bk-cat').value=b.category; document.getElementById('bk-copies').value=b.copies; document.getElementById('bk-location').value=b.location||''; }
+    document.getElementById('save-book-btn').onclick=()=>this.saveBook();
+    this.openModal('m-book');
+  },
+
+  saveBook(){
+    const title=document.getElementById('bk-title').value.trim(); const author=document.getElementById('bk-author').value.trim(); const category=document.getElementById('bk-cat').value; const copies=+document.getElementById('bk-copies').value||1;
+    const errEl=document.getElementById('bk-err');
+    if(!title||!author||!category){ errEl.style.display='block'; errEl.textContent='Title, author, and category are required.'; return; }
+    errEl.style.display='none';
+    const books=DB.get('books',[]); const existId=document.getElementById('bk-id').value;
+    const data={isbn:document.getElementById('bk-isbn').value,title,author,publisher:document.getElementById('bk-publisher').value,category,copies,location:document.getElementById('bk-location').value};
+    if(existId){ const i=books.findIndex(b=>b.id===existId); if(i>-1){ const old=books[i]; const diff=copies-old.copies; books[i]={...old,...data,available:Math.max(0,old.available+diff)}; DB.set('books',books); this.toast('Book updated','success'); this.audit('Edit Book','edit',`Updated: ${title}`); } }
+    else { books.push({id:uid('b'),...data,available:copies}); DB.set('books',books); this.audit('Add Book','create',`New book: ${title} by ${author} (${copies} copies)`); this.toast(`"${title}" added to library!`,'success'); }
+    this.closeModal('m-book'); this.loadLibrary();
+  },
+
+  openBookIssueModal(preselect=null){
+    const books=DB.get('books',[]); const students=DB.get('students',[]).filter(s=>s.status==='active'); const staff=DB.get('staff',[]); const issues=DB.get('bookIssues',[]).filter(i=>!i.returnedDate);
+    const avail=books.filter(b=>b.available>0);
+    const bkSel=document.getElementById('issue-book'); if(bkSel) bkSel.innerHTML='<option value="">— Select Book —</option>'+avail.map(b=>`<option value="${b.id}">${b.title} (${b.available} avail.)</option>`).join('');
+    if(preselect&&bkSel) bkSel.value=preselect;
+    const stSel=document.getElementById('issue-student'); if(stSel) stSel.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${s.fname} ${s.lname} — ${this.className(s.classId)}</option>`).join('');
+    const sfSel=document.getElementById('issue-staff-mem'); if(sfSel) sfSel.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join('');
+    document.getElementById('issue-date').value=new Date().toISOString().split('T')[0];
+    const due=new Date(); due.setDate(due.getDate()+14); document.getElementById('issue-due').value=due.toISOString().split('T')[0];
+    document.getElementById('issue-err').style.display='none';
+    const retSel=document.getElementById('return-issue-sel');
+    if(retSel) retSel.innerHTML='<option value="">— Select Record —</option>'+issues.map(i=>{ const b=DB.get('books',[]).find(x=>x.id===i.bookId); const borrower=i.borrowerType==='student'?students.find(x=>x.id===i.borrowerId):staff.find(x=>x.id===i.borrowerId); return `<option value="${i.id}">${b?.title||'Book'} — ${borrower?borrower.fname+' '+borrower.lname:'Unknown'} (Due: ${fmtDate(i.dueDate)})</option>`; }).join('');
+    document.getElementById('return-preview').style.display='none';
+    document.getElementById('return-issue-sel').onchange=()=>this.previewReturn();
+    document.getElementById('confirm-issue-btn').onclick=()=>this.issueBook();
+    document.getElementById('confirm-return-btn').onclick=()=>this.returnBook();
+    this.openModal('m-book-issue');
+  },
+
+  toggleBorrowerType(){ const t=document.getElementById('issue-borrower-type')?.value; document.getElementById('issue-student-wrap').style.display=t==='student'?'block':'none'; document.getElementById('issue-staff-wrap').style.display=t==='staff'?'block':'none'; },
+
+  issueBook(){
+    const bookId=document.getElementById('issue-book').value; const borrowerType=document.getElementById('issue-borrower-type').value;
+    const borrowerId=borrowerType==='student'?document.getElementById('issue-student').value:document.getElementById('issue-staff-mem').value;
+    const issueDate=document.getElementById('issue-date').value; const dueDate=document.getElementById('issue-due').value;
+    const errEl=document.getElementById('issue-err');
+    if(!bookId||!borrowerId||!issueDate||!dueDate){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields.'; return; }
+    errEl.style.display='none';
+    const books=DB.get('books',[]); const bi=books.findIndex(b=>b.id===bookId);
+    if(bi>-1&&books[bi].available>0){ books[bi].available--; DB.set('books',books); } else { errEl.style.display='block'; errEl.textContent='Book is not available.'; return; }
+    const issues=DB.get('bookIssues',[]); issues.push({id:uid('bi'),bookId,borrowerType,borrowerId,issueDate,dueDate,issuedBy:this.currentUser.id,returnedDate:null}); DB.set('bookIssues',issues);
+    const b=books.find(x=>x.id===bookId); this.audit('Issue Book','create',`Issued: "${b?.title}" — due ${fmtDate(dueDate)}`);
+    this.toast(`Book issued! Due: ${fmtDate(dueDate)}`,'success'); this.closeModal('m-book-issue'); this.loadLibrary();
+  },
+
+  previewReturn(){ const id=document.getElementById('return-issue-sel').value; const prev=document.getElementById('return-preview'); if(!id){ prev.style.display='none'; return; } const issue=DB.get('bookIssues',[]).find(x=>x.id===id); if(!issue){ prev.style.display='none'; return; } const b=DB.get('books',[]).find(x=>x.id===issue.bookId); const borrower=issue.borrowerType==='student'?DB.get('students',[]).find(x=>x.id===issue.borrowerId):DB.get('staff',[]).find(x=>x.id===issue.borrowerId); const overdue=new Date()>new Date(issue.dueDate); prev.style.display='block'; prev.innerHTML=`<div style="font-weight:700;margin-bottom:.35rem">${b?.title||'—'}</div><div>Borrower: <strong>${borrower?borrower.fname+' '+borrower.lname:'Unknown'}</strong></div><div>Issued: ${fmtDate(issue.issueDate)} · Due: <span style="color:${overdue?'var(--danger)':'var(--success)'};font-weight:700">${fmtDate(issue.dueDate)}${overdue?' ⚠ OVERDUE':''}</span></div>`; },
+
+  returnBook(){ const id=document.getElementById('return-issue-sel').value; if(!id){ this.toast('Select a borrowing record','warn'); return; } const issues=DB.get('bookIssues',[]); const idx=issues.findIndex(x=>x.id===id); if(idx>-1){ issues[idx].returnedDate=new Date().toISOString(); DB.set('bookIssues',issues); const books=DB.get('books',[]); const bi=books.findIndex(b=>b.id===issues[idx].bookId); if(bi>-1){ books[bi].available=Math.min(books[bi].copies,books[bi].available+1); DB.set('books',books); } const b=books.find(x=>x.id===issues[idx].bookId); this.audit('Return Book','edit',`Returned: "${b?.title}"`); this.toast('Book returned successfully!','success'); this.closeModal('m-book-issue'); this.loadLibrary(); } },
+
+  // ══ FEE STRUCTURE EDITOR ══
+  openFeeStructModal(classId=null){
+    const classes=DB.get('classes',[]); const feeStr=DB.get('feeStructure',[]);
+    if(!classId){ document.getElementById('receipt-title').textContent='Select Class to Edit Fees'; document.getElementById('receipt-body').innerHTML=`<div style="margin-bottom:.75rem;font-size:.85rem;color:var(--t3)">Choose a class to edit its fee structure:</div><div style="display:flex;gap:.75rem;flex-wrap:wrap">${classes.map(c=>`<button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructModal('${c.id}');SMS.closeModal('m-receipt')">${c.name}</button>`).join('')}</div>`; this.openModal('m-receipt'); return; }
+    const cls=classes.find(c=>c.id===classId); const fs=feeStr.find(f=>f.classId===classId)||{term1:0,term2:0,term3:0};
+    document.getElementById('fs-class-id').value=classId; document.getElementById('fs-class-name').value=cls?.name||'';
+    document.getElementById('fs-term1').value=fs.term1||''; document.getElementById('fs-term2').value=fs.term2||''; document.getElementById('fs-term3').value=fs.term3||'';
+    document.getElementById('fs-includes').value=fs.includes||'Tuition, Books, Activities'; document.getElementById('fs-err').style.display='none';
+    const titleEl=document.getElementById('fs-struct-modal-title')||document.querySelector('#m-fee-struct .modal-title'); if(titleEl) titleEl.textContent=`Fee Structure — ${cls?.name}`;
+    const updatePreview=()=>{ const t1=+document.getElementById('fs-term1').value||0, t2=+document.getElementById('fs-term2').value||0, t3=+document.getElementById('fs-term3').value||0; document.getElementById('fs-total-preview').textContent=`Annual Total: ${fmt(t1+t2+t3)} (${fmt(t1)} + ${fmt(t2)} + ${fmt(t3)})`; };
+    ['fs-term1','fs-term2','fs-term3'].forEach(id=>document.getElementById(id).oninput=updatePreview); updatePreview();
+    document.getElementById('save-fee-struct-btn').onclick=()=>this.saveFeeStruct();
+    this.openModal('m-fee-struct');
+  },
+
+  saveFeeStruct(){
+    const classId=document.getElementById('fs-class-id').value; const t1=+document.getElementById('fs-term1').value; const t2=+document.getElementById('fs-term2').value; const t3=+document.getElementById('fs-term3').value;
+    const errEl=document.getElementById('fs-err'); if(!classId||(!t1&&!t2&&!t3)){ errEl.style.display='block'; errEl.textContent='Please enter at least one term fee.'; return; } errEl.style.display='none';
+    const feeStr=DB.get('feeStructure',[]); const i=feeStr.findIndex(f=>f.classId===classId);
+    const data={classId,term1:t1,term2:t2,term3:t3,includes:document.getElementById('fs-includes').value};
+    if(i>-1) feeStr[i]={...feeStr[i],...data}; else feeStr.push({id:uid('fs'),...data}); DB.set('feeStructure',feeStr);
+    this.audit('Fee Structure','edit',`Updated fees for ${this.className(classId)}: T1=${fmt(t1)}, T2=${fmt(t2)}, T3=${fmt(t3)}`);
+    this.toast(`Fee structure saved for ${this.className(classId)}!`,'success');
+    this.closeModal('m-fee-struct'); this.renderFeeStructure(); this.renderFeesKpis();
+  },
 };
 
 // ── BOOT ──

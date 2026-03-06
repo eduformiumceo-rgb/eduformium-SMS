@@ -6,6 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
 <title>Eduformium School Management System</title>
 <meta name="description" content="World-class School Management System by Eduformium — Shape Knowledge, Build Mastery."/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
@@ -45,66 +46,101 @@
 <!-- ══════════════════ LOGIN ══════════════════ -->
 <div id="login-screen" class="login-wrap" style="display:none">
 
-  <!-- LEFT HERO -->
+  <!-- ═══ LEFT HERO PANEL ═══ -->
   <div class="login-hero">
+    <!-- Layered background -->
     <div class="lh-bg"></div>
-    <div class="lh-grid"></div>
-    <div class="lh-orb lh-orb1"></div>
-    <div class="lh-orb lh-orb2"></div>
-    <div class="lh-orb lh-orb3"></div>
+    <div class="lh-noise"></div>
+    <div class="lh-lines"></div>
+    <!-- Ambient glows -->
+    <div class="lh-glow lh-glow1"></div>
+    <div class="lh-glow lh-glow2"></div>
+    <div class="lh-glow lh-glow3"></div>
+    <!-- Floating geometric shapes -->
+    <div class="lh-geo lh-geo1"></div>
+    <div class="lh-geo lh-geo2"></div>
+    <div class="lh-geo lh-geo3"></div>
+
     <div class="login-hero-content">
 
+      <!-- Brand lockup -->
       <div class="lh-brand">
-        <div class="lh-logo">
-          <svg viewBox="0 0 60 60" fill="none" width="30" height="30">
-            <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
-            <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
-            <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.45)"/>
-            <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
-          </svg>
+        <div class="lh-logo-wrap">
+          <div class="lh-logo-ring"></div>
+          <div class="lh-logo">
+            <svg viewBox="0 0 60 60" fill="none" width="28" height="28">
+              <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
+              <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
+              <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/>
+              <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
+            </svg>
+          </div>
         </div>
-        <div>
+        <div class="lh-brand-text">
           <div class="lh-brand-name">Eduformium</div>
-          <div class="lh-brand-sub">School Management System</div>
+          <div class="lh-brand-pill">School Management System</div>
         </div>
       </div>
 
+      <!-- Main headline -->
       <div class="lh-headline">
-        Shape<br/>Knowledge.<br/><span>Build Mastery.</span>
+        <span class="lh-hl-top">Shape Knowledge.</span>
+        <span class="lh-hl-accent">Build Mastery.</span>
       </div>
-      <p class="lh-desc">The complete school management platform for modern institutions across Africa and beyond.</p>
+      <p class="lh-desc">The complete school management platform built for modern institutions across Africa and beyond. Trusted, powerful, beautiful.</p>
 
-      <div class="lh-stats">
-        <div class="lh-stat"><div class="lh-stat-n">18+</div><div class="lh-stat-l">Modules</div></div>
-        <div class="lh-stat-sep"></div>
-        <div class="lh-stat"><div class="lh-stat-n">PWA</div><div class="lh-stat-l">Offline Ready</div></div>
-        <div class="lh-stat-sep"></div>
-        <div class="lh-stat"><div class="lh-stat-n">∞</div><div class="lh-stat-l">Students</div></div>
-        <div class="lh-stat-sep"></div>
-        <div class="lh-stat"><div class="lh-stat-n">Free</div><div class="lh-stat-l">To Start</div></div>
+      <!-- Metric strip -->
+      <div class="lh-metrics">
+        <div class="lh-metric">
+          <div class="lh-metric-val">18+</div>
+          <div class="lh-metric-lbl">Modules</div>
+        </div>
+        <div class="lh-metric-div"></div>
+        <div class="lh-metric">
+          <div class="lh-metric-val">PWA</div>
+          <div class="lh-metric-lbl">Offline Ready</div>
+        </div>
+        <div class="lh-metric-div"></div>
+        <div class="lh-metric">
+          <div class="lh-metric-val">∞</div>
+          <div class="lh-metric-lbl">Students</div>
+        </div>
+        <div class="lh-metric-div"></div>
+        <div class="lh-metric">
+          <div class="lh-metric-val">Free</div>
+          <div class="lh-metric-lbl">To Start</div>
+        </div>
       </div>
 
+      <!-- Feature list -->
       <div class="lh-features">
-        <div class="lh-feat"><span class="lh-check">✓</span> Students, Staff &amp; Classes</div>
-        <div class="lh-feat"><span class="lh-check">✓</span> Fees, Payroll &amp; Expenses</div>
-        <div class="lh-feat"><span class="lh-check">✓</span> Exams, Grades &amp; Reports</div>
-        <div class="lh-feat"><span class="lh-check">✓</span> Attendance &amp; Timetable</div>
-        <div class="lh-feat"><span class="lh-check">✓</span> Library &amp; Homework</div>
-        <div class="lh-feat"><span class="lh-check">✓</span> Cloud Sync via Firebase</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Students, Staff &amp; Classes</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Fees, Payroll &amp; Expenses</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Exams, Grades &amp; Report Cards</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Attendance &amp; Timetable</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Library &amp; Homework Tracker</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Cloud Sync via Firebase</div>
       </div>
 
-      <div class="lh-footer">© 2026 Eduformium · Shape Knowledge, Build Mastery</div>
+      <div class="lh-footer">
+        <span>© 2026 Eduformium</span>
+        <span class="lh-footer-dot">·</span>
+        <span>Shape Knowledge, Build Mastery</span>
+      </div>
     </div>
   </div>
 
-  <!-- RIGHT FORM PANEL -->
+  <!-- ═══ RIGHT FORM PANEL ═══ -->
   <div class="login-form-panel">
+    <!-- Subtle top accent line -->
+    <div class="lfp-accent"></div>
+
     <div class="login-box">
 
-      <!-- Mobile brand -->
+      <!-- Mobile brand (shown only on mobile) -->
       <div class="mobile-brand">
         <div class="mob-logo">
-          <svg viewBox="0 0 60 60" fill="none" width="26" height="26">
+          <svg viewBox="0 0 60 60" fill="none" width="24" height="24">
             <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
             <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
             <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.45)"/>
@@ -112,16 +148,19 @@
           </svg>
         </div>
         <div>
-          <div class="mb-name">Eduformium SMS</div>
+          <div class="mb-name">Eduformium</div>
           <div class="mb-sub">School Management System</div>
         </div>
       </div>
 
-      <!-- SIGN IN -->
+      <!-- ── SIGN IN FORM ── -->
       <div id="auth-signin">
-        <div class="auth-eyebrow">Welcome back</div>
-        <h2 class="auth-title">Sign in to your school</h2>
-        <p class="auth-sub">Enter your credentials to access the dashboard</p>
+        <div class="auth-eyebrow">
+          <span class="auth-eyebrow-dot"></span>
+          Welcome back
+        </div>
+        <h2 class="auth-title">Sign in to your<br/><span class="auth-title-accent">school portal</span></h2>
+        <p class="auth-sub">Enter your credentials to access your dashboard</p>
 
         <div class="form-field">
           <label class="form-label" for="l-user">Email Address</label>
@@ -146,24 +185,27 @@
         <div id="l-err" class="form-err" style="display:none">Incorrect email or password.</div>
 
         <button class="btn btn-primary btn-full auth-submit" id="login-btn" type="button">
-          Sign In
+          <span>Sign In</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
 
         <div class="demo-hint">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span><strong>Demo:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7c6c3cacec9e7d4c4cfc8c8cb89c2c3d2">[email&#160;protected]</a> &nbsp;/&nbsp; admin123</span>
+          <span><strong>Demo:</strong> admin@school.edu &nbsp;/&nbsp; admin123</span>
         </div>
 
         <div class="auth-divider"><span>New to Eduformium?</span></div>
         <button class="btn btn-outline btn-full auth-submit" id="go-register" type="button">Register a New School</button>
       </div>
 
-      <!-- REGISTER -->
+      <!-- ── REGISTER FORM ── -->
       <div id="auth-register" style="display:none">
-        <div class="auth-eyebrow">New School</div>
-        <h2 class="auth-title">Create your school account</h2>
-        <p class="auth-sub">Get started with Eduformium in minutes</p>
+        <div class="auth-eyebrow">
+          <span class="auth-eyebrow-dot"></span>
+          New School
+        </div>
+        <h2 class="auth-title">Create your<br/><span class="auth-title-accent">school account</span></h2>
+        <p class="auth-sub">Get started with Eduformium in minutes — free forever</p>
 
         <div class="form-field">
           <label class="form-label" for="r-school">School Name *</label>
@@ -193,7 +235,7 @@
         <div id="r-err" class="form-err" style="display:none"></div>
 
         <button class="btn btn-primary btn-full auth-submit" id="register-btn" type="button">
-          Create School Account
+          <span>Create School Account</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
 

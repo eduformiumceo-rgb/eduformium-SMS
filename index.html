@@ -45,26 +45,52 @@
 <!-- ══════════════════ LOGIN ══════════════════ -->
 <div id="login-screen" class="login-wrap" style="display:none">
 
-  <!-- ════ LEFT HERO (desktop) / TOP BANNER (mobile) ════ -->
+  <!-- ════ LEFT HERO ════ -->
   <div class="l-hero">
     <div class="l-hero-bg"></div>
     <div class="l-hero-dots"></div>
     <div class="l-hero-glow-a"></div>
     <div class="l-hero-glow-b"></div>
-    <svg class="l-hero-grid" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <svg class="l-hero-grid" viewBox="0 0 900 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
-        <pattern id="lgrid" x="0" y="0" width="72" height="72" patternUnits="userSpaceOnUse">
-          <path d="M72 0L0 0 0 72" fill="none" stroke="rgba(255,255,255,0.045)" stroke-width="1"/>
+        <pattern id="lgrid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M60 0L0 0 0 60" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
         </pattern>
       </defs>
       <rect width="100%" height="100%" fill="url(#lgrid)"/>
-      <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(94,234,212,0.08)" stroke-width="1.5"/>
+      <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(94,234,212,0.07)" stroke-width="1.5"/>
     </svg>
+
+    <!-- Floating module badges -->
+    <div class="l-mod-badge l-mod-badge--1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Students
+    </div>
+    <div class="l-mod-badge l-mod-badge--2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Fees
+    </div>
+    <div class="l-mod-badge l-mod-badge--3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Attendance
+    </div>
+    <div class="l-mod-badge l-mod-badge--4">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </div>
+    <div class="l-mod-badge l-mod-badge--5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Staff
+    </div>
+    <div class="l-mod-badge l-mod-badge--6">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Exams
+    </div>
 
     <div class="l-hero-content">
       <div class="l-wordmark">
         <div class="l-mark-box">
-          <svg viewBox="0 0 60 60" fill="none" width="24" height="24">
+          <svg viewBox="0 0 60 60" fill="none" width="26" height="26">
             <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
             <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
             <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/>
@@ -77,41 +103,46 @@
         </div>
       </div>
 
+      <div class="l-eyebrow-pill">
+        <span class="l-eyebrow-pulse"></span>
+        Trusted by Schools Across Africa
+      </div>
+
       <div class="l-headline">
         <span class="l-hl-1">Shape Knowledge.</span>
         <span class="l-hl-2">Build <em>Mastery.</em></span>
       </div>
-      <p class="l-hero-desc">The complete school management platform for modern institutions — trusted across Africa and beyond.</p>
+      <p class="l-hero-desc">The complete school management platform for modern institutions — students, staff, fees, exams, attendance &amp; more.</p>
 
       <div class="l-stats-row">
         <div class="l-stat"><span class="l-stat-n">18+</span><span class="l-stat-l">Modules</span></div>
         <div class="l-stat-sep"></div>
         <div class="l-stat"><span class="l-stat-n">PWA</span><span class="l-stat-l">Offline Ready</span></div>
         <div class="l-stat-sep"></div>
-        <div class="l-stat"><span class="l-stat-n">∞</span><span class="l-stat-l">Students</span></div>
+        <div class="l-stat"><span class="l-stat-n">&#x221e;</span><span class="l-stat-l">Students</span></div>
         <div class="l-stat-sep"></div>
-        <div class="l-stat"><span class="l-stat-n">Free</span><span class="l-stat-l">To Start</span></div>
+        <div class="l-stat"><span class="l-stat-n">Free</span><span class="l-stat-l">Forever</span></div>
       </div>
 
       <div class="l-feats">
-        <div class="l-feat"><span class="l-feat-ic">✓</span>Students, Staff &amp; Classes</div>
-        <div class="l-feat"><span class="l-feat-ic">✓</span>Fees, Payroll &amp; Expenses</div>
-        <div class="l-feat"><span class="l-feat-ic">✓</span>Exams, Grades &amp; Reports</div>
-        <div class="l-feat"><span class="l-feat-ic">✓</span>Attendance &amp; Timetable</div>
-        <div class="l-feat"><span class="l-feat-ic">✓</span>Library &amp; Homework</div>
-        <div class="l-feat"><span class="l-feat-ic">✓</span>Cloud Sync via Firebase</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Students, Staff &amp; Classes</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Fees, Payroll &amp; Expenses</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Exams, Grades &amp; Reports</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Attendance &amp; Timetable</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Library &amp; Homework</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Cloud Sync via Firebase</div>
       </div>
 
-      <div class="l-hero-foot">© 2026 Eduformium · Shape Knowledge, Build Mastery</div>
+      <div class="l-hero-foot">&#169; 2026 Eduformium &middot; Shape Knowledge, Build Mastery</div>
     </div>
   </div>
 
-  <!-- ════ RIGHT FORM (desktop) / BOTTOM CARD (mobile) ════ -->
+  <!-- ════ RIGHT FORM PANEL ════ -->
   <div class="l-panel">
     <div class="l-panel-bar"></div>
     <div class="l-panel-inner">
 
-      <!-- Mobile only brand -->
+      <!-- Mobile brand (hidden on desktop) -->
       <div class="l-mob-brand">
         <div class="l-mob-logo">
           <svg viewBox="0 0 60 60" fill="none" width="22" height="22">
@@ -145,7 +176,7 @@
           <label class="form-label" for="l-pass">Password</label>
           <div class="pw-wrap fi-wrap">
             <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input class="form-input fi-input" type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"/>
+            <input class="form-input fi-input" type="password" id="l-pass" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password"/>
             <button type="button" class="pw-toggle" id="l-pass-toggle" aria-label="Toggle password">
               <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -162,11 +193,14 @@
 
         <div class="l-demo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span><strong>Demo:</strong> admin@school.edu &nbsp;/&nbsp; admin123</span>
+          <span><strong>Demo:</strong> demo@eduformium.com &nbsp;/&nbsp; admin123</span>
         </div>
 
         <div class="l-divider"><span>New to Eduformium?</span></div>
-        <button class="l-btn-outline" id="go-register" type="button">Register a New School</button>
+        <button class="l-btn-outline" id="go-register" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Register a New School
+        </button>
       </div>
 
       <!-- REGISTER -->
@@ -208,7 +242,10 @@
         </button>
 
         <div class="l-divider"><span>Already have an account?</span></div>
-        <button class="l-btn-outline" id="go-signin" type="button">Back to Sign In</button>
+        <button class="l-btn-outline" id="go-signin" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Back to Sign In
+        </button>
       </div>
 
     </div>
@@ -1688,7 +1725,16 @@
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-<!-- Firebase Compat SDK -->
-<script src="http
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script
+
+<!-- Firebase SDK (compat v9 compat layer) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- App -->
+<script src="firebase.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

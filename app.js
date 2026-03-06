@@ -372,10 +372,15 @@ const SMS = {
       }
     }));
     document.getElementById('menu-btn').addEventListener('click',()=>{
-      const sb=document.getElementById('sidebar'); sb.classList.toggle('open');
-      let ov=document.getElementById('sidebar-overlay');
-      if(!ov){ ov=document.createElement('div'); ov.id='sidebar-overlay'; ov.className='sidebar-overlay'; ov.addEventListener('click',()=>{ sb.classList.remove('open'); ov.classList.remove('show'); }); document.body.appendChild(ov); }
-      ov.classList.toggle('show');
+      const isMobile = window.innerWidth <= 768;
+      if(isMobile){
+        const sb=document.getElementById('sidebar'); sb.classList.toggle('open');
+        let ov=document.getElementById('sidebar-overlay');
+        if(!ov){ ov=document.createElement('div'); ov.id='sidebar-overlay'; ov.className='sidebar-overlay'; ov.addEventListener('click',()=>{ sb.classList.remove('open'); ov.classList.remove('show'); }); document.body.appendChild(ov); }
+        ov.classList.toggle('show', sb.classList.contains('open'));
+      } else {
+        document.getElementById('app').classList.toggle('sidebar-collapsed');
+      }
     });
     document.getElementById('sb-close')?.addEventListener('click',()=>{ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay')?.classList.remove('show'); });
     document.getElementById('user-chip')?.addEventListener('click',()=>this.nav('settings'));

@@ -653,8 +653,9 @@ img { max-width: 100%; }
     animation: lCardUp .48s .1s cubic-bezier(.22,1,.36,1) both;
   }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
-  /* Hide the drag handle line above Secure Sign In */
-  .l-panel-bar { display: none; }
+  /* Restore drag handle in neutral grey — no teal */
+  .l-panel-bar { height: auto; background: transparent; padding: .85rem 0 0; display: flex; justify-content: center; }
+  .l-panel-bar::after { content: ''; display: block; width: 36px; height: 4px; background: #d1d5db; border-radius: 99px; }
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
   .l-title { font-size: 2.1rem; }
   .l-subtitle { margin-bottom: 1.5rem; }

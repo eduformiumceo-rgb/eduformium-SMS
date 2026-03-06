@@ -152,7 +152,7 @@
 
         <div class="demo-hint">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span><strong>Demo:</strong> admin@school.edu &nbsp;/&nbsp; admin123</span>
+          <span><strong>Demo:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7c6c3cacec9e7d4c4cfc8c8cb89c2c3d2">[email&#160;protected]</a> &nbsp;/&nbsp; admin123</span>
         </div>
 
         <div class="auth-divider"><span>New to Eduformium?</span></div>
@@ -401,6 +401,9 @@
             <div class="ph-sub" id="dash-welcome">Good morning! Here's your school overview.</div>
           </div>
           <div class="ph-right">
+            <button class="btn btn-ghost btn-sm" id="dash-refresh-btn" title="Refresh Dashboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+            </button>
             <button class="btn btn-primary btn-sm" onclick="SMS.nav('students')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Enroll Student
@@ -452,6 +455,13 @@
             <button class="btn btn-secondary btn-sm" id="exp-students-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export
+            </button>
+            <button class="btn btn-secondary btn-sm admin-only" id="import-students-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Import
+            </button>
+            <button class="btn btn-secondary btn-sm admin-only" id="promote-btn">
+              🎓 Promote
             </button>
             <button class="btn btn-primary btn-sm admin-only" id="add-student-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -525,6 +535,10 @@
             <select class="filter-select" id="att-class">
               <option value="">Select Class</option>
             </select>
+            <button class="btn btn-secondary btn-sm" id="print-att-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Print Sheet
+            </button>
             <button class="btn btn-primary btn-sm" id="take-att-btn">Take Attendance</button>
           </div>
         </div>
@@ -698,7 +712,8 @@
               <select id="pay-month" class="filter-select"></select>
               <select id="pay-year" class="filter-select"></select>
             </div>
-            <button class="btn btn-primary btn-sm" id="process-payroll-btn">Process Payroll</button>
+            <button class="btn btn-secondary btn-sm" id="exp-payroll-btn">Export</button>
+            <button class="btn btn-primary btn-sm" id="process-payroll-btn">Process All</button>
           </div>
         </div>
         <div class="kpi-grid" id="payroll-kpis"></div>
@@ -1665,7 +1680,7 @@
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <!-- Firebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1684,13 +1699,4 @@ window.addEventListener('error', function(e){
   if(ls) ls.style.display = 'flex';
 });
 setTimeout(function(){
-  var ol = document.getElementById('loading-overlay');
-  if(ol && ol.style.display !== 'none'){
-    ol.style.display = 'none';
-    var ls = document.getElementById('login-screen');
-    if(ls) ls.style.display = 'flex';
-  }
-}, 4000);
-</script>
-</body>
-</html>
+  var ol = document.getElementBy

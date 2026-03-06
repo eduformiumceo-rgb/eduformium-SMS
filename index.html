@@ -45,34 +45,75 @@
 <!-- ══════════════════ LOGIN ══════════════════ -->
 <div id="login-screen" class="login-wrap" style="display:none">
 
-  <!-- ════ DESKTOP LEFT / MOBILE TOP — BRAND HERO ════ -->
+  <!-- ════ LEFT HERO (desktop) / TOP BANNER (mobile) ════ -->
   <div class="l-hero">
-    <!-- Background layers -->
-    <div class="l-hero-base"></div>
-    <div class="l-hero-mesh"></div>
-    <!-- Radial spotlights — CSS only, no filter:blur -->
-    <div class="l-spot l-spot-a"></div>
-    <div class="l-spot l-spot-b"></div>
-    <div class="l-spot l-spot-c"></div>
-    <!-- Animated SVG grid lines -->
-    <svg class="l-gridsvg" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <div class="l-hero-bg"></div>
+    <div class="l-hero-dots"></div>
+    <div class="l-hero-glow-a"></div>
+    <div class="l-hero-glow-b"></div>
+    <svg class="l-hero-grid" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
-        <pattern id="grid" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-          <path d="M80 0L0 0 0 80" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <pattern id="lgrid" x="0" y="0" width="72" height="72" patternUnits="userSpaceOnUse">
+          <path d="M72 0L0 0 0 72" fill="none" stroke="rgba(255,255,255,0.045)" stroke-width="1"/>
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#grid)"/>
-      <!-- Accent diagonal line -->
-      <line x1="0" y1="800" x2="800" y2="0" stroke="rgba(94,234,212,0.07)" stroke-width="1.5"/>
-      <line x1="-100" y1="800" x2="700" y2="0" stroke="rgba(94,234,212,0.04)" stroke-width="1"/>
+      <rect width="100%" height="100%" fill="url(#lgrid)"/>
+      <line x1="0" y1="100%" x2="100%" y2="0" stroke="rgba(94,234,212,0.08)" stroke-width="1.5"/>
     </svg>
 
-    <!-- Content -->
     <div class="l-hero-content">
-
-      <!-- Wordmark -->
       <div class="l-wordmark">
-        <div class="l-mark">
+        <div class="l-mark-box">
+          <svg viewBox="0 0 60 60" fill="none" width="24" height="24">
+            <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
+            <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
+            <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/>
+            <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
+          </svg>
+        </div>
+        <div class="l-mark-text">
+          <span class="l-mark-name">Eduformium</span>
+          <span class="l-mark-tag">School Management System</span>
+        </div>
+      </div>
+
+      <div class="l-headline">
+        <span class="l-hl-1">Shape Knowledge.</span>
+        <span class="l-hl-2">Build <em>Mastery.</em></span>
+      </div>
+      <p class="l-hero-desc">The complete school management platform for modern institutions — trusted across Africa and beyond.</p>
+
+      <div class="l-stats-row">
+        <div class="l-stat"><span class="l-stat-n">18+</span><span class="l-stat-l">Modules</span></div>
+        <div class="l-stat-sep"></div>
+        <div class="l-stat"><span class="l-stat-n">PWA</span><span class="l-stat-l">Offline Ready</span></div>
+        <div class="l-stat-sep"></div>
+        <div class="l-stat"><span class="l-stat-n">∞</span><span class="l-stat-l">Students</span></div>
+        <div class="l-stat-sep"></div>
+        <div class="l-stat"><span class="l-stat-n">Free</span><span class="l-stat-l">To Start</span></div>
+      </div>
+
+      <div class="l-feats">
+        <div class="l-feat"><span class="l-feat-ic">✓</span>Students, Staff &amp; Classes</div>
+        <div class="l-feat"><span class="l-feat-ic">✓</span>Fees, Payroll &amp; Expenses</div>
+        <div class="l-feat"><span class="l-feat-ic">✓</span>Exams, Grades &amp; Reports</div>
+        <div class="l-feat"><span class="l-feat-ic">✓</span>Attendance &amp; Timetable</div>
+        <div class="l-feat"><span class="l-feat-ic">✓</span>Library &amp; Homework</div>
+        <div class="l-feat"><span class="l-feat-ic">✓</span>Cloud Sync via Firebase</div>
+      </div>
+
+      <div class="l-hero-foot">© 2026 Eduformium · Shape Knowledge, Build Mastery</div>
+    </div>
+  </div>
+
+  <!-- ════ RIGHT FORM (desktop) / BOTTOM CARD (mobile) ════ -->
+  <div class="l-panel">
+    <div class="l-panel-bar"></div>
+    <div class="l-panel-inner">
+
+      <!-- Mobile only brand -->
+      <div class="l-mob-brand">
+        <div class="l-mob-logo">
           <svg viewBox="0 0 60 60" fill="none" width="22" height="22">
             <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
             <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
@@ -80,87 +121,17 @@
             <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
           </svg>
         </div>
-        <span class="l-wordmark-name">Eduformium</span>
-        <span class="l-wordmark-badge">SMS</span>
-      </div>
-
-      <!-- Main headline -->
-      <div class="l-headline">
-        <div class="l-hl-line l-hl-line1">Shape</div>
-        <div class="l-hl-line l-hl-line2">Knowledge.</div>
-        <div class="l-hl-line l-hl-line3">Build <span class="l-hl-teal">Mastery.</span></div>
-      </div>
-
-      <p class="l-tagline">The complete school management platform for modern institutions — trusted across Africa and beyond.</p>
-
-      <!-- Stats row -->
-      <div class="l-stats">
-        <div class="l-stat">
-          <div class="l-stat-val">18+</div>
-          <div class="l-stat-key">Modules</div>
-        </div>
-        <div class="l-stat-line"></div>
-        <div class="l-stat">
-          <div class="l-stat-val">PWA</div>
-          <div class="l-stat-key">Offline Ready</div>
-        </div>
-        <div class="l-stat-line"></div>
-        <div class="l-stat">
-          <div class="l-stat-val">∞</div>
-          <div class="l-stat-key">Students</div>
-        </div>
-        <div class="l-stat-line"></div>
-        <div class="l-stat">
-          <div class="l-stat-val">Free</div>
-          <div class="l-stat-key">To Start</div>
-        </div>
-      </div>
-
-      <!-- Feature chips -->
-      <div class="l-chips">
-        <span class="l-chip">✦ Students &amp; Staff</span>
-        <span class="l-chip">✦ Fees &amp; Payroll</span>
-        <span class="l-chip">✦ Exams &amp; Grades</span>
-        <span class="l-chip">✦ Timetable</span>
-        <span class="l-chip">✦ Library</span>
-        <span class="l-chip">✦ Firebase Sync</span>
-      </div>
-
-      <div class="l-copy">© 2026 Eduformium · Shape Knowledge, Build Mastery</div>
-    </div>
-  </div>
-
-  <!-- ════ RIGHT PANEL / MOBILE BOTTOM — FORM ════ -->
-  <div class="l-form-wrap">
-    <!-- Top gradient bar -->
-    <div class="l-bar"></div>
-
-    <div class="l-form-inner">
-
-      <!-- Mobile only: small wordmark above form -->
-      <div class="l-mob-brand">
-        <div class="l-mob-mark">
-          <svg viewBox="0 0 60 60" fill="none" width="20" height="20">
-            <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
-            <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
-            <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/>
-            <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
-          </svg>
-        </div>
-        <div class="l-mob-text">
+        <div>
           <div class="l-mob-name">Eduformium</div>
           <div class="l-mob-sub">School Management System</div>
         </div>
       </div>
 
-      <!-- ── SIGN IN ── -->
+      <!-- SIGN IN -->
       <div id="auth-signin">
-        <div class="l-form-tag">
-          <span class="l-tag-dot"></span>
-          <span>Secure Sign In</span>
-        </div>
-        <h2 class="l-form-title">Welcome back<span class="l-form-title-dot">.</span></h2>
-        <p class="l-form-sub">Enter your credentials to access your school dashboard</p>
+        <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>Secure Sign In</div>
+        <h2 class="l-title">Welcome back<span class="l-title-dot">.</span></h2>
+        <p class="l-subtitle">Sign in to access your school dashboard</p>
 
         <div class="form-field">
           <label class="form-label" for="l-user">Email Address</label>
@@ -174,7 +145,7 @@
           <label class="form-label" for="l-pass">Password</label>
           <div class="pw-wrap fi-wrap">
             <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <input class="form-input fi-input" type="password" id="l-pass" placeholder="••••••••••" autocomplete="current-password"/>
+            <input class="form-input fi-input" type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"/>
             <button type="button" class="pw-toggle" id="l-pass-toggle" aria-label="Toggle password">
               <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -194,18 +165,15 @@
           <span><strong>Demo:</strong> admin@school.edu &nbsp;/&nbsp; admin123</span>
         </div>
 
-        <div class="l-divider"><span>Don't have an account?</span></div>
-        <button class="l-btn-ghost" id="go-register" type="button">Create a School Account</button>
+        <div class="l-divider"><span>New to Eduformium?</span></div>
+        <button class="l-btn-outline" id="go-register" type="button">Register a New School</button>
       </div>
 
-      <!-- ── REGISTER ── -->
+      <!-- REGISTER -->
       <div id="auth-register" style="display:none">
-        <div class="l-form-tag">
-          <span class="l-tag-dot"></span>
-          <span>New School</span>
-        </div>
-        <h2 class="l-form-title">Get started<span class="l-form-title-dot">.</span></h2>
-        <p class="l-form-sub">Create your school account and be up and running in minutes</p>
+        <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>New School</div>
+        <h2 class="l-title">Get started<span class="l-title-dot">.</span></h2>
+        <p class="l-subtitle">Create your school account — free forever</p>
 
         <div class="form-field">
           <label class="form-label" for="r-school">School Name *</label>
@@ -240,7 +208,7 @@
         </button>
 
         <div class="l-divider"><span>Already have an account?</span></div>
-        <button class="l-btn-ghost" id="go-signin" type="button">Back to Sign In</button>
+        <button class="l-btn-outline" id="go-signin" type="button">Back to Sign In</button>
       </div>
 
     </div>
@@ -1720,9 +1688,7 @@
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <!-- Firebase Compat SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebas
+<script src="http

@@ -288,6 +288,7 @@ const SMS = {
   _auditPage: 1,
 
   _demoMode: false,
+  _formsBound: false,
 
   init() {
     if(!window.FAuth){ // fallback if Firebase didn't load
@@ -303,6 +304,7 @@ const SMS = {
     // Set persistence to LOCAL so session survives page refresh
     _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     FAuth.onAuthChange(async (firebaseUser)=>{
+      if(this._demoMode) return; // demo session active — ignore all Firebase auth callbacks
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
@@ -313,7 +315,6 @@ const SMS = {
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this.boot();
       } else {
-        if(this._demoMode) return; // demo login already handled — ignore Firebase null auth
         this.schoolId=null; this.currentUser=null;
         seedData();
         this.showLogin();
@@ -443,6 +444,8 @@ const SMS = {
 
   // ── AUTH ──
   bindForms(){
+    if(this._formsBound) return;
+    this._formsBound = true;
     document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
       // Always seed fresh demo data and log in locally — never hits Firebase
       this._demoMode = true;

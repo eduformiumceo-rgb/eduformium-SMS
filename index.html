@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
 <title>Eduformium School Management System</title>
-<meta name="description" content="World-class School Management System by Eduformium — Shape Knowledge, Build Mastery."/>
+<meta name="description" content="Eduformium SMS — School management built for African institutions. Manage students, staff, fees, exams, attendance and more from one dashboard."/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#1a3a6b"/>
@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
+<noscript><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0d1f42;color:white;font-family:system-ui,sans-serif;text-align:center;padding:2rem"><div><svg viewBox="0 0 60 60" fill="none" width="52" height="52" style="margin:0 auto 1rem"><rect x="10" y="8" width="8" height="44" rx="4" fill="white"/><rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/><rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/><rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/></svg><h2 style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">JavaScript Required</h2><p style="font-size:.9rem;opacity:.7;max-width:320px">Eduformium SMS requires JavaScript to run. Please enable JavaScript in your browser and reload the page.</p></div></div></noscript>
 
 <!-- ══ LOADING OVERLAY ══ -->
 <div id="loading-overlay">
@@ -86,16 +87,16 @@
         <span class="l-hl-1">Shape Knowledge.</span>
         <span class="l-hl-2">Build <em>Mastery.</em></span>
       </div>
-      <p class="l-hero-desc">The complete school management platform for modern institutions — students, staff, fees, exams, attendance &amp; more.</p>
+      <p class="l-hero-desc">Built for schools across Ghana and Africa — manage admissions, fees in GHS, term-based exams, BECE prep, payroll and more. No spreadsheets needed.</p>
 
       <div class="l-stats-row">
         <div class="l-stat"><span class="l-stat-n">18+</span><span class="l-stat-l">Modules</span></div>
         <div class="l-stat-sep"></div>
-        <div class="l-stat"><span class="l-stat-n">PWA</span><span class="l-stat-l">Offline Ready</span></div>
+        <div class="l-stat"><span class="l-stat-n">GHS</span><span class="l-stat-l">Multi-Currency</span></div>
         <div class="l-stat-sep"></div>
-        <div class="l-stat"><span class="l-stat-n">&#x221e;</span><span class="l-stat-l">Students</span></div>
+        <div class="l-stat"><span class="l-stat-n">PWA</span><span class="l-stat-l">Works Offline</span></div>
         <div class="l-stat-sep"></div>
-        <div class="l-stat"><span class="l-stat-n">Free</span><span class="l-stat-l">Forever</span></div>
+        <div class="l-stat"><span class="l-stat-n">Cloud</span><span class="l-stat-l">Firebase Sync</span></div>
       </div>
 
       <div class="l-feats">
@@ -148,10 +149,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
 
-        <div class="l-demo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span><strong>Demo:</strong> <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="791d1c1416391c1d0c1f160b14100c14571a1614">[email&#160;protected]</a> &nbsp;/&nbsp; admin123</span>
-        </div>
+        <button class="l-btn-demo" id="try-demo-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M5 3l14 9-14 9V3z"/></svg>
+          Explore Demo School
+        </button>
 
         <div class="l-divider"><span>New to Eduformium?</span></div>
         <button class="l-btn-outline" id="go-register" type="button">
@@ -164,11 +165,15 @@
       <div id="auth-register" style="display:none">
         <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>New School</div>
         <h2 class="l-title">Get started</h2>
-        <p class="l-subtitle">Create your school account — free forever</p>
+        <p class="l-subtitle">Set up your school account — takes under 2 minutes</p>
 
         <div class="form-field">
           <label class="form-label" for="r-school">School Name *</label>
           <input class="form-input" type="text" id="r-school" placeholder="e.g. Bright Future Academy"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="r-motto">School Motto</label>
+          <input class="form-input" type="text" id="r-motto" placeholder="e.g. Integrity, Excellence, Service"/>
         </div>
         <div class="form-grid-2">
           <div class="form-field">
@@ -211,7 +216,7 @@
 </div>
 
 <!-- ══════════════════ APP SHELL ══════════════════ -->
-<div id="app" class="shell" style="display:none">
+<div id="app" class="shell" style="display:none" role="application" aria-label="Eduformium School Management System">
 
   <!-- TOPBAR -->
   <header class="topbar">
@@ -236,12 +241,12 @@
     <span class="topbar-title" id="topbar-title">Dashboard</span>
     <div class="topbar-right">
       <!-- Search -->
-      <button class="icon-btn" id="search-btn" title="Search">
+      <button class="icon-btn" id="search-btn" title="Search" aria-label="Search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       <!-- Notifications -->
       <div class="notif-wrap" id="notif-wrap">
-        <button class="icon-btn notif-btn" id="notif-btn" title="Notifications">
+        <button class="icon-btn notif-btn" id="notif-btn" title="Notifications" aria-label="Notifications">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="notif-badge" id="notif-badge" style="display:none">0</span>
         </button>
@@ -251,7 +256,7 @@
         </div>
       </div>
       <!-- Theme -->
-      <button class="icon-btn" id="theme-btn" title="Toggle theme">
+      <button class="icon-btn" id="theme-btn" title="Toggle theme" aria-label="Toggle dark mode">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
@@ -267,7 +272,7 @@
   </header>
 
   <!-- SIDEBAR -->
-  <nav class="sidebar" id="sidebar">
+  <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
     <div class="sidebar-header">
       <button class="sb-close" id="sb-close">&#x2715;</button>
       <div class="sb-brand">
@@ -384,7 +389,7 @@
     </div>
     <div class="sidebar-footer">
       <span>© 2026 Eduformium</span>
-      <button class="sb-logout" id="sb-logout">
+      <button class="sb-logout" id="sb-logout" aria-label="Sign out">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Sign Out
       </button>
@@ -392,7 +397,7 @@
   </nav>
 
   <!-- MAIN CONTENT -->
-  <main class="main">
+  <main class="main" id="main-content" role="main" aria-label="Page content">
     <div class="page-wrap">
 
       <!-- ── DASHBOARD ── -->
@@ -1259,7 +1264,7 @@
               </div>
               <div class="d-flex gap-3">
                 <button class="btn btn-primary" id="save-sms-btn">Save Settings</button>
-                <button class="btn btn-secondary btn-sm" id="test-sms-btn">Send Test SMS</button>
+                <button class="btn btn-secondary btn-sm" id="test-sms-btn">Send Test SMS <span class="badge badge-warn" style="margin-left:.3rem;font-size:.65rem">Setup Required</span></button>
               </div>
             </div>
           </div>
@@ -1292,7 +1297,7 @@
   <div class="modal modal-lg">
     <div class="modal-hd">
       <span class="modal-title" id="student-modal-title">Enroll New Student</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-student')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-student')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <div class="modal-tabs">
@@ -1380,7 +1385,7 @@
   <div class="modal modal-lg">
     <div class="modal-hd">
       <span class="modal-title" id="staff-modal-title">Add Staff Member</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-staff')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-staff')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="stf-id"/>
@@ -1419,7 +1424,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title">Record Fee Payment</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-fee')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-fee')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="fee-id"/>
@@ -1455,7 +1460,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title" id="class-modal-title">Add Class</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-class')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-class')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="clf-id"/>
@@ -1479,7 +1484,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title">Add Subject</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-subject')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-subject')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <div class="form-grid-2">
@@ -1502,7 +1507,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title">Create Exam</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-exam')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-exam')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <div class="form-grid-2">
@@ -1532,7 +1537,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title">Add Event</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-event')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-event')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <div class="form-grid-2">
@@ -1562,7 +1567,7 @@
   <div class="modal modal-xl">
     <div class="modal-hd">
       <span class="modal-title" id="sp-modal-title">Student Profile</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-student-profile')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-student-profile')">&#x2715;</button>
     </div>
     <div class="modal-body" id="student-profile-body"></div>
   </div>
@@ -1573,7 +1578,7 @@
   <div class="modal" style="max-width:400px">
     <div class="modal-hd">
       <span class="modal-title">Confirm Delete</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-delete')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-delete')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <p id="del-msg" style="font-size:.87rem;color:var(--t2);line-height:1.6"></p>
@@ -1590,7 +1595,7 @@
   <div class="modal" style="max-width:480px">
     <div class="modal-hd">
       <span class="modal-title" id="receipt-title">Receipt</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-receipt')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-receipt')">&#x2715;</button>
     </div>
     <div class="modal-body" id="receipt-body"></div>
     <div class="modal-foot">
@@ -1605,7 +1610,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title">Compose Message</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-compose')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-compose')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <div class="form-field"><label class="form-label">To *</label>
@@ -1640,7 +1645,7 @@
   <div class="modal">
     <div class="modal-hd">
       <span class="modal-title" id="user-modal-title">Add User</span>
-      <button class="modal-close" onclick="SMS.closeModal('m-user')">&#x2715;</button>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-user')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="uf-id"/>
@@ -1673,7 +1678,7 @@
     <div style="display:flex;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
       <svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="search" id="global-search-input" placeholder="Search students, staff, anything…" style="flex:1;border:none;outline:none;background:transparent;padding:.5rem .75rem;font-size:.95rem;color:var(--t1);font-family:inherit"/>
-      <button onclick="document.getElementById('search-overlay').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:1.2rem">&#x2715;</button>
+      <button onclick="document.getElementById('search-overlay').style.display='none'" aria-label="Close search" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:1.2rem">&#x2715;</button>
     </div>
     <div id="search-results" style="max-height:400px;overflow-y:auto;padding:.5rem 0"></div>
   </div>

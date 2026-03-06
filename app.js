@@ -357,32 +357,44 @@ const SMS = {
     const ne=document.querySelector(`.nav-item[data-page="${page}"]`); if(ne) ne.classList.add('active');
     const tt=document.getElementById('topbar-title'); if(tt) tt.textContent=ne?.textContent.trim()||page;
     this.currentPage=page;
-    document.getElementById('sidebar').classList.remove('open');
-    const ov=document.getElementById('sidebar-overlay'); if(ov) ov.classList.remove('show');
+    document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('sidebar-overlay')?.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
     const loaders={dashboard:()=>this.loadDashboard(),students:()=>this.loadStudents(),classes:()=>this.loadClasses(),attendance:()=>this.loadAttendance(),exams:()=>this.loadExams(),timetable:()=>this.loadTimetable(),homework:()=>this.loadHomework(),staff:()=>this.loadStaff(),payroll:()=>this.loadPayroll(),leave:()=>this.loadLeave(),fees:()=>this.loadFees(),expenses:()=>this.loadExpenses(),messages:()=>this.loadMessages(),library:()=>this.loadLibrary(),events:()=>this.loadEvents(),reports:()=>{},audit:()=>this.renderAudit(),settings:()=>this.loadSettings()};
     if(loaders[page]) loaders[page]();
   },
 
   bindNav(){
-    document.querySelectorAll('.nav-item[data-page]').forEach(item=>item.addEventListener('click',()=>{
+    // ── Sidebar: unified open/close for all screen sizes ──
+    const _openSidebar = () => {
+      const sb = document.getElementById('sidebar');
+      sb.classList.add('open');
+      document.body.classList.add('sidebar-open');
+      let ov = document.getElementById('sidebar-overlay');
+      if(!ov){
+        ov = document.createElement('div');
+        ov.id = 'sidebar-overlay';
+        ov.className = 'sidebar-overlay';
+        document.body.appendChild(ov);
+      }
+      ov.classList.add('show');
+      ov.onclick = _closeSidebar;
+    };
+    const _closeSidebar = () => {
+      document.getElementById('sidebar')?.classList.remove('open');
+      document.getElementById('sidebar-overlay')?.classList.remove('show');
+      document.body.classList.remove('sidebar-open');
+    };
+
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => item.addEventListener('click', () => {
       this.nav(item.dataset.page);
-      if(window.innerWidth < 769){
-        document.getElementById('sidebar')?.classList.remove('open');
-        document.getElementById('sidebar-overlay')?.classList.remove('show');
-      }
+      _closeSidebar();
     }));
-    document.getElementById('menu-btn').addEventListener('click',()=>{
-      const isMobile = window.innerWidth <= 768;
-      if(isMobile){
-        const sb=document.getElementById('sidebar'); sb.classList.toggle('open');
-        let ov=document.getElementById('sidebar-overlay');
-        if(!ov){ ov=document.createElement('div'); ov.id='sidebar-overlay'; ov.className='sidebar-overlay'; ov.addEventListener('click',()=>{ sb.classList.remove('open'); ov.classList.remove('show'); }); document.body.appendChild(ov); }
-        ov.classList.toggle('show', sb.classList.contains('open'));
-      } else {
-        document.getElementById('app').classList.toggle('sidebar-collapsed');
-      }
+    document.getElementById('menu-btn')?.addEventListener('click', () => {
+      const isOpen = document.getElementById('sidebar')?.classList.contains('open');
+      isOpen ? _closeSidebar() : _openSidebar();
     });
-    document.getElementById('sb-close')?.addEventListener('click',()=>{ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay')?.classList.remove('show'); });
+    document.getElementById('sb-close')?.addEventListener('click', _closeSidebar);
     document.getElementById('user-chip')?.addEventListener('click',()=>this.nav('settings'));
     document.getElementById('sb-user-card')?.addEventListener('click',()=>this.nav('settings'));
     document.getElementById('logout-btn')?.addEventListener('click',()=>this.logout());

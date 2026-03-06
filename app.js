@@ -519,7 +519,7 @@ const SMS = {
     const errEl=document.getElementById('l-err');
     const btn=document.getElementById('login-btn');
     if(!email||!pass){ errEl.style.display='flex'; errEl.textContent='Please enter your email and password.'; return; }
-    btn.disabled=true; btn.textContent='Signing in…'; errEl.style.display='none';
+    btn.disabled=true; btn.querySelector('span').textContent='Signing in…'; errEl.style.display='none';
 
     // Always check localStorage first (covers demo account + offline use)
     const users=DB.get('users',[]);
@@ -532,9 +532,9 @@ const SMS = {
     }
 
     // Try Firebase if available
-    if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.textContent='Sign In →'; return; }
+    if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
     const result=await FAuth.login(email,pass);
-    if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.textContent='Sign In →'; }
+    if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; }
   },
 
   async register(){
@@ -548,9 +548,9 @@ const SMS = {
     if(!school||!name||!email||!pwd){ errEl.textContent='Please fill in all required fields.'; errEl.style.display='flex'; return; }
     if(pwd!==cpwd){ errEl.textContent='Passwords do not match.'; errEl.style.display='flex'; return; }
     if(pwd.length<6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='flex'; return; }
-    btn.disabled=true; btn.textContent='Creating account…'; errEl.style.display='none';
+    btn.disabled=true; btn.querySelector('span').textContent='Creating account…'; errEl.style.display='none';
     if(!window.FAuth){
-      const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.textContent='Email already registered.'; errEl.style.display='flex'; btn.disabled=false; btn.textContent='Create School Account'; return; }
+      const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.textContent='Email already registered.'; errEl.style.display='flex'; btn.disabled=false; btn.querySelector('span').textContent='Create School Account'; return; }
       const sc=DB.get('school',{}); sc.name=school; DB.set('school',sc);
       const newUser={id:uid('u'),email,password:pwd,name,role:'admin',phone:'',createdAt:new Date().toISOString(),lastLogin:null};
       users.push(newUser); DB.set('users',users); DB.set('session',{userId:newUser.id}); this.currentUser=newUser;
@@ -558,7 +558,7 @@ const SMS = {
     }
     const result=await FAuth.register(school,name,email,pwd);
     if(result.success){ this.toast(`Welcome, ${name.split(' ')[0]}!`,'success'); }
-    else{ errEl.textContent=result.error; errEl.style.display='flex'; btn.disabled=false; btn.textContent='Create School Account'; }
+    else{ errEl.textContent=result.error; errEl.style.display='flex'; btn.disabled=false; btn.querySelector('span').textContent='Create School Account'; }
   },
 
   // ══ DASHBOARD ══

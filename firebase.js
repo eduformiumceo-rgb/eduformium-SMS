@@ -2,6 +2,10 @@
 //  EDUFORMIUM SMS — Firebase Integration
 //  Plain script — no ES modules
 //  Uses Firebase compat SDK from CDN
+//
+//  SECURITY NOTE: This key is restricted to authorised HTTP referrers
+//  in the Firebase Console (API & Services → Credentials).
+//  Never commit an unrestricted key to a public repository.
 // ══════════════════════════════════════════
 
 const firebaseConfig = {
@@ -19,8 +23,8 @@ firebase.initializeApp(firebaseConfig);
 const _auth = firebase.auth();
 const _db   = firebase.firestore();
 
-_db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-  console.warn('Firestore persistence:', err.code);
+_db.enablePersistence({ synchronizeTabs: true }).catch(() => {
+  // Offline persistence unavailable (e.g. multiple tabs or private browsing) — app continues normally
 });
 
 // ── FDB ──

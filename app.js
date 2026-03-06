@@ -61,43 +61,31 @@ function seedData(){
     {id:'stf10',fname:'Osei',lname:'Bonsu',role:'admin',dept:'Administration',subjects:'',phone:'+233 24 010 1010',email:'osei@bfa.edu.gh',gender:'Male',salary:3650,status:'active',joinDate:'2016-01-01',qualification:'MBA'},
   ]);
   const sdata=[
-    ['Kwadwo','Osei','cls7','Male','2012-03-15','Patrick Osei','+233 24 101 2020','2021-09-07'],
-    ['Ama','Kusi','cls7','Female','2012-07-22','Bernard Kusi','+233 24 202 3030','2022-01-10'],
-    ['Yaw','Agyemang','cls8','Male','2011-11-08','Samuel Agyemang','+233 24 303 4040','2020-09-03'],
-    ['Akua','Mensah','cls8','Female','2011-05-30','Joseph Mensah','+233 24 404 5050','2021-01-08'],
-    ['Kofi','Asante','cls9','Male','2010-09-18','Francis Asante','+233 24 505 6060','2019-09-02'],
-    ['Abena','Boateng','cls9','Female','2010-01-25','Richard Boateng','+233 24 606 7070','2019-01-14'],
-    ['Kwesi','Darko','cls6','Male','2013-06-12','Thomas Darko','+233 24 707 8080','2022-09-05'],
-    ['Efua','Owusu','cls6','Female','2013-04-03','Emmanuel Owusu','+233 24 808 9090','2022-01-11'],
-    ['Kojo','Frimpong','cls5','Male','2014-08-20','Alex Frimpong','+233 24 909 0101','2023-09-04'],
-    ['Adjoa','Nyarko','cls5','Female','2014-12-15','George Nyarko','+233 24 121 3131','2023-01-09'],
-    ['Kwame','Amoah','cls4','Male','2015-02-28','Daniel Amoah','+233 24 141 5151','2024-01-15'],
-    ['Ama','Acheampong','cls4','Female','2015-07-10','Peter Acheampong','+233 24 161 7171','2024-09-02'],
-    ['Yaw','Tetteh','cls3','Male','2016-05-14','Samuel Tetteh','+233 24 181 9191','2024-09-02'],
-    ['Akosua','Boateng','cls3','Female','2016-09-20','James Boateng','+233 24 202 1212','2025-01-06'],
-    ['Kweku','Asare','cls2','Male','2017-03-08','Frank Asare','+233 24 222 3232','2025-01-06'],
-    ['Abena','Quaye','cls2','Female','2017-11-25','Paul Quaye','+233 24 242 5252','2025-09-01'],
-    ['Nana','Opoku','cls1','Male','2018-07-15','Charles Opoku','+233 24 262 7272','2025-09-01'],
-    ['Adwoa','Mensah','cls1','Female','2018-01-30','Ben Mensah','+233 24 282 9292','2025-09-01'],
-    ['Fiifi','Amankwah','cls6','Male','2013-10-05','Eric Amankwah','+233 24 311 4141','2023-01-09'],
-    ['Maame','Sarpong','cls8','Female','2011-08-17','Kweku Sarpong','+233 24 322 5252','2021-09-06'],
-  ];
-  const feeStates=[
-    {term1:850,term2:850,term3:850},
-    {term1:850,term2:850,term3:0},
-    {term1:850,term2:500,term3:0},
-    {term1:850,term2:0,term3:0},
-    {term1:0,term2:0,term3:0},
-    {term1:850,term2:850,term3:400},
-    {term1:700,term2:850,term3:0},
-    {term1:850,term2:850,term3:850},
+    ['Kwadwo','Osei','cls7','Male','2012-03-15','Patrick Osei','+233 24 101 2020'],
+    ['Ama','Kusi','cls7','Female','2012-07-22','Bernard Kusi','+233 24 202 3030'],
+    ['Yaw','Agyemang','cls8','Male','2011-11-08','Samuel Agyemang','+233 24 303 4040'],
+    ['Akua','Mensah','cls8','Female','2011-05-30','Joseph Mensah','+233 24 404 5050'],
+    ['Kofi','Asante','cls9','Male','2010-09-18','Francis Asante','+233 24 505 6060'],
+    ['Abena','Boateng','cls9','Female','2010-01-25','Richard Boateng','+233 24 606 7070'],
+    ['Kwesi','Darko','cls6','Male','2013-06-12','Thomas Darko','+233 24 707 8080'],
+    ['Efua','Owusu','cls6','Female','2013-04-03','Emmanuel Owusu','+233 24 808 9090'],
+    ['Kojo','Frimpong','cls5','Male','2014-08-20','Alex Frimpong','+233 24 909 0101'],
+    ['Adjoa','Nyarko','cls5','Female','2014-12-15','George Nyarko','+233 24 121 3131'],
+    ['Kwame','Amoah','cls4','Male','2015-02-28','Daniel Amoah','+233 24 141 5151'],
+    ['Ama','Acheampong','cls4','Female','2015-07-10','Peter Acheampong','+233 24 161 7171'],
+    ['Yaw','Tetteh','cls3','Male','2016-05-14','Samuel Tetteh','+233 24 181 9191'],
+    ['Akosua','Boateng','cls3','Female','2016-09-20','James Boateng','+233 24 202 1212'],
+    ['Kweku','Asare','cls2','Male','2017-03-08','Frank Asare','+233 24 222 3232'],
+    ['Abena','Quaye','cls2','Female','2017-11-25','Paul Quaye','+233 24 242 5252'],
+    ['Nana','Opoku','cls1','Male','2018-07-15','Charles Opoku','+233 24 262 7272'],
+    ['Adwoa','Mensah','cls1','Female','2018-01-30','Ben Mensah','+233 24 282 9292'],
   ];
   DB.set('students',sdata.map((s,i)=>({
-    id:'stu'+(i+1),studentId:'BFA-'+s[7].slice(0,4)+'-'+String(i+101).padStart(4,'0'),
+    id:'stu'+(i+1),studentId:'BFA-2025-'+String(i+101).padStart(4,'0'),
     fname:s[0],lname:s[1],classId:s[2],gender:s[3],dob:s[4],
-    dadName:s[5],dadPhone:s[6],status:'active',admitDate:s[7],
+    dadName:s[5],dadPhone:s[6],status:'active',admitDate:'2024-09-01',
     address:'Accra, Ghana',
-    feesPaid:feeStates[i%feeStates.length],
+    feesPaid:{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},
   })));
   DB.set('subjects',[
     {id:'subj1',name:'English Language',code:'ENG',classId:'cls7',teacherId:'stf7',periods:6},
@@ -257,6 +245,8 @@ const SMS = {
   currentUser: null,
   schoolId: null,
   currentPage: 'dashboard',
+  _demoMode: false,
+  _formsBound: false,
   deleteCallback: null,
 
   _kpiSvg(type){
@@ -287,9 +277,6 @@ const SMS = {
   _staffPage: 1,
   _auditPage: 1,
 
-  _demoMode: false,
-  _formsBound: false,
-
   init() {
     if(!window.FAuth){ // fallback if Firebase didn't load
       seedData();
@@ -304,7 +291,7 @@ const SMS = {
     // Set persistence to LOCAL so session survives page refresh
     _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     FAuth.onAuthChange(async (firebaseUser)=>{
-      if(this._demoMode) return; // demo session active — ignore all Firebase auth callbacks
+      if(this._demoMode) return;
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
@@ -372,7 +359,7 @@ const SMS = {
     const pe=document.getElementById('page-'+page); if(pe) pe.classList.add('active');
     const ne=document.querySelector(`.nav-item[data-page="${page}"]`); if(ne) ne.classList.add('active');
     const tt=document.getElementById('topbar-title'); if(tt) tt.textContent=ne?.textContent.trim()||page;
-    const schoolName=DB.get('settings')?.schoolName||'Eduformium SMS';
+    const schoolName=DB.get('school',{}).name||'Eduformium SMS';
     const pageName=ne?.textContent.trim()||page.charAt(0).toUpperCase()+page.slice(1);
     document.title=`${pageName} — ${schoolName}`;
     this.currentPage=page;
@@ -447,24 +434,16 @@ const SMS = {
     if(this._formsBound) return;
     this._formsBound = true;
     document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
-      // Always seed fresh demo data and log in locally — never hits Firebase
       this._demoMode = true;
       seedData();
-      const users=DB.get('users',[]);
-      const demoUser=users.find(u=>u.email==='demo@brightfutureacademy.edu.gh');
+      const users = DB.get('users',[]);
+      const demoUser = users.find(u=>u.email==='demo@brightfutureacademy.edu.gh');
       if(demoUser){
-        demoUser.lastLogin=new Date().toISOString(); DB.set('users',users);
-        DB.set('session',{userId:demoUser.id});
-        this.currentUser=demoUser;
-        this.audit('Login','login',`Demo login: ${demoUser.name}`);
+        demoUser.lastLogin = new Date().toISOString();
+        DB.set('users', users);
+        DB.set('session', {userId: demoUser.id});
+        this.currentUser = demoUser;
         this.boot();
-      } else {
-        this._demoMode = false;
-        // Fallback: fill fields and attempt normal login
-        document.getElementById('l-user').value='demo@brightfutureacademy.edu.gh';
-        document.getElementById('l-pass').value='BFA@demo2026';
-        document.getElementById('l-err').style.display='none';
-        this.login();
       }
     });
     document.getElementById('login-btn')?.addEventListener('click',()=>this.login());
@@ -473,14 +452,12 @@ const SMS = {
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
       const email=document.getElementById('l-user').value.trim();
       if(!email){ alert('Please enter your email address first.'); return; }
-      if(!/\S+@\S+\.\S+/.test(email)){ alert('Please enter a valid email address.'); return; }
-      // Firebase reset if available, otherwise show confirmation
       if(typeof firebase!=='undefined'&&firebase.auth){
         firebase.auth().sendPasswordResetEmail(email)
           .then(()=>alert('Password reset email sent. Please check your inbox.'))
-          .catch(e=>alert('Could not send reset email: '+e.message));
+          .catch(()=>alert('Could not send reset email. Please contact your administrator.'));
       } else {
-        alert('A password reset link has been sent to '+email+' (demo mode).');
+        alert('Please contact your school administrator to reset your password.');
       }
     });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; });
@@ -567,11 +544,10 @@ const SMS = {
       settings.configured=!!key;
       DB.set('smsSettings',settings);
       if(key){
-        if(badge){ badge.textContent='Configured'; badge.style.background='var(--success)'; badge.style.color='#fff'; }
-        if(testBtn){ const sp=testBtn.querySelector('.badge'); if(sp){ sp.textContent='Active'; sp.className='badge badge-success'; } testBtn.disabled=false; }
+        if(badge){badge.textContent='Configured';badge.style.background='var(--success)';badge.style.color='#fff';}
+        if(testBtn){const sp=testBtn.querySelector('.badge');if(sp){sp.textContent='Active';sp.className='badge badge-success';}testBtn.disabled=false;}
       } else {
-        if(badge){ badge.textContent='Disabled'; badge.style.background='var(--surface-3)'; badge.style.color='var(--t3)'; }
-        if(testBtn){ const sp=testBtn.querySelector('.badge'); if(sp){ sp.textContent='Setup Required'; sp.className='badge badge-warn'; } }
+        if(badge){badge.textContent='Disabled';badge.style.background='var(--surface-3)';badge.style.color='var(--t3)';}
       }
       this.toast('SMS settings saved','success');
     });

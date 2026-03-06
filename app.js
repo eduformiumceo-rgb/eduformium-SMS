@@ -590,7 +590,8 @@ const SMS = {
         <div class="mini-right"><span class="badge badge-info" style="font-size:.65rem">${e.type}</span></div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
     // Defaulters
-    const defaulters=students.filter(s=>{ const p1=+(s.feesPaid?.term1||0); return p1<850; }).slice(0,4);
+    const feeStr=DB.get('feeStructure',[]);
+    const defaulters=students.filter(s=>{ const fs=feeStr.find(f=>f.classId===s.classId); const t1=+(fs?.term1||850); const p1=+(s.feesPaid?.term1||0); return p1<t1; }).slice(0,4);
     document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>

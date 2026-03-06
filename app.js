@@ -991,7 +991,7 @@ const SMS = {
       const el=document.getElementById(id); if(!el) return;
       if(id==='clf-teacher') el.innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join('');
       else if(id==='subj-class'||id==='att-class'||id==='tt-class-sel'||id==='hw-class-f'||id==='grade-class-sel'||id==='res-class-sel'||id==='fee-class-f'||id==='msg-class'||id==='ex-class')
-        el.innerHTML=(id==='att-class'?'<option value="">Select Class</option>':'<option value="">All Classes</option>')+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+        el.innerHTML=(id==='att-class'||id==='tt-class-sel'?'<option value="">Select Class</option>':'<option value="">All Classes</option>')+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
       else el.innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
     });
     ['subj-teacher'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join(''); });
@@ -1381,7 +1381,25 @@ const SMS = {
   },
 
   // ══ TIMETABLE ══
-  loadTimetable(){ this.renderTimetable(); },
+  loadTimetable(){
+    // Always repopulate class dropdown in case user hasn't visited Classes page
+    const classes=DB.get('classes',[]);
+    const sel=document.getElementById('tt-class-sel');
+    if(sel){
+      const current=sel.value;
+      sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      if(current) sel.value=current;
+    }
+    // Wire Edit Timetable button
+    const editBtn=document.getElementById('edit-tt-btn');
+    if(editBtn) editBtn.onclick=()=>{
+      const classId=document.getElementById('tt-class-sel').value;
+      if(!classId){ this.toast('Please select a class first','warn'); return; }
+      this.renderTimetable();
+      this.toast('Click any slot in the grid to add or edit it','info');
+    };
+    this.renderTimetable();
+  },
 
   renderTimetable(){
     const classId=document.getElementById('tt-class-sel').value;

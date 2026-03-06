@@ -1405,9 +1405,9 @@ const SMS = {
     if(!classId){
       const classes = DB.get('classes',[]);
       grid.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--t4)">
-        <div style="font-size:2rem;margin-bottom:.75rem">📅</div>
+        <div style="margin-bottom:.75rem;display:flex;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="width:48px;height:48px;color:var(--t4)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
         <div style="font-weight:600;margin-bottom:.4rem;color:var(--t2)">Select a class to view its timetable</div>
-        <div style="font-size:.82rem">Use <strong>⚙ Design Structure</strong> to customise days, periods and times</div>
+        <div style="font-size:.82rem">Use <strong>Design Structure</strong> to customise days, periods and times</div>
       </div>`;
       return;
     }
@@ -1484,7 +1484,7 @@ const SMS = {
         <div class="hw-card-footer">
           <span>Due: <strong>${fmtDate(h.dueDate)}</strong></span>
           <span>Assigned: ${fmtDate(h.assignedDate)}</span>
-          <div style="display:flex;gap:.4rem;margin-left:auto"><button class="btn btn-ghost btn-sm" onclick="SMS.openHomeworkModal('${h.id}')" style="color:var(--brand);padding:.25rem .5rem;font-size:.72rem">✏ Edit</button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this homework?',()=>SMS.deleteHomework('${h.id}'))" style="color:var(--danger);padding:.25rem .5rem;font-size:.72rem">✕ Delete</button></div>
+          <div style="display:flex;gap:.4rem;margin-left:auto"><button class="btn btn-ghost btn-sm" onclick="SMS.openHomeworkModal('${h.id}')" style="color:var(--brand);padding:.25rem .5rem;font-size:.72rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:.25rem;vertical-align:-.1em"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this homework?',()=>SMS.deleteHomework('${h.id}'))" style="color:var(--danger);padding:.25rem .5rem;font-size:.72rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:.25rem;vertical-align:-.1em"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Delete</button></div>
         </div>
       </div>`).join('')||'<div style="color:var(--t4);padding:1.5rem">No homework assignments found.</div>';
   },
@@ -1717,7 +1717,7 @@ const SMS = {
   // ══ STUDENT PROMOTION ══
   openPromoteModal(){
     const classes=DB.get('classes',[]).sort((a,b)=>a.name.localeCompare(b.name));
-    document.getElementById('receipt-title').textContent='🎓 Promote Students';
+    document.getElementById('receipt-title').textContent='Year-End Student Promotion';
     document.getElementById('receipt-body').innerHTML=`
       <div style="margin-bottom:1rem;font-size:.85rem;color:var(--t3)">Promote all active students in a class to the next class level.</div>
       <div class="form-grid-2" style="margin-bottom:1rem">
@@ -1764,7 +1764,7 @@ const SMS = {
     students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; count++; } });
     DB.set('students',students);
     this.audit('Student Promotion','edit',`Promoted ${count} students from ${this.className(fromId)} to ${this.className(toId)}`);
-    this.toast(`✅ ${count} students promoted to ${this.className(toId)}!`,'success');
+    this.toast(`${count} students successfully promoted to ${this.className(toId)}!`,'success');
     this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
   },
 
@@ -1819,7 +1819,7 @@ const SMS = {
           return {id:uid('stu'),studentId:`IMP-${Date.now()}-${i}`,fname,lname,classId:cls.id,gender,dob:r['Date of Birth']||r['dob']||'',dadName:r['Parent Name']||r['dadName']||'',dadPhone:r['Parent Phone']||r['dadPhone']||'',address:r['Address']||'',status:'active',admitDate:new Date().toISOString().split('T')[0],feesPaid:{term1:0,term2:0,term3:0}};
         }).filter(Boolean);
         document.getElementById('import-preview').innerHTML=`
-          <div style="background:var(--success-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem">✅ <strong>${valid} student(s)</strong> ready to import from ${rows.length} rows.</div>
+          <div style="background:var(--success-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem"><strong>${valid} student(s)</strong> ready to import from ${rows.length} rows.</div>
           ${errors.length>0?`<div style="background:var(--danger-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.75rem;color:var(--danger)">${errors.slice(0,5).join('<br>')}</div>`:''}
           <div style="overflow-x:auto;max-height:200px;overflow-y:auto;font-size:.75rem;border:1px solid var(--border);border-radius:8px">
             <table class="tbl" style="font-size:.73rem"><thead><tr><th>Name</th><th>Class</th><th>Gender</th><th>Parent</th></tr></thead><tbody>
@@ -1837,7 +1837,7 @@ const SMS = {
     let toImport; try{ toImport=typeof studentsJson==='string'?JSON.parse(studentsJson.replace(/&quot;/g,'"')):studentsJson; }catch(e){ this.toast('Import data error','error'); return; }
     const students=DB.get('students',[]); students.push(...toImport); DB.set('students',students);
     this.audit('Bulk Import','create',`Imported ${toImport.length} students via file upload`);
-    this.toast(`✅ ${toImport.length} students imported successfully!`,'success');
+    this.toast(`${toImport.length} students imported successfully!`,'success');
     this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
   },
 
@@ -2542,7 +2542,7 @@ const SMS = {
   openPromotionWizard(){
     const classes=DB.get('classes',[]).sort((a,b)=>a.name.localeCompare(b.name));
     const students=DB.get('students',[]).filter(s=>s.status==='active');
-    document.getElementById('receipt-title').textContent='🎓 Year-End Student Promotion';
+    document.getElementById('receipt-title').textContent='Year-End Student Promotion';
     document.getElementById('receipt-body').innerHTML=`
       <div style="font-size:.82rem;color:var(--t3);margin-bottom:.9rem">Move all active students from one class to the next at the end of the academic year.</div>
       <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:.5rem;align-items:center;margin-bottom:.75rem">
@@ -2685,7 +2685,7 @@ const SMS = {
     document.getElementById('lv-from').value=''; document.getElementById('lv-to').value='';
     document.getElementById('lv-type').value='Annual'; document.getElementById('lv-err').style.display='none';
     document.getElementById('lv-days-preview').style.display='none';
-    const calcDays=()=>{ const from=document.getElementById('lv-from').value, to=document.getElementById('lv-to').value; const prev=document.getElementById('lv-days-preview'); if(from&&to){ const days=Math.ceil((new Date(to)-new Date(from))/86400000)+1; if(days>0){ prev.style.display='block'; prev.textContent=`📅 Duration: ${days} day(s) — from ${fmtDate(from)} to ${fmtDate(to)}`; } else prev.style.display='none'; } };
+    const calcDays=()=>{ const from=document.getElementById('lv-from').value, to=document.getElementById('lv-to').value; const prev=document.getElementById('lv-days-preview'); if(from&&to){ const days=Math.ceil((new Date(to)-new Date(from))/86400000)+1; if(days>0){ prev.style.display='block'; prev.textContent=`Duration: ${days} day(s) — from ${fmtDate(from)} to ${fmtDate(to)}`; } else prev.style.display='none'; } };
     document.getElementById('lv-from').onchange=calcDays; document.getElementById('lv-to').onchange=calcDays;
     document.getElementById('save-leave-btn').onclick=()=>this.saveLeave();
     this.openModal('m-leave');
@@ -2865,14 +2865,14 @@ const SMS = {
     const list = document.getElementById('tt-periods-list');
     list.innerHTML = struct.periods.map((p,i)=>`
       <div id="tt-period-row-${p.id}" style="display:grid;grid-template-columns:auto 1fr 80px 80px auto auto;gap:.4rem;align-items:center;background:${p.isBreak?'rgba(245,158,11,.08)':'var(--surface-2)'};border:1px solid ${p.isBreak?'rgba(245,158,11,.35)':'var(--border)'};border-radius:8px;padding:.5rem .6rem">
-        <div style="cursor:grab;color:var(--t4);padding:0 .2rem;font-size:1rem" title="Drag to reorder">⠿</div>
+        <div style="cursor:grab;color:var(--t4);padding:0 .2rem" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/></svg></div>
         <input class="form-input" style="height:32px;font-size:.82rem;padding:.2rem .5rem" value="${p.label}" id="ttpl-${p.id}" placeholder="Label (e.g. Period 1)">
         <input type="time" class="form-input" style="height:32px;font-size:.79rem;padding:.2rem .4rem" value="${p.from}" id="ttpf-${p.id}">
         <input type="time" class="form-input" style="height:32px;font-size:.79rem;padding:.2rem .4rem" value="${p.to}" id="ttpt-${p.id}">
         <label style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;color:var(--warn);white-space:nowrap;cursor:pointer" title="Mark as break (non-editable row)">
           <input type="checkbox" id="ttpb-${p.id}" ${p.isBreak?'checked':''} onchange="SMS._renderTTPeriods()" style="accent-color:var(--warn)"> Break
         </label>
-        <button onclick="SMS.ttRemovePeriod('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:1rem;padding:.1rem .3rem" title="Remove">✕</button>
+        <button onclick="SMS.ttRemovePeriod('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--danger);padding:.2rem .3rem;border-radius:4px;display:flex;align-items:center" title="Remove period"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
       </div>`).join('');
 
     // Enable drag-to-reorder
@@ -3025,57 +3025,60 @@ const SMS = {
     if(!classId) return '<div style="padding:2rem;text-align:center;color:var(--t4)">Select a class to view timetable</div>';
 
     const cls = DB.get('classes',[]).find(c=>c.id===classId);
+    const teachingPeriods = struct.periods.filter(p=>!p.isBreak).length;
 
-    let html = `<div style="margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:.9rem;font-weight:700;color:var(--t1)">${cls?.name||''} — Weekly Schedule</div>
-      ${editable?`<span style="font-size:.75rem;color:var(--t3)">Click any slot to edit</span>`:''}
+    let html = `<div style="margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+      <div>
+        <div style="font-size:.95rem;font-weight:700;color:var(--t1)">${cls?.name||''} &mdash; Weekly Schedule</div>
+        <div style="font-size:.75rem;color:var(--t3);margin-top:.2rem">${struct.days.length} day${struct.days.length!==1?'s':''} &middot; ${teachingPeriods} teaching period${teachingPeriods!==1?'s':''}</div>
+      </div>
+      ${editable?`<div style="font-size:.75rem;color:var(--t3);display:flex;align-items:center;gap:.3rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Click any cell to assign a subject</div>`:''}
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <thead><tr style="background:var(--brand);color:#fff">
-        <th style="padding:.55rem .8rem;text-align:left;font-weight:600;border:1px solid rgba(255,255,255,.15);white-space:nowrap;min-width:110px">Period</th>
-        ${struct.days.map(d=>`<th style="padding:.55rem .8rem;font-weight:600;text-align:center;border:1px solid rgba(255,255,255,.15)">${d}</th>`).join('')}
+    <div style="overflow-x:auto">
+    <table class="tt-table">
+      <thead><tr>
+        <th style="text-align:left">Period</th>
+        ${struct.days.map(d=>`<th>${d}</th>`).join('')}
       </tr></thead><tbody>`;
 
-    struct.periods.forEach((p,idx)=>{
-      const bg = idx%2===0 ? 'var(--surface)' : 'var(--surface-2)';
-      const timeLabel = p.from&&p.to ? `<div style="font-size:.68rem;color:var(--t3);margin-top:.1rem">${p.from}–${p.to}</div>` : '';
+    struct.periods.forEach(p=>{
+      const timeLabel = p.from&&p.to ? `<div style="font-size:.68rem;font-weight:400;color:var(--t3);margin-top:.15rem">${p.from}&ndash;${p.to}</div>` : '';
       if(p.isBreak){
-        html += `<tr><td style="padding:.4rem .8rem;background:rgba(245,158,11,.08);font-weight:600;font-size:.75rem;color:var(--warn);border:1px solid var(--border)">
-          ${p.label}${timeLabel}</td>
-          ${struct.days.map(()=>`<td style="background:rgba(245,158,11,.06);border:1px solid var(--border);text-align:center;color:var(--warn);font-size:.7rem;font-weight:600;letter-spacing:.06em">☕ BREAK</td>`).join('')}</tr>`;
+        html += `<tr>
+          <td class="tt-time-col" style="background:rgba(245,158,11,.06);color:var(--warn)">${p.label}${timeLabel}</td>
+          ${struct.days.map(()=>`<td style="background:rgba(245,158,11,.05);text-align:center"><span style="font-size:.7rem;font-weight:700;color:var(--warn);letter-spacing:.09em;text-transform:uppercase">Break</span></td>`).join('')}
+        </tr>`;
         return;
       }
-      html += `<tr>`;
-      html += `<td style="padding:.4rem .8rem;background:var(--surface-2);border:1px solid var(--border);font-weight:600">${p.label}${timeLabel}</td>`;
+      html += `<tr><td class="tt-time-col">${p.label}${timeLabel}</td>`;
       struct.days.forEach(day=>{
         const slot = classData[day]?.[p.id];
         const penc = encodeURIComponent(p.id);
         if(editable){
           if(slot?.subject){
-            html += `<td style="padding:.35rem;border:1px solid var(--border);background:${bg};cursor:pointer" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')">
-              <div style="background:var(--brand-lt2,rgba(26,58,107,.08));border-radius:6px;padding:.35rem .5rem">
-                <div style="font-weight:600;font-size:.79rem">${slot.subject}</div>
-                ${slot.teacher?`<div style="font-size:.67rem;color:var(--t3);margin-top:.1rem">${slot.teacher}</div>`:''}
+            html += `<td style="padding:.35rem" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')" style="cursor:pointer">
+              <div class="tt-slot-card">
+                <div class="subj">${slot.subject}</div>
+                ${slot.teacher?`<div class="tchr">${slot.teacher}</div>`:''}
               </div></td>`;
           } else {
-            html += `<td style="padding:.35rem;border:1px solid var(--border);background:${bg};cursor:pointer;text-align:center" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')" title="Click to add">
-              <span style="color:var(--t4);font-size:1.2rem">+</span></td>`;
+            html += `<td style="padding:.3rem;text-align:center"><button class="tt-empty-slot" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')" title="Assign subject">+</button></td>`;
           }
         } else {
           if(slot?.subject){
-            html += `<td style="padding:.4rem .6rem;border:1px solid var(--border);background:${bg}">
-              <div style="font-weight:600;font-size:.8rem">${slot.subject}</div>
-              ${slot.teacher?`<div style="font-size:.68rem;color:var(--t3)">${slot.teacher}</div>`:''}
+            html += `<td style="padding:.45rem .6rem">
+              <div style="font-weight:700;font-size:.8rem;color:var(--t1)">${slot.subject}</div>
+              ${slot.teacher?`<div style="font-size:.68rem;color:var(--t3);margin-top:.1rem">${slot.teacher}</div>`:''}
             </td>`;
           } else {
-            html += `<td style="border:1px solid var(--border);background:${bg}"></td>`;
+            html += `<td></td>`;
           }
         }
       });
       html += `</tr>`;
     });
 
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
     return html;
   },
 

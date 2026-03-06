@@ -949,3 +949,4 @@ img { max-width: 100%; height: auto; }
 .nav-icon { width: 17px; height: 17px; flex-shrink: 0; }
 .nav-item { display: flex; align-items: center; gap: .65rem; }
 .tbl-icon { width: 14px; height: 14px; display: inline-block; vertical-align: middle; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

@@ -269,44 +269,39 @@ img { max-width: 100%; }
   z-index: 1; letter-spacing: -.06em;
 }
 
-/* ── Hero content ── */
+/* ── Hero content — single centered column ── */
 .l-hero-content {
   position: relative; z-index: 2;
-  width: 100%; display: flex;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   text-align: center;
-  padding: 2.75rem 4rem 2rem;
-  max-width: 780px;
-  margin: 0 auto;
+  padding: 3rem 4rem;
   height: 100%;
+  gap: .9rem;
 }
 
-/* Wordmark pinned to top */
+/* Wordmark — part of the centered flow */
 .l-wordmark {
   display: flex; align-items: center;
   justify-content: center;
-  gap: .88rem;
+  gap: .75rem;
   margin-bottom: 0;
   padding-bottom: 0;
   width: 100%;
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
 }
 
-/* Middle content block — headline, desc, stats, feats — vertically centered */
+/* Mid block not needed separately anymore */
 .l-hero-mid {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 1rem;
-  padding: 1rem 0;
+  display: contents;
 }
 .l-mark-box {
-  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
   background: rgba(13,148,136,.12);
   border: 1px solid rgba(13,148,136,.3);
   display: flex; align-items: center; justify-content: center;
@@ -314,7 +309,7 @@ img { max-width: 100%; }
 }
 .l-mark-text { display: flex; flex-direction: column; gap: .18rem; }
 .l-mark-name {
-  font-size: .95rem; font-weight: 700;
+  font-size: 1.05rem; font-weight: 700;
   color: white; letter-spacing: -.01em; line-height: 1;
   font-family: 'DM Sans', sans-serif;
 }
@@ -434,11 +429,14 @@ img { max-width: 100%; }
 }
 .l-feat-ic { color: #14b8a6; font-size: .6rem; font-weight: 700; }
 
-/* Footer */
+/* Footer — absolute bottom */
 .l-hero-foot {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 0; right: 0;
   font-size: .58rem; color: rgba(255,255,255,.14);
-  padding-top: 1rem;
-  border-top: 1px solid rgba(13,148,136,.12);
+  padding-top: 0;
+  border-top: none;
   animation: lFadeUp .5s .54s ease both;
   font-family: 'DM Sans', sans-serif;
   width: 100%; text-align: center;

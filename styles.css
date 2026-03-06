@@ -185,10 +185,11 @@ img { max-width: 100%; }
 
 /* ══ LEFT HERO PANEL ══ */
 .l-hero {
-  flex: 1.2;
+  flex: 1.6;
   position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
@@ -274,8 +275,8 @@ img { max-width: 100%; }
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 3.5rem 3.75rem;
-  max-width: 620px;
+  padding: 4rem 5rem;
+  max-width: 780px;
   margin: 0 auto;
 }
 
@@ -336,7 +337,7 @@ img { max-width: 100%; }
 .l-hl-1, .l-hl-2 {
   display: block;
   font-family: 'DM Sans', sans-serif;
-  font-size: clamp(2.8rem, 4.4vw, 4.6rem);
+  font-size: clamp(3.2rem, 5.5vw, 6rem);
   font-weight: 800;
   letter-spacing: -.03em;
   line-height: 1.08; color: rgba(255,255,255,.95);
@@ -357,7 +358,7 @@ img { max-width: 100%; }
 /* Tagline */
 .l-hero-desc {
   font-size: .875rem; line-height: 1.9;
-  color: rgba(255,255,255,.38); max-width: 420px;
+  color: rgba(255,255,255,.38); max-width: 560px;
   font-weight: 400; font-family: 'DM Sans', sans-serif;
   animation: lFadeUp .6s .32s cubic-bezier(.22,1,.36,1) both;
   margin-bottom: auto;

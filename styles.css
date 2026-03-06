@@ -280,6 +280,7 @@ img { max-width: 100%; }
 .l-wordmark {
   display: flex; align-items: center;
   gap: .88rem; margin-bottom: auto;
+  padding-bottom: 2.75rem;
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
 }
 .l-mark-box {
@@ -589,34 +590,34 @@ img { max-width: 100%; }
 @media (max-width: 768px) {
   .login-wrap { flex-direction: column; background: var(--login-navy); overflow-x: hidden; }
   .l-hero { min-height: auto; flex: 0 0 auto; }
-  .l-hero-content { max-width: 100%; padding: 2.5rem 1.5rem 4.5rem; }
-  .l-stats-row, .l-feats, .l-hero-foot { display: none; }
-  .l-eyebrow-pill { margin-bottom: .75rem; }
-  .l-hl-1, .l-hl-2 { font-size: 2.6rem; }
-  .l-hero-desc { padding-bottom: 0; margin-bottom: 0; }
-  .l-wordmark { margin-bottom: 1.75rem; }
+  .l-hero-content { max-width: 100%; padding: 2rem 1.5rem 3.75rem; }
+  /* Hide everything except logo + headline on mobile — keep it clean */
+  .l-stats-row, .l-feats, .l-hero-foot, .l-hero-desc, .l-eyebrow-pill { display: none; }
+  .l-hl-1, .l-hl-2 { font-size: 2.2rem; }
+  .l-headline { margin-bottom: 0; }
+  .l-wordmark { margin-bottom: 1.25rem; padding-bottom: 0; }
   .l-panel {
     width: 100%; min-height: auto;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -16px 60px rgba(0,0,0,.4);
-    margin-top: -32px; position: relative; z-index: 2;
+    margin-top: -28px; position: relative; z-index: 2;
     animation: lCardUp .48s .1s cubic-bezier(.22,1,.36,1) both;
   }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
   .l-panel-bar { height: auto; background: transparent; padding: .85rem 0 0; display: flex; justify-content: center; }
   .l-panel-bar::after { content: ''; display: block; width: 36px; height: 4px; background: rgba(13,148,136,.3); border-radius: 99px; }
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
-  .l-title { font-size: 2.15rem; }
+  .l-title { font-size: 2.1rem; }
   .l-subtitle { margin-bottom: 1.5rem; }
   .l-panel-inner .form-input { height: 50px; }
   .l-btn-primary { height: 52px; }
 }
 
 @media (max-width: 480px) {
-  .l-hero-content { padding: 2.25rem 1.25rem 4.25rem; }
-  .l-hl-1, .l-hl-2 { font-size: 2.2rem; }
+  .l-hero-content { padding: 1.75rem 1.25rem 3.5rem; }
+  .l-hl-1, .l-hl-2 { font-size: 2rem; }
   .l-panel-inner { padding: 1.25rem 1.25rem 2rem; }
-  .l-title { font-size: 1.95rem; }
+  .l-title { font-size: 1.9rem; }
 }
 
 /* Dark mode overrides */

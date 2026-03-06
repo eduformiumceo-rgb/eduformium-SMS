@@ -659,16 +659,25 @@ img { max-width: 100%; }
     animation: lCardUp .48s .1s cubic-bezier(.22,1,.36,1) both;
   }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
-  /* Hide teal desktop bar, show grey handle */
-  .l-panel-bar--desktop { display: none; }
+  /* Completely hide teal desktop bar on mobile */
+  .l-panel-bar--desktop {
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+  /* Show grey handle */
   .l-panel-bar--mobile {
-    display: flex; justify-content: center;
-    padding: .85rem 0 0; background: transparent;
+    display: flex;
+    justify-content: center;
+    padding: .85rem 0 0;
+    background: transparent;
   }
   .l-panel-bar--mobile::after {
-    content: ''; display: block;
+    content: '';
+    display: block;
     width: 36px; height: 4px;
-    background: #d1d5db; border-radius: 99px;
+    background: #d1d5db;
+    border-radius: 99px;
   }
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
   .l-title { font-size: 2.1rem; }

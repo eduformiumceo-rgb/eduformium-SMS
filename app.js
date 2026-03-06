@@ -441,10 +441,23 @@ const SMS = {
   // ── AUTH ──
   bindForms(){
     document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
-      document.getElementById('l-user').value='demo@brightfutureacademy.edu.gh';
-      document.getElementById('l-pass').value='BFA@demo2026';
-      document.getElementById('l-err').style.display='none';
-      this.login();
+      // Always seed fresh demo data and log in locally — never hits Firebase
+      seedData();
+      const users=DB.get('users',[]);
+      const demoUser=users.find(u=>u.email==='demo@brightfutureacademy.edu.gh');
+      if(demoUser){
+        demoUser.lastLogin=new Date().toISOString(); DB.set('users',users);
+        DB.set('session',{userId:demoUser.id});
+        this.currentUser=demoUser;
+        this.audit('Login','login',`Demo login: ${demoUser.name}`);
+        this.boot();
+      } else {
+        // Fallback: fill fields and attempt normal login
+        document.getElementById('l-user').value='demo@brightfutureacademy.edu.gh';
+        document.getElementById('l-pass').value='BFA@demo2026';
+        document.getElementById('l-err').style.display='none';
+        this.login();
+      }
     });
     document.getElementById('login-btn')?.addEventListener('click',()=>this.login());
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });

@@ -36,7 +36,7 @@ const statusBadge=(s)=>{const map={active:'badge-success',inactive:'badge-neutra
 function seedData(){
   if(DB.get('seeded')) return;
   DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12'});
-  DB.set('users',[{id:'admin',email:'admin@school.edu',password:'admin123',name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
+  DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',password:'BFA@demo2026',name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
   DB.set('classes',[
     {id:'cls1',name:'Class 1',level:'Primary 1',teacherId:'stf1',capacity:35,room:'Room 1'},
     {id:'cls2',name:'Class 2',level:'Primary 2',teacherId:'stf2',capacity:35,room:'Room 2'},
@@ -49,43 +49,55 @@ function seedData(){
     {id:'cls9',name:'JHS 3',level:'Junior High 3',teacherId:'stf9',capacity:40,room:'Room 9'},
   ]);
   DB.set('staff',[
-    {id:'stf1',fname:'Abena',lname:'Asante',role:'teacher',dept:'Primary',subjects:'English, Reading',phone:'+233 24 111 2222',email:'abena@bfa.edu.gh',gender:'Female',salary:2800,status:'active',joinDate:'2020-01-15',qualification:'B.Ed'},
-    {id:'stf2',fname:'Kwame',lname:'Boateng',role:'teacher',dept:'Primary',subjects:'Mathematics',phone:'+233 24 222 3333',email:'kwame@bfa.edu.gh',gender:'Male',salary:2800,status:'active',joinDate:'2019-09-01',qualification:'B.Ed'},
-    {id:'stf3',fname:'Ama',lname:'Nyarko',role:'teacher',dept:'Primary',subjects:'Science, RME',phone:'+233 24 333 4444',email:'ama@bfa.edu.gh',gender:'Female',salary:2900,status:'active',joinDate:'2021-01-10',qualification:'B.Sc.Ed'},
-    {id:'stf4',fname:'Kofi',lname:'Mensah',role:'teacher',dept:'Primary',subjects:'Social Studies',phone:'+233 24 444 5555',email:'kofi@bfa.edu.gh',gender:'Male',salary:2700,status:'active',joinDate:'2022-01-05',qualification:'Cert. A'},
-    {id:'stf5',fname:'Akosua',lname:'Darko',role:'teacher',dept:'Primary',subjects:'ICT, Creative Arts',phone:'+233 24 555 6666',email:'akosua@bfa.edu.gh',gender:'Female',salary:3000,status:'active',joinDate:'2020-09-01',qualification:'B.Sc CS'},
-    {id:'stf6',fname:'Yaw',lname:'Amoah',role:'teacher',dept:'Primary',subjects:'Mathematics, Science',phone:'+233 24 666 7777',email:'yaw@bfa.edu.gh',gender:'Male',salary:2900,status:'active',joinDate:'2021-09-01',qualification:'B.Ed'},
-    {id:'stf7',fname:'Efua',lname:'Owusu',role:'teacher',dept:'JHS',subjects:'English Language',phone:'+233 24 777 8888',email:'efua@bfa.edu.gh',gender:'Female',salary:3200,status:'active',joinDate:'2018-01-15',qualification:'M.Ed'},
-    {id:'stf8',fname:'Nana',lname:'Acheampong',role:'teacher',dept:'JHS',subjects:'Mathematics, Physics',phone:'+233 24 888 9999',email:'nana@bfa.edu.gh',gender:'Male',salary:3400,status:'active',joinDate:'2017-09-01',qualification:'M.Sc'},
-    {id:'stf9',fname:'Adjoa',lname:'Frimpong',role:'teacher',dept:'JHS',subjects:'Social Studies, History',phone:'+233 24 999 0000',email:'adjoa@bfa.edu.gh',gender:'Female',salary:3100,status:'active',joinDate:'2019-01-10',qualification:'B.A'},
-    {id:'stf10',fname:'Osei',lname:'Bonsu',role:'admin',dept:'Administration',subjects:'',phone:'+233 24 010 1010',email:'osei@bfa.edu.gh',gender:'Male',salary:3500,status:'active',joinDate:'2016-01-01',qualification:'MBA'},
+    {id:'stf1',fname:'Abena',lname:'Asante',role:'teacher',dept:'Primary',subjects:'English, Reading',phone:'+233 24 111 2222',email:'abena@bfa.edu.gh',gender:'Female',salary:2850,status:'active',joinDate:'2020-01-15',qualification:'B.Ed'},
+    {id:'stf2',fname:'Kwame',lname:'Boateng',role:'teacher',dept:'Primary',subjects:'Mathematics',phone:'+233 24 222 3333',email:'kwame@bfa.edu.gh',gender:'Male',salary:2780,status:'active',joinDate:'2019-09-01',qualification:'B.Ed'},
+    {id:'stf3',fname:'Ama',lname:'Nyarko',role:'teacher',dept:'Primary',subjects:'Science, RME',phone:'+233 24 333 4444',email:'ama@bfa.edu.gh',gender:'Female',salary:2950,status:'active',joinDate:'2021-01-10',qualification:'B.Sc.Ed'},
+    {id:'stf4',fname:'Kofi',lname:'Mensah',role:'teacher',dept:'Primary',subjects:'Social Studies',phone:'+233 24 444 5555',email:'kofi@bfa.edu.gh',gender:'Male',salary:2650,status:'active',joinDate:'2022-01-05',qualification:'Cert. A'},
+    {id:'stf5',fname:'Akosua',lname:'Darko',role:'teacher',dept:'Primary',subjects:'ICT, Creative Arts',phone:'+233 24 555 6666',email:'akosua@bfa.edu.gh',gender:'Female',salary:3050,status:'active',joinDate:'2020-09-01',qualification:'B.Sc CS'},
+    {id:'stf6',fname:'Yaw',lname:'Amoah',role:'teacher',dept:'Primary',subjects:'Mathematics, Science',phone:'+233 24 666 7777',email:'yaw@bfa.edu.gh',gender:'Male',salary:2920,status:'active',joinDate:'2021-09-01',qualification:'B.Ed'},
+    {id:'stf7',fname:'Efua',lname:'Owusu',role:'teacher',dept:'JHS',subjects:'English Language',phone:'+233 24 777 8888',email:'efua@bfa.edu.gh',gender:'Female',salary:3250,status:'active',joinDate:'2018-01-15',qualification:'M.Ed'},
+    {id:'stf8',fname:'Nana',lname:'Acheampong',role:'teacher',dept:'JHS',subjects:'Mathematics, Physics',phone:'+233 24 888 9999',email:'nana@bfa.edu.gh',gender:'Male',salary:3480,status:'active',joinDate:'2017-09-01',qualification:'M.Sc'},
+    {id:'stf9',fname:'Adjoa',lname:'Frimpong',role:'teacher',dept:'JHS',subjects:'Social Studies, History',phone:'+233 24 999 0000',email:'adjoa@bfa.edu.gh',gender:'Female',salary:3120,status:'active',joinDate:'2019-01-10',qualification:'B.A'},
+    {id:'stf10',fname:'Osei',lname:'Bonsu',role:'admin',dept:'Administration',subjects:'',phone:'+233 24 010 1010',email:'osei@bfa.edu.gh',gender:'Male',salary:3650,status:'active',joinDate:'2016-01-01',qualification:'MBA'},
   ]);
   const sdata=[
-    ['Kwadwo','Osei','cls7','Male','2012-03-15','Patrick Osei','+233 24 101 2020'],
-    ['Ama','Kusi','cls7','Female','2012-07-22','Bernard Kusi','+233 24 202 3030'],
-    ['Yaw','Agyemang','cls8','Male','2011-11-08','Samuel Agyemang','+233 24 303 4040'],
-    ['Akua','Mensah','cls8','Female','2011-05-30','Joseph Mensah','+233 24 404 5050'],
-    ['Kofi','Asante','cls9','Male','2010-09-18','Francis Asante','+233 24 505 6060'],
-    ['Abena','Boateng','cls9','Female','2010-01-25','Richard Boateng','+233 24 606 7070'],
-    ['Kwesi','Darko','cls6','Male','2013-06-12','Thomas Darko','+233 24 707 8080'],
-    ['Efua','Owusu','cls6','Female','2013-04-03','Emmanuel Owusu','+233 24 808 9090'],
-    ['Kojo','Frimpong','cls5','Male','2014-08-20','Alex Frimpong','+233 24 909 0101'],
-    ['Adjoa','Nyarko','cls5','Female','2014-12-15','George Nyarko','+233 24 121 3131'],
-    ['Kwame','Amoah','cls4','Male','2015-02-28','Daniel Amoah','+233 24 141 5151'],
-    ['Ama','Acheampong','cls4','Female','2015-07-10','Peter Acheampong','+233 24 161 7171'],
-    ['Yaw','Tetteh','cls3','Male','2016-05-14','Samuel Tetteh','+233 24 181 9191'],
-    ['Akosua','Boateng','cls3','Female','2016-09-20','James Boateng','+233 24 202 1212'],
-    ['Kweku','Asare','cls2','Male','2017-03-08','Frank Asare','+233 24 222 3232'],
-    ['Abena','Quaye','cls2','Female','2017-11-25','Paul Quaye','+233 24 242 5252'],
-    ['Nana','Opoku','cls1','Male','2018-07-15','Charles Opoku','+233 24 262 7272'],
-    ['Adwoa','Mensah','cls1','Female','2018-01-30','Ben Mensah','+233 24 282 9292'],
+    ['Kwadwo','Osei','cls7','Male','2012-03-15','Patrick Osei','+233 24 101 2020','2021-09-07'],
+    ['Ama','Kusi','cls7','Female','2012-07-22','Bernard Kusi','+233 24 202 3030','2022-01-10'],
+    ['Yaw','Agyemang','cls8','Male','2011-11-08','Samuel Agyemang','+233 24 303 4040','2020-09-03'],
+    ['Akua','Mensah','cls8','Female','2011-05-30','Joseph Mensah','+233 24 404 5050','2021-01-08'],
+    ['Kofi','Asante','cls9','Male','2010-09-18','Francis Asante','+233 24 505 6060','2019-09-02'],
+    ['Abena','Boateng','cls9','Female','2010-01-25','Richard Boateng','+233 24 606 7070','2019-01-14'],
+    ['Kwesi','Darko','cls6','Male','2013-06-12','Thomas Darko','+233 24 707 8080','2022-09-05'],
+    ['Efua','Owusu','cls6','Female','2013-04-03','Emmanuel Owusu','+233 24 808 9090','2022-01-11'],
+    ['Kojo','Frimpong','cls5','Male','2014-08-20','Alex Frimpong','+233 24 909 0101','2023-09-04'],
+    ['Adjoa','Nyarko','cls5','Female','2014-12-15','George Nyarko','+233 24 121 3131','2023-01-09'],
+    ['Kwame','Amoah','cls4','Male','2015-02-28','Daniel Amoah','+233 24 141 5151','2024-01-15'],
+    ['Ama','Acheampong','cls4','Female','2015-07-10','Peter Acheampong','+233 24 161 7171','2024-09-02'],
+    ['Yaw','Tetteh','cls3','Male','2016-05-14','Samuel Tetteh','+233 24 181 9191','2024-09-02'],
+    ['Akosua','Boateng','cls3','Female','2016-09-20','James Boateng','+233 24 202 1212','2025-01-06'],
+    ['Kweku','Asare','cls2','Male','2017-03-08','Frank Asare','+233 24 222 3232','2025-01-06'],
+    ['Abena','Quaye','cls2','Female','2017-11-25','Paul Quaye','+233 24 242 5252','2025-09-01'],
+    ['Nana','Opoku','cls1','Male','2018-07-15','Charles Opoku','+233 24 262 7272','2025-09-01'],
+    ['Adwoa','Mensah','cls1','Female','2018-01-30','Ben Mensah','+233 24 282 9292','2025-09-01'],
+    ['Fiifi','Amankwah','cls6','Male','2013-10-05','Eric Amankwah','+233 24 311 4141','2023-01-09'],
+    ['Maame','Sarpong','cls8','Female','2011-08-17','Kweku Sarpong','+233 24 322 5252','2021-09-06'],
+  ];
+  const feeStates=[
+    {term1:850,term2:850,term3:850},
+    {term1:850,term2:850,term3:0},
+    {term1:850,term2:500,term3:0},
+    {term1:850,term2:0,term3:0},
+    {term1:0,term2:0,term3:0},
+    {term1:850,term2:850,term3:400},
+    {term1:700,term2:850,term3:0},
+    {term1:850,term2:850,term3:850},
   ];
   DB.set('students',sdata.map((s,i)=>({
-    id:'stu'+(i+1),studentId:'BFA-2025-'+String(i+101).padStart(4,'0'),
+    id:'stu'+(i+1),studentId:'BFA-'+s[7].slice(0,4)+'-'+String(i+101).padStart(4,'0'),
     fname:s[0],lname:s[1],classId:s[2],gender:s[3],dob:s[4],
-    dadName:s[5],dadPhone:s[6],status:'active',admitDate:'2024-09-01',
+    dadName:s[5],dadPhone:s[6],status:'active',admitDate:s[7],
     address:'Accra, Ghana',
-    feesPaid:{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},
+    feesPaid:feeStates[i%feeStates.length],
   })));
   DB.set('subjects',[
     {id:'subj1',name:'English Language',code:'ENG',classId:'cls7',teacherId:'stf7',periods:6},
@@ -356,6 +368,9 @@ const SMS = {
     const pe=document.getElementById('page-'+page); if(pe) pe.classList.add('active');
     const ne=document.querySelector(`.nav-item[data-page="${page}"]`); if(ne) ne.classList.add('active');
     const tt=document.getElementById('topbar-title'); if(tt) tt.textContent=ne?.textContent.trim()||page;
+    const schoolName=DB.get('settings')?.schoolName||'Eduformium SMS';
+    const pageName=ne?.textContent.trim()||page.charAt(0).toUpperCase()+page.slice(1);
+    document.title=`${pageName} — ${schoolName}`;
     this.currentPage=page;
     document.getElementById('sidebar')?.classList.remove('open');
     document.getElementById('sidebar-overlay')?.classList.remove('show');
@@ -426,14 +441,27 @@ const SMS = {
   // ── AUTH ──
   bindForms(){
     document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
-      document.getElementById('l-user').value='admin@school.edu';
-      document.getElementById('l-pass').value='admin123';
+      document.getElementById('l-user').value='demo@brightfutureacademy.edu.gh';
+      document.getElementById('l-pass').value='BFA@demo2026';
       document.getElementById('l-err').style.display='none';
       this.login();
     });
     document.getElementById('login-btn')?.addEventListener('click',()=>this.login());
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
+    document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
+      const email=document.getElementById('l-user').value.trim();
+      if(!email){ alert('Please enter your email address first.'); return; }
+      if(!/\S+@\S+\.\S+/.test(email)){ alert('Please enter a valid email address.'); return; }
+      // Firebase reset if available, otherwise show confirmation
+      if(typeof firebase!=='undefined'&&firebase.auth){
+        firebase.auth().sendPasswordResetEmail(email)
+          .then(()=>alert('Password reset email sent. Please check your inbox.'))
+          .catch(e=>alert('Could not send reset email: '+e.message));
+      } else {
+        alert('A password reset link has been sent to '+email+' (demo mode).');
+      }
+    });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; });
     document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; });
     document.getElementById('register-btn')?.addEventListener('click',()=>this.register());
@@ -507,7 +535,25 @@ const SMS = {
     document.querySelectorAll('.fsz-btn').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('.fsz-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); const sizes={small:'13px',medium:'15px',large:'17px'}; document.documentElement.style.fontSize=sizes[b.dataset.size]; DB.set('fontSize',b.dataset.size); }));
     document.getElementById('add-user-btn')?.addEventListener('click',()=>this.openUserModal());
     document.getElementById('save-user-btn')?.addEventListener('click',()=>this.saveUser());
-    document.getElementById('save-sms-btn')?.addEventListener('click',()=>this.toast('SMS settings saved','success'));
+    document.getElementById('save-sms-btn')?.addEventListener('click',()=>{
+      const key=document.getElementById('sms-key')?.value.trim();
+      const badge=document.getElementById('sms-status-badge');
+      const testBtn=document.getElementById('test-sms-btn');
+      const settings=DB.get('smsSettings',{});
+      settings.provider=document.getElementById('sms-provider')?.value;
+      settings.key=key;
+      settings.secret=document.getElementById('sms-secret')?.value;
+      settings.configured=!!key;
+      DB.set('smsSettings',settings);
+      if(key){
+        if(badge){ badge.textContent='Configured'; badge.style.background='var(--success)'; badge.style.color='#fff'; }
+        if(testBtn){ const sp=testBtn.querySelector('.badge'); if(sp){ sp.textContent='Active'; sp.className='badge badge-success'; } testBtn.disabled=false; }
+      } else {
+        if(badge){ badge.textContent='Disabled'; badge.style.background='var(--surface-3)'; badge.style.color='var(--t3)'; }
+        if(testBtn){ const sp=testBtn.querySelector('.badge'); if(sp){ sp.textContent='Setup Required'; sp.className='badge badge-warn'; } }
+      }
+      this.toast('SMS settings saved','success');
+    });
     document.getElementById('test-sms-btn')?.addEventListener('click',()=>this.toast('SMS gateway not yet configured — connect your provider in Settings to enable sending.','warn'));
     document.getElementById('backup-btn')?.addEventListener('click',()=>this.exportBackup());
     document.getElementById('upload-logo-btn')?.addEventListener('click',()=>document.getElementById('logo-file').click());

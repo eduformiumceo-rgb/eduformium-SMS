@@ -170,13 +170,71 @@ function seedData(){
   ]);
   DB.set('auditLog',[{id:uid('al'),action:'System Initialized',type:'create',user:'System',details:'Eduformium SMS database seeded with demo data',time:new Date().toISOString()}]);
   DB.set('payroll',[]);
-  DB.set('timetable',{cls7:{
-    Monday:{'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Social Studies',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
-    Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
-    Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'History',teacher:'A. Frimpong'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
-    Thursday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
-    Friday:{'7:30-8:30':{subject:'RME',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
-  }});
+  DB.set('timetable',{
+    cls7:{
+      Monday:{'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Social Studies',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'History',teacher:'A. Frimpong'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Thursday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Friday:{'7:30-8:30':{subject:'RME',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls8:{
+      Monday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Integrated Science',teacher:'A. Nyarko'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'ICT',teacher:'A. Darko'},'12:00-1:00':{subject:'Social Studies',teacher:'A. Frimpong'}},
+      Tuesday:{'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Creative Arts',teacher:'A. Darko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'RME',teacher:'A. Nyarko'}},
+      Wednesday:{'7:30-8:30':{subject:'Social Studies',teacher:'A. Frimpong'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Thursday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Mathematics',teacher:'N. Acheampong'},'12:00-1:00':{subject:'History',teacher:'A. Frimpong'}},
+      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls9:{
+      Monday:{'7:30-8:30':{subject:'English Language',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'History',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'RME',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Science',teacher:'A. Nyarko'},'9:30-10:30':{subject:'English Language',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English Language',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'ICT',teacher:'A. Darko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Thursday:{'7:30-8:30':{subject:'Social Studies',teacher:'A. Frimpong'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English Language',teacher:'E. Owusu'},'12:00-1:00':{subject:'Science',teacher:'A. Nyarko'}},
+      Friday:{'7:30-8:30':{subject:'History',teacher:'A. Frimpong'},'8:30-9:30':{subject:'English Language',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls6:{
+      Monday:{'7:30-8:30':{subject:'Mathematics',teacher:'Y. Amoah'},'8:30-9:30':{subject:'English',teacher:'A. Asante'},'9:30-10:30':{subject:'Science',teacher:'Y. Amoah'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'K. Mensah'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Tuesday:{'7:30-8:30':{subject:'English',teacher:'A. Asante'},'8:30-9:30':{subject:'Mathematics',teacher:'Y. Amoah'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'Y. Amoah'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Wednesday:{'7:30-8:30':{subject:'Science',teacher:'Y. Amoah'},'8:30-9:30':{subject:'English',teacher:'A. Asante'},'9:30-10:30':{subject:'Mathematics',teacher:'Y. Amoah'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'ICT',teacher:'A. Darko'},'12:00-1:00':{subject:'Social Studies',teacher:'K. Mensah'}},
+      Thursday:{'7:30-8:30':{subject:'Social Studies',teacher:'K. Mensah'},'8:30-9:30':{subject:'Mathematics',teacher:'Y. Amoah'},'9:30-10:30':{subject:'English',teacher:'A. Asante'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'RME',teacher:'A. Nyarko'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'English',teacher:'A. Asante'},'9:30-10:30':{subject:'Mathematics',teacher:'Y. Amoah'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls5:{
+      Monday:{'7:30-8:30':{subject:'English',teacher:'A. Darko'},'8:30-9:30':{subject:'Mathematics',teacher:'A. Darko'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'K. Mensah'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'A. Darko'},'8:30-9:30':{subject:'English',teacher:'A. Darko'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Social Studies',teacher:'K. Mensah'}},
+      Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Mathematics',teacher:'A. Darko'},'9:30-10:30':{subject:'English',teacher:'A. Darko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'RME',teacher:'A. Nyarko'}},
+      Thursday:{'7:30-8:30':{subject:'Social Studies',teacher:'K. Mensah'},'8:30-9:30':{subject:'English',teacher:'A. Darko'},'9:30-10:30':{subject:'Mathematics',teacher:'A. Darko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Friday:{'7:30-8:30':{subject:'RME',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Mathematics',teacher:'A. Darko'},'9:30-10:30':{subject:'English',teacher:'A. Darko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls4:{
+      Monday:{'7:30-8:30':{subject:'English',teacher:'K. Mensah'},'8:30-9:30':{subject:'Mathematics',teacher:'K. Boateng'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'K. Mensah'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'K. Boateng'},'8:30-9:30':{subject:'English',teacher:'K. Mensah'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Science',teacher:'A. Nyarko'}},
+      Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English',teacher:'K. Mensah'},'9:30-10:30':{subject:'Mathematics',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'Social Studies',teacher:'K. Mensah'}},
+      Thursday:{'7:30-8:30':{subject:'Social Studies',teacher:'K. Mensah'},'8:30-9:30':{subject:'Mathematics',teacher:'K. Boateng'},'9:30-10:30':{subject:'English',teacher:'K. Mensah'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'RME',teacher:'A. Nyarko'}},
+      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'English',teacher:'K. Mensah'},'9:30-10:30':{subject:'Mathematics',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls3:{
+      Monday:{'7:30-8:30':{subject:'English',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Mathematics',teacher:'K. Boateng'},'9:30-10:30':{subject:'Numeracy',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'Handwriting',teacher:'A. Nyarko'}},
+      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'K. Boateng'},'8:30-9:30':{subject:'English',teacher:'A. Nyarko'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English',teacher:'A. Nyarko'},'9:30-10:30':{subject:'Mathematics',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'K. Mensah'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Thursday:{'7:30-8:30':{subject:'Social Studies',teacher:'K. Mensah'},'8:30-9:30':{subject:'Mathematics',teacher:'K. Boateng'},'9:30-10:30':{subject:'English',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'RME',teacher:'A. Nyarko'},'12:00-1:00':{subject:'Handwriting',teacher:'A. Nyarko'}},
+      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'English',teacher:'A. Nyarko'},'9:30-10:30':{subject:'Mathematics',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls2:{
+      Monday:{'7:30-8:30':{subject:'Literacy',teacher:'A. Asante'},'8:30-9:30':{subject:'Numeracy',teacher:'K. Boateng'},'9:30-10:30':{subject:'My World',teacher:'A. Asante'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Tuesday:{'7:30-8:30':{subject:'Numeracy',teacher:'K. Boateng'},'8:30-9:30':{subject:'Literacy',teacher:'A. Asante'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'My World',teacher:'A. Asante'},'12:00-1:00':{subject:'Handwriting',teacher:'A. Asante'}},
+      Wednesday:{'7:30-8:30':{subject:'My World',teacher:'A. Asante'},'8:30-9:30':{subject:'Numeracy',teacher:'K. Boateng'},'9:30-10:30':{subject:'Literacy',teacher:'A. Asante'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'RME',teacher:'A. Nyarko'}},
+      Thursday:{'7:30-8:30':{subject:'Literacy',teacher:'A. Asante'},'8:30-9:30':{subject:'My World',teacher:'A. Asante'},'9:30-10:30':{subject:'Numeracy',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Handwriting',teacher:'A. Asante'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'Literacy',teacher:'A. Asante'},'9:30-10:30':{subject:'Numeracy',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+    cls1:{
+      Monday:{'7:30-8:30':{subject:'Literacy',teacher:'A. Asante'},'8:30-9:30':{subject:'Numeracy',teacher:'K. Boateng'},'9:30-10:30':{subject:'My World',teacher:'A. Asante'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Creative Arts',teacher:'A. Darko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Tuesday:{'7:30-8:30':{subject:'Numeracy',teacher:'K. Boateng'},'8:30-9:30':{subject:'Literacy',teacher:'A. Asante'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'My World',teacher:'A. Asante'},'12:00-1:00':{subject:'Drawing',teacher:'A. Darko'}},
+      Wednesday:{'7:30-8:30':{subject:'My World',teacher:'A. Asante'},'8:30-9:30':{subject:'Literacy',teacher:'A. Asante'},'9:30-10:30':{subject:'Numeracy',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Singing',teacher:'A. Darko'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Thursday:{'7:30-8:30':{subject:'Literacy',teacher:'A. Asante'},'8:30-9:30':{subject:'Numeracy',teacher:'K. Boateng'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Drawing',teacher:'A. Darko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'Literacy',teacher:'A. Asante'},'9:30-10:30':{subject:'Numeracy',teacher:'K. Boateng'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Singing',teacher:'A. Darko'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+    },
+  });
   DB.set('seeded',true);
 }
 
@@ -403,6 +461,12 @@ const SMS = {
     document.getElementById('add-leave-btn')?.addEventListener('click',()=>this.toast('Leave form — coming soon','warn'));
     document.getElementById('process-payroll-btn')?.addEventListener('click',()=>this.processPayroll());
     document.getElementById('exp-audit-btn')?.addEventListener('click',()=>this.exportAudit());
+    document.getElementById('exp-payroll-btn')?.addEventListener('click',()=>this.exportPayroll());
+    document.getElementById('send-reminder-btn')?.addEventListener('click',()=>this.sendBulkReminders());
+    document.getElementById('promote-btn')?.addEventListener('click',()=>this.openPromoteModal());
+    document.getElementById('import-students-btn')?.addEventListener('click',()=>this.openImportModal());
+    document.getElementById('print-att-btn')?.addEventListener('click',()=>this.printAttendanceSheet());
+    document.getElementById('dash-refresh-btn')?.addEventListener('click',()=>this.refreshDashboard());
     document.getElementById('clear-audit-btn')?.addEventListener('click',()=>{ DB.set('auditLog',[]); this.renderAudit(); this.toast('Audit log cleared','warn'); });
     document.getElementById('audit-q')?.addEventListener('input',()=>this.renderAudit());
     document.getElementById('audit-type')?.addEventListener('change',()=>this.renderAudit());
@@ -597,17 +661,20 @@ const SMS = {
     const slice=filtered.slice((this._studPage-1)*perPage,this._studPage*perPage);
     const tbody=document.getElementById('students-tbody');
     if(!tbody) return;
+    const feeStructure=DB.get('feeStructure',[]);
     tbody.innerHTML=slice.map(s=>{
+      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const termFee1=+(fs?.term1||850), termFee2=+(fs?.term2||850);
       const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0);
-      const owed=(850-p1)+(850-p2);
+      const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2);
       const feeStatus=owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.studentId}</td>
         <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600;color:var(--t1)">${s.fname} ${s.lname}</div><div style="font-size:.73rem;color:var(--t4)">${fmtDate(s.dob)}</div></div></div></td>
         <td>${this.className(s.classId)}</td>
         <td>${s.gender}</td>
-        <td><div style="font-size:.8rem">${s.dadName||'—'}</div><div style="font-size:.73rem;color:var(--t4)">${s.dadPhone||''}</div></td>
-        <td style="font-size:.8rem">${s.dadPhone||'—'}</td>
+        <td><div style="font-size:.8rem;font-weight:600">${s.dadName||'—'}</div><div style="font-size:.73rem;color:var(--t4)">${s.momName||''}</div></td>
+        <td style="font-size:.8rem">${s.dadPhone||s.momPhone||'—'}</td>
         <td>${feeStatus}</td>
         <td>${statusBadge(s.status)}</td>
         <td>
@@ -1130,7 +1197,7 @@ const SMS = {
       <td>${r.count}</td>
       <td style="font-weight:700">${r.avg*r.count}</td>
       <td style="font-weight:700;color:var(--brand-teal)">${r.avg}%</td>
-      <td><span class="badge ${r.grade==='F'?'badge-danger':r.grade<='C'?'badge-warn':'badge-success'}">${r.grade}</span></td>
+      <td><span class="badge ${r.grade==='F'?'badge-danger':r.grade==='D'||r.grade==='C'?'badge-warn':'badge-success'}">${r.grade}</span></td>
       <td style="font-weight:700;color:${i<3?'var(--warn)':'var(--t3)'}">${i===0?'1st':i===1?'2nd':i===2?'3rd':(i+1)+'th'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="SMS.viewStudent('${r.student.id}')" style="padding:.3rem .5rem">View →</button></td>
     </tr>`).join('')||'<tr><td colspan="8" class="tbl-empty">No results found. Enter grades first.</td></tr>';
@@ -1150,30 +1217,88 @@ const SMS = {
     const grades=DB.get('grades',[]);
     const exams=DB.get('exams',[]).filter(e=>e.classId===classId);
     const cls=DB.get('classes',[]).find(c=>c.id===classId);
-    const html=`<div style="font-size:.82rem">${students.map(s=>{
+    const staff=DB.get('staff',[]);
+    const gradeLabel=(p)=>{ if(p>=80)return{g:'A',r:'Excellent',c:'#16a34a'}; if(p>=70)return{g:'B',r:'Very Good',c:'#0d9488'}; if(p>=60)return{g:'C',r:'Good',c:'#2563eb'}; if(p>=50)return{g:'D',r:'Pass',c:'#d97706'}; return{g:'F',r:'Needs Improvement',c:'#dc2626'}; };
+    const html=`<style>@media print{.no-print{display:none!important;}.report-card-page{page-break-after:always;}}</style>
+    <div style="font-size:.82rem">${students.map((s,si)=>{
       const sGrades=grades.filter(g=>g.studentId===s.id&&exams.some(e=>e.id===g.examId));
-      const avg=sGrades.length>0?Math.round(sGrades.reduce((sum,g)=>{ const ex=exams.find(e=>e.id===g.examId); return sum+(g.score/(ex?.maxScore||100)*100); },0)/sGrades.length):0;
-      return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:1rem;margin-bottom:1rem;page-break-inside:avoid">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem">
-          <div><div style="font-weight:800;font-size:.95rem">${school.name||'School'}</div><div style="font-size:.72rem;color:var(--t3)">${school.address||''}</div></div>
-          <div style="text-align:right;font-size:.72rem;color:var(--t3)">STUDENT REPORT CARD<br>${school.academicYear||'2025/2026'} · Term ${school.currentTerm||'2'}</div>
+      const totalPct=sGrades.length>0?sGrades.reduce((sum,g)=>{ const ex=exams.find(e=>e.id===g.examId); return sum+(g.score/(ex?.maxScore||100)*100); },0)/sGrades.length:0;
+      const avg=Math.round(totalPct);
+      const overall=gradeLabel(avg);
+      // Rank among class
+      const allAvgs=students.map(st=>{ const sg=grades.filter(g=>g.studentId===st.id&&exams.some(e=>e.id===g.examId)); return sg.length>0?Math.round(sg.reduce((sum,g)=>{ const ex=exams.find(e=>e.id===g.examId); return sum+(g.score/(ex?.maxScore||100)*100); },0)/sg.length):0; }).sort((a,b)=>b-a);
+      const pos=allAvgs.indexOf(avg)+1;
+      const posStr=pos===1?'1st':pos===2?'2nd':pos===3?'3rd':pos+'th';
+      const classTeacher=staff.find(x=>x.id===cls?.teacherId);
+      return `<div class="report-card-page" style="border:2px solid #1a3a6b;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;background:white;position:relative">
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:3px solid #1a3a6b">
+          <div style="display:flex;align-items:center;gap:.75rem">
+            <div style="width:52px;height:52px;border-radius:50%;background:#1a3a6b;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.1rem">${s.fname[0]}${s.lname[0]}</div>
+            <div>
+              <div style="font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:800;color:#1a3a6b">${school.name||'School'}</div>
+              <div style="font-size:.68rem;color:#666">${school.address||''} · ${school.phone||''}</div>
+              <div style="font-size:.68rem;color:#0d9488;font-style:italic">${school.motto||'Excellence in All Things'}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;margin-bottom:.2rem">STUDENT REPORT CARD</div>
+            <div style="font-size:.68rem;color:#888">${school.academicYear||'2025/2026'} · Term ${school.currentTerm||'2'}</div>
+            <div style="font-size:.68rem;color:#888">Issued: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+          </div>
         </div>
-        <div style="background:var(--brand-lt);padding:.5rem .75rem;border-radius:6px;margin-bottom:.75rem;display:flex;gap:2rem;flex-wrap:wrap">
-          <div><span style="font-size:.7rem;color:var(--t3)">NAME</span><div style="font-weight:700;font-size:.88rem">${s.fname} ${s.lname}</div></div>
-          <div><span style="font-size:.7rem;color:var(--t3)">ID</span><div style="font-weight:700;font-size:.88rem">${s.studentId}</div></div>
-          <div><span style="font-size:.7rem;color:var(--t3)">CLASS</span><div style="font-weight:700;font-size:.88rem">${cls?.name||'—'}</div></div>
+        <!-- Student Info Band -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;background:#f0f4f8;border-radius:8px;padding:.65rem .75rem;margin-bottom:.85rem">
+          <div><div style="font-size:.6rem;color:#888;font-weight:700">STUDENT NAME</div><div style="font-weight:700;font-size:.82rem">${s.fname} ${s.lname}</div></div>
+          <div><div style="font-size:.6rem;color:#888;font-weight:700">STUDENT ID</div><div style="font-weight:700;font-size:.82rem">${s.studentId}</div></div>
+          <div><div style="font-size:.6rem;color:#888;font-weight:700">CLASS</div><div style="font-weight:700;font-size:.82rem">${cls?.name||'—'}</div></div>
+          <div><div style="font-size:.6rem;color:#888;font-weight:700">POSITION</div><div style="font-weight:700;font-size:.82rem;color:#1a3a6b">${posStr} of ${students.length}</div></div>
         </div>
-        <table style="width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:.75rem">
-          <thead><tr style="background:var(--brand);color:white"><th style="padding:.4rem .6rem;text-align:left">Subject</th><th style="padding:.4rem .6rem">Score</th><th style="padding:.4rem .6rem">Max</th><th style="padding:.4rem .6rem">%</th><th style="padding:.4rem .6rem">Grade</th><th style="padding:.4rem .6rem">Remark</th></tr></thead>
-          <tbody>${sGrades.map(g=>{ const ex=exams.find(e=>e.id===g.examId); const pct=Math.round(g.score/(ex?.maxScore||100)*100); const grade=gradeFromScore(g.score,ex?.maxScore||100); const remark=pct>=80?'Excellent':pct>=70?'Very Good':pct>=60?'Good':pct>=50?'Pass':'Needs Improvement'; return `<tr style="border-bottom:1px solid var(--border)"><td style="padding:.35rem .6rem">${ex?.name||'—'}</td><td style="padding:.35rem .6rem;text-align:center;font-weight:700">${g.score}</td><td style="padding:.35rem .6rem;text-align:center">${ex?.maxScore||100}</td><td style="padding:.35rem .6rem;text-align:center">${pct}%</td><td style="padding:.35rem .6rem;text-align:center;font-weight:700">${grade}</td><td style="padding:.35rem .6rem">${remark}</td></tr>`; }).join('')}
-          <tr style="background:var(--surface-2);font-weight:700"><td style="padding:.4rem .6rem">OVERALL AVERAGE</td><td colspan="2"></td><td style="padding:.4rem .6rem;text-align:center;color:var(--brand)">${avg}%</td><td style="padding:.4rem .6rem;text-align:center">${gradeFromScore(avg)}</td><td style="padding:.4rem .6rem">${avg>=80?'Excellent':avg>=70?'Very Good':avg>=60?'Good':avg>=50?'Pass':'Needs Improvement'}</td></tr>
+        <!-- Grades Table -->
+        <table style="width:100%;border-collapse:collapse;font-size:.77rem;margin-bottom:.85rem">
+          <thead>
+            <tr style="background:#1a3a6b;color:white">
+              <th style="padding:.45rem .6rem;text-align:left;border:1px solid #1a3a6b">Subject / Exam</th>
+              <th style="padding:.45rem .6rem;text-align:center;border:1px solid #1a3a6b">Score</th>
+              <th style="padding:.45rem .6rem;text-align:center;border:1px solid #1a3a6b">Max</th>
+              <th style="padding:.45rem .6rem;text-align:center;border:1px solid #1a3a6b">%</th>
+              <th style="padding:.45rem .6rem;text-align:center;border:1px solid #1a3a6b">Grade</th>
+              <th style="padding:.45rem .6rem;text-align:left;border:1px solid #1a3a6b">Remark</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sGrades.map((g,gi)=>{ const ex=exams.find(e=>e.id===g.examId); const pct=Math.round(g.score/(ex?.maxScore||100)*100); const gl=gradeLabel(pct); return `<tr style="background:${gi%2===0?'#fafafa':'white'};border-bottom:1px solid #e5e7eb"><td style="padding:.38rem .6rem;border:1px solid #e5e7eb">${ex?.name||'—'}</td><td style="padding:.38rem .6rem;text-align:center;font-weight:700;border:1px solid #e5e7eb">${g.score}</td><td style="padding:.38rem .6rem;text-align:center;border:1px solid #e5e7eb">${ex?.maxScore||100}</td><td style="padding:.38rem .6rem;text-align:center;font-weight:700;border:1px solid #e5e7eb">${pct}%</td><td style="padding:.38rem .6rem;text-align:center;border:1px solid #e5e7eb"><span style="background:${gl.c}20;color:${gl.c};font-weight:700;padding:.15rem .4rem;border-radius:4px;font-size:.72rem">${gl.g}</span></td><td style="padding:.38rem .6rem;color:${gl.c};font-weight:600;border:1px solid #e5e7eb">${gl.r}</td></tr>`; }).join('')}
+            <tr style="background:#1a3a6b20;font-weight:800">
+              <td style="padding:.5rem .6rem;border:1px solid #ccc">OVERALL AVERAGE</td>
+              <td colspan="2" style="border:1px solid #ccc"></td>
+              <td style="padding:.5rem .6rem;text-align:center;color:#1a3a6b;font-size:.92rem;border:1px solid #ccc">${avg}%</td>
+              <td style="padding:.5rem .6rem;text-align:center;border:1px solid #ccc"><span style="background:${overall.c}20;color:${overall.c};font-weight:800;padding:.2rem .5rem;border-radius:4px">${overall.g}</span></td>
+              <td style="padding:.5rem .6rem;color:${overall.c};border:1px solid #ccc">${overall.r}</td>
+            </tr>
           </tbody>
         </table>
-        <div style="font-size:.72rem;color:var(--t4);text-align:center;padding-top:.5rem;border-top:1px solid var(--border)">Generated by Eduformium School Management System · ${new Date().toLocaleDateString()}</div>
+        <!-- Comments & Signatures -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:.3rem">Class Teacher's Comment</div>
+            <div style="border:1px solid #ddd;border-radius:6px;padding:.5rem;min-height:48px;font-size:.75rem;color:#555;background:#fafafa">${avg>=80?'Outstanding performance! Keep it up.':avg>=70?'Very commendable effort. Strive for more.':avg>=60?'Good work. With more effort you can do better.':avg>=50?'Satisfactory. Please put in more effort next term.':'Needs significant improvement. Let us work together.'}</div>
+          </div>
+          <div>
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:.3rem">Head Teacher's Comment</div>
+            <div style="border:1px solid #ddd;border-radius:6px;padding:.5rem;min-height:48px;background:#fafafa"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-top:.5rem">
+          <div style="text-align:center"><div style="border-top:1px solid #999;padding-top:.3rem;font-size:.68rem;color:#888">Class Teacher: ${classTeacher?.fname||'—'} ${classTeacher?.lname||''}</div></div>
+          <div style="text-align:center"><div style="border-top:1px solid #999;padding-top:.3rem;font-size:.68rem;color:#888">Head Teacher's Signature</div></div>
+          <div style="text-align:center"><div style="border-top:1px solid #999;padding-top:.3rem;font-size:.68rem;color:#888">Parent/Guardian's Signature</div></div>
+        </div>
+        <!-- Footer -->
+        <div style="text-align:center;font-size:.62rem;color:#aaa;padding-top:.5rem;margin-top:.5rem;border-top:1px solid #eee">Generated by Eduformium School Management System · ${new Date().toLocaleDateString()}</div>
       </div>`;
     }).join('')}</div>`;
     document.getElementById('receipt-body').innerHTML=html;
-    document.getElementById('receipt-title').textContent=`Report Cards — ${cls?.name}`;
+    document.getElementById('receipt-title').textContent=`Report Cards — ${cls?.name} (${students.length} students)`;
     this.openModal('m-receipt');
   },
 
@@ -1250,7 +1375,7 @@ const SMS = {
         <td style="color:var(--danger)">${fmt(deduct)}</td>
         <td style="font-weight:800;color:var(--brand)">${fmt(net)}</td>
         <td>${p?statusBadge('active'):`<span class="badge badge-warn">Pending</span>`}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="SMS.payStaff('${s.id}',${net},'${month}','${year}')" style="padding:.3rem .6rem">${p?'Paidid':'Pay'}</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="SMS.payStaff('${s.id}',${net},'${month}','${year}')" style="padding:.3rem .6rem">${p?'✓ Paid':'Pay'}</button></td>
       </tr>`;
     }).join('')||'<tr><td colspan="8" class="tbl-empty">No staff</td></tr>';
   },
@@ -1267,6 +1392,18 @@ const SMS = {
     const s=DB.get('staff',[]).find(x=>x.id===staffId); const basic=+s.salary||0,allow=basic*0.15,deduct=basic*0.05;
     payroll.push({id:uid('pr'),staffId,month,year,basic,allowances:allow,deductions:deduct,net,date:new Date().toISOString(),paidBy:this.currentUser.id});
     DB.set('payroll',payroll); this.audit('Payroll','create',`Paid ${s.fname} ${s.lname}: ${fmt(net)}`); this.toast(`${s.fname} paid ${fmt(net)}`,'success'); this.renderPayroll();
+  },
+
+  exportPayroll(){
+    if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
+    const staff=DB.get('staff',[]); const payroll=DB.get('payroll',[]);
+    const month=document.getElementById('pay-month')?.value; const year=document.getElementById('pay-year')?.value;
+    const saved=payroll.filter(p=>p.month==month&&p.year==year);
+    const data=saved.map(p=>{ const s=staff.find(x=>x.id===p.staffId); return {'Staff Name':s?s.fname+' '+s.lname:'Unknown','Role':s?.role||'—','Department':s?.dept||'—','Basic Salary':p.basic,'Allowances':p.allowances,'Deductions':p.deductions,'Net Pay':p.net,'Month':p.month,'Year':p.year,'Date Paid':p.date?new Date(p.date).toLocaleDateString():'—'}; });
+    const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Payroll');
+    XLSX.writeFile(wb,`Payroll_${month}_${year}.xlsx`);
+    this.audit('Payroll Export','settings',`Payroll exported for ${month}/${year}`);
+    this.toast('Payroll exported!','success');
   },
 
   // ══ LEAVE ══
@@ -1304,9 +1441,18 @@ const SMS = {
   renderFeesKpis(){
     const payments=DB.get('feePayments',[]);
     const students=DB.get('students',[]);
+    const feeStructure=DB.get('feeStructure',[]);
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    const defaulters=students.filter(s=>{ const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0); return p1<850||p2<850; });
-    const outstanding=defaulters.reduce((s,st)=>s+(850-(+(st.feesPaid?.term1||0)))+(850-(+(st.feesPaid?.term2||0))),0);
+    const defaulters=students.filter(s=>{
+      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
+      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2;
+    });
+    const outstanding=defaulters.reduce((s,st)=>{
+      const fs=feeStructure.find(f=>f.classId===st.classId);
+      const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
+      return s+Math.max(0,t1-(+(st.feesPaid?.term1||0)))+Math.max(0,t2-(+(st.feesPaid?.term2||0)));
+    },0);
     document.getElementById('fees-kpis').innerHTML=[
       {icon:'fees',val:fmt(totalCollected),lbl:'Total Collected',color:'teal'},
       {icon:'transactions',val:payments.length,lbl:'Transactions',color:'blue'},
@@ -1357,21 +1503,276 @@ const SMS = {
   },
 
   renderDefaulters(){
-    const students=DB.get('students',[]); const classes=DB.get('classes',[]);
-    const defaulters=students.filter(s=>{ const p1=+(s.feesPaid?.term1||0),p2=+(s.feesPaid?.term2||0); return p1<850||p2<850; });
+    const students=DB.get('students',[]); const classes=DB.get('classes',[]); const feeStructure=DB.get('feeStructure',[]);
+    const defaulters=students.filter(s=>{
+      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const t1=+(fs?.term1||850), t2=+(fs?.term2||850), t3=+(fs?.term3||850);
+      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
+    });
     document.getElementById('defaulters-tbody').innerHTML=defaulters.map(s=>{
-      const owed1=Math.max(0,850-(+(s.feesPaid?.term1||0))), owed2=Math.max(0,850-(+(s.feesPaid?.term2||0)));
+      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const t1=+(fs?.term1||850), t2=+(fs?.term2||850), t3=+(fs?.term3||850);
+      const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
+      const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
+      const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
       return `<tr>
         <td style="font-weight:600">${s.fname} ${s.lname}</td>
         <td>${this.className(s.classId)}</td>
         <td>${s.dadPhone||'—'}</td>
-        <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'Paid'}</td>
-        <td style="color:${owed2>0?'var(--danger)':'var(--success)'};font-weight:600">${owed2>0?fmt(owed2):'Paid'}</td>
-        <td>—</td>
-        <td style="font-weight:800;color:var(--danger)">${fmt(owed1+owed2)}</td>
-        <td><button class="btn btn-primary btn-sm" onclick="SMS.openFeeModal('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem">Pay Now</button></td>
+        <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'✓ Paid'}</td>
+        <td style="color:${owed2>0?'var(--danger)':'var(--success)'};font-weight:600">${owed2>0?fmt(owed2):'✓ Paid'}</td>
+        <td style="color:${owed3>0?'var(--danger)':'var(--success)'};font-weight:600">${owed3>0?fmt(owed3):'✓ Paid'}</td>
+        <td style="font-weight:800;color:var(--danger)">${fmt(owed1+owed2+owed3)}</td>
+        <td>
+          <div style="display:flex;gap:.3rem">
+            <button class="btn btn-primary btn-sm" onclick="SMS.openFeeModal('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem">Pay Now</button>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder">📩</button>
+          </div>
+        </td>
       </tr>`;
-    }).join('')||'<tr><td colspan="8" class="tbl-empty"> No defaulters — all fees paid!</td></tr>';
+    }).join('')||'<tr><td colspan="8" class="tbl-empty">🎉 No defaulters — all fees paid!</td></tr>';
+  },
+
+  // ══ FEE REMINDER (Alert/Simulate SMS) ══
+  sendFeeReminder(studentId){
+    const s=DB.get('students',[]).find(x=>x.id===studentId); if(!s) return;
+    const feeStructure=DB.get('feeStructure',[]);
+    const fs=feeStructure.find(f=>f.classId===s.classId);
+    const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
+    const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
+    const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
+    const total=owed1+owed2;
+    const school=DB.get('school',{});
+    const msg=`Dear ${s.dadName||'Parent'}, your ward ${s.fname} ${s.lname} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
+    // Show simulated reminder modal
+    document.getElementById('receipt-title').textContent='📩 Fee Reminder Preview';
+    document.getElementById('receipt-body').innerHTML=`
+      <div style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem">SMS Message to ${s.dadPhone||'No phone on record'}</div>
+        <div style="font-size:.88rem;color:var(--t1);line-height:1.6">${msg}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${s.fname} ${s.lname}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">AMOUNT OWED</div><div style="font-weight:700;color:var(--danger)">${fmt(total)}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||'Not on record'}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
+      </div>
+      <div style="margin-top:1rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
+        ⚠️ Configure your SMS gateway in Settings → SMS Notifications to send real messages. This preview shows what will be sent.
+      </div>`;
+    this.audit('Fee Reminder','create',`Fee reminder sent to parent of ${s.fname} ${s.lname}`);
+    this.openModal('m-receipt');
+  },
+
+  sendBulkReminders(){
+    const students=DB.get('students',[]); const feeStructure=DB.get('feeStructure',[]);
+    const defaulters=students.filter(s=>{
+      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
+      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2;
+    });
+    if(defaulters.length===0){ this.toast('No defaulters — all fees are paid!','success'); return; }
+    this.audit('Fee Reminder','create',`Bulk reminders queued for ${defaulters.length} defaulters`);
+    this.toast(`📩 ${defaulters.length} reminders queued! Configure SMS gateway in Settings to send.`,'success');
+  },
+
+  // ══ STUDENT PROMOTION ══
+  openPromoteModal(){
+    const classes=DB.get('classes',[]).sort((a,b)=>a.name.localeCompare(b.name));
+    document.getElementById('receipt-title').textContent='🎓 Promote Students';
+    document.getElementById('receipt-body').innerHTML=`
+      <div style="margin-bottom:1rem;font-size:.85rem;color:var(--t3)">Promote all active students in a class to the next class level.</div>
+      <div class="form-grid-2" style="margin-bottom:1rem">
+        <div class="form-field">
+          <label class="form-label">From Class *</label>
+          <select class="form-input" id="promo-from">${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">To Class *</label>
+          <select class="form-input" id="promo-to"><option value="">— Select Target Class —</option>${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div style="background:var(--warn-bg);border:1px solid var(--warn);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--t2);margin-bottom:1rem">
+        ⚠️ This will move all <strong>active</strong> students from the selected class to the target class. This action can be undone by promoting them back.
+      </div>
+      <div id="promo-preview" style="font-size:.82rem;color:var(--t3)"></div>
+      <div style="margin-top:1rem;display:flex;gap:.75rem">
+        <button class="btn btn-secondary btn-sm" onclick="SMS.previewPromotion()">Preview</button>
+        <button class="btn btn-primary" onclick="SMS.executePromotion()">Promote Students</button>
+      </div>`;
+    // Live preview on change
+    setTimeout(()=>{
+      document.getElementById('promo-from')?.addEventListener('change',()=>SMS.previewPromotion());
+      document.getElementById('promo-to')?.addEventListener('change',()=>SMS.previewPromotion());
+    },100);
+    this.openModal('m-receipt');
+  },
+
+  previewPromotion(){
+    const fromId=document.getElementById('promo-from')?.value;
+    const toId=document.getElementById('promo-to')?.value;
+    const prev=document.getElementById('promo-preview'); if(!prev) return;
+    if(!fromId||!toId||fromId===toId){ prev.innerHTML=''; return; }
+    const students=DB.get('students',[]).filter(s=>s.classId===fromId&&s.status==='active');
+    prev.innerHTML=`<strong>${students.length} student(s)</strong> will be promoted: ${students.slice(0,5).map(s=>`${s.fname} ${s.lname}`).join(', ')}${students.length>5?` +${students.length-5} more`:''}`;
+  },
+
+  executePromotion(){
+    const fromId=document.getElementById('promo-from')?.value;
+    const toId=document.getElementById('promo-to')?.value;
+    if(!fromId||!toId||fromId===toId){ this.toast('Select two different classes','warn'); return; }
+    const students=DB.get('students',[]);
+    let count=0;
+    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; count++; } });
+    DB.set('students',students);
+    this.audit('Student Promotion','edit',`Promoted ${count} students from ${this.className(fromId)} to ${this.className(toId)}`);
+    this.toast(`✅ ${count} students promoted to ${this.className(toId)}!`,'success');
+    this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
+  },
+
+  // ══ BULK IMPORT STUDENTS via CSV/XLSX ══
+  openImportModal(){
+    document.getElementById('receipt-title').textContent='📥 Bulk Import Students';
+    document.getElementById('receipt-body').innerHTML=`
+      <div style="margin-bottom:.75rem;font-size:.85rem;color:var(--t3)">Upload a CSV or Excel file to import multiple students at once.</div>
+      <div style="background:var(--surface-2);border:2px dashed var(--border);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1rem">
+        <div style="font-size:1.5rem;margin-bottom:.5rem">📄</div>
+        <div style="font-size:.85rem;font-weight:600;margin-bottom:.25rem">Drop CSV / Excel file here</div>
+        <div style="font-size:.75rem;color:var(--t4);margin-bottom:.75rem">Required columns: First Name, Last Name, Class, Gender, DOB, Parent Name, Parent Phone</div>
+        <input type="file" id="import-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="SMS.handleImportFile(event)"/>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file').click()">Choose File</button>
+      </div>
+      <div style="margin-bottom:1rem">
+        <a href="#" onclick="SMS.downloadImportTemplate();return false;" style="font-size:.82rem;color:var(--brand-teal);text-decoration:underline">📥 Download Template CSV</a>
+      </div>
+      <div id="import-preview" style="font-size:.82rem"></div>`;
+    this.openModal('m-receipt');
+  },
+
+  downloadImportTemplate(){
+    if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
+    const template=[{'First Name':'Kwame','Last Name':'Asante','Class':'JHS 1','Gender':'Male','Date of Birth':'2012-01-15','Parent Name':'Kofi Asante','Parent Phone':'+233 24 123 4567','Address':'Accra, Ghana','Student ID':''}];
+    const ws=XLSX.utils.json_to_sheet(template); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Students');
+    XLSX.writeFile(wb,'StudentImportTemplate.xlsx');
+    this.toast('Template downloaded!','success');
+  },
+
+  handleImportFile(e){
+    const file=e.target.files[0]; if(!file) return;
+    if(typeof XLSX==='undefined'){ this.toast('Import library not loaded','error'); return; }
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=new Uint8Array(ev.target.result);
+        const wb=XLSX.read(data,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws);
+        if(rows.length===0){ document.getElementById('import-preview').innerHTML='<div style="color:var(--danger)">No data found in file.</div>'; return; }
+        const classes=DB.get('classes',[]);
+        let valid=0, errors=[];
+        const toImport=rows.map((r,i)=>{
+          const fname=(r['First Name']||r['fname']||'').trim();
+          const lname=(r['Last Name']||r['lname']||'').trim();
+          const clsName=(r['Class']||r['class']||'').trim();
+          const gender=(r['Gender']||r['gender']||'').trim();
+          const cls=classes.find(c=>c.name.toLowerCase()===clsName.toLowerCase()||c.id===clsName);
+          if(!fname||!lname||!cls||!gender){ errors.push(`Row ${i+2}: Missing required fields`); return null; }
+          valid++;
+          return {id:uid('stu'),studentId:`IMP-${Date.now()}-${i}`,fname,lname,classId:cls.id,gender,dob:r['Date of Birth']||r['dob']||'',dadName:r['Parent Name']||r['dadName']||'',dadPhone:r['Parent Phone']||r['dadPhone']||'',address:r['Address']||'',status:'active',admitDate:new Date().toISOString().split('T')[0],feesPaid:{term1:0,term2:0,term3:0}};
+        }).filter(Boolean);
+        document.getElementById('import-preview').innerHTML=`
+          <div style="background:var(--success-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem">✅ <strong>${valid} student(s)</strong> ready to import from ${rows.length} rows.</div>
+          ${errors.length>0?`<div style="background:var(--danger-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.75rem;color:var(--danger)">${errors.slice(0,5).join('<br>')}</div>`:''}
+          <div style="overflow-x:auto;max-height:200px;overflow-y:auto;font-size:.75rem;border:1px solid var(--border);border-radius:8px">
+            <table class="tbl" style="font-size:.73rem"><thead><tr><th>Name</th><th>Class</th><th>Gender</th><th>Parent</th></tr></thead><tbody>
+            ${toImport.slice(0,10).map(s=>`<tr><td>${s.fname} ${s.lname}</td><td>${this.className(s.classId)}</td><td>${s.gender}</td><td>${s.dadName||'—'}</td></tr>`).join('')}
+            ${toImport.length>10?`<tr><td colspan="4" style="text-align:center;color:var(--t4)">+${toImport.length-10} more...</td></tr>`:''}
+            </tbody></table>
+          </div>
+          <button class="btn btn-primary" style="margin-top:.75rem" onclick="SMS.confirmImport(${JSON.stringify(toImport).replace(/"/g,'&quot;')})">Import ${valid} Students</button>`;
+      }catch(err){ document.getElementById('import-preview').innerHTML=`<div style="color:var(--danger)">Error reading file: ${err.message}</div>`; }
+    };
+    reader.readAsArrayBuffer(file);
+  },
+
+  confirmImport(studentsJson){
+    let toImport; try{ toImport=typeof studentsJson==='string'?JSON.parse(studentsJson.replace(/&quot;/g,'"')):studentsJson; }catch(e){ this.toast('Import data error','error'); return; }
+    const students=DB.get('students',[]); students.push(...toImport); DB.set('students',students);
+    this.audit('Bulk Import','create',`Imported ${toImport.length} students via file upload`);
+    this.toast(`✅ ${toImport.length} students imported successfully!`,'success');
+    this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
+  },
+
+  // ══ PRINTABLE ATTENDANCE SHEET ══
+  printAttendanceSheet(){
+    const classes=DB.get('classes',[]);
+    const date=document.getElementById('att-date')?.value||new Date().toISOString().split('T')[0];
+    const classId=document.getElementById('att-class')?.value;
+    if(!classId){ this.toast('Select a class first to print its sheet','warn'); return; }
+    const students=DB.get('students',[]).filter(s=>s.classId===classId&&s.status==='active');
+    const cls=classes.find(c=>c.id===classId);
+    const school=DB.get('school',{});
+    const html=`
+      <div style="font-size:.85rem;page-break-inside:avoid">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:2px solid #1a3a6b">
+          <div>
+            <div style="font-size:1.1rem;font-weight:800;color:#1a3a6b">${school.name||'School'}</div>
+            <div style="font-size:.75rem;color:#666">Attendance Sheet — ${cls?.name||'Class'} — ${fmtDate(date)}</div>
+          </div>
+          <div style="text-align:right;font-size:.72rem;color:#666">
+            Teacher: ${cls?.teacherId?DB.get('staff',[]).find(s=>s.id===cls.teacherId)?.fname+' '+DB.get('staff',[]).find(s=>s.id===cls.teacherId)?.lname:'—'}<br>
+            Academic Year: ${school.academicYear||'2025/2026'} · Term ${school.currentTerm||'2'}
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+          <thead>
+            <tr style="background:#1a3a6b;color:white">
+              <th style="padding:.5rem;text-align:left;border:1px solid #ccc">#</th>
+              <th style="padding:.5rem;text-align:left;border:1px solid #ccc">Student Name</th>
+              <th style="padding:.5rem;text-align:left;border:1px solid #ccc">Student ID</th>
+              <th style="padding:.5rem;text-align:center;border:1px solid #ccc;width:60px">P</th>
+              <th style="padding:.5rem;text-align:center;border:1px solid #ccc;width:60px">A</th>
+              <th style="padding:.5rem;text-align:center;border:1px solid #ccc;width:60px">L</th>
+              <th style="padding:.5rem;text-align:left;border:1px solid #ccc">Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${students.map((s,i)=>`
+              <tr style="background:${i%2===0?'#f9f9f9':'white'}">
+                <td style="padding:.45rem;border:1px solid #ddd;font-weight:700">${i+1}</td>
+                <td style="padding:.45rem;border:1px solid #ddd;font-weight:600">${s.fname} ${s.lname}</td>
+                <td style="padding:.45rem;border:1px solid #ddd;font-family:monospace;font-size:.72rem">${s.studentId}</td>
+                <td style="padding:.45rem;border:1px solid #ddd;text-align:center">☐</td>
+                <td style="padding:.45rem;border:1px solid #ddd;text-align:center">☐</td>
+                <td style="padding:.45rem;border:1px solid #ddd;text-align:center">☐</td>
+                <td style="padding:.45rem;border:1px solid #ddd"></td>
+              </tr>`).join('')}
+            <tr style="background:#e8f0fe;font-weight:700">
+              <td colspan="3" style="padding:.5rem;border:1px solid #ddd">TOTALS</td>
+              <td style="padding:.5rem;border:1px solid #ddd;text-align:center"></td>
+              <td style="padding:.5rem;border:1px solid #ddd;text-align:center"></td>
+              <td style="padding:.5rem;border:1px solid #ddd;text-align:center"></td>
+              <td style="padding:.5rem;border:1px solid #ddd"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;margin-top:2rem;font-size:.78rem">
+          <div>Teacher's Signature: ________________________</div>
+          <div>Date: ${fmtDate(date)}</div>
+          <div>Head Teacher's Initials: ________</div>
+        </div>
+        <div style="text-align:center;margin-top:1rem;font-size:.68rem;color:#999">Generated by Eduformium School Management System · ${new Date().toLocaleDateString()}</div>
+      </div>`;
+    document.getElementById('receipt-title').textContent='Attendance Sheet';
+    document.getElementById('receipt-body').innerHTML=html;
+    this.openModal('m-receipt');
+    setTimeout(()=>window.print(),300);
+  },
+
+  // ══ DASHBOARD REFRESH ══
+  refreshDashboard(){
+    const btn=document.getElementById('dash-refresh-btn'); if(btn){ btn.style.animation='spin .6s linear'; setTimeout(()=>btn.style.animation='',700); }
+    this.loadDashboard(); this.toast('Dashboard refreshed','success');
   },
 
   openFeeModal(preStudentId=null){
@@ -1493,7 +1894,7 @@ const SMS = {
         ${!m.read&&tab==='inbox'?'<span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:var(--brand-teal);margin-top:.25rem"></span>':''}
       </div>`).join('')||'<div style="padding:2rem;text-align:center;font-size:.82rem;color:var(--t4)">No messages</div>';
     const unread=messages.filter(m=>!m.read&&tab==='inbox').length;
-    const cnt=document.getElementById('inbox-count'); if(cnt) cnt.textContent=unread; cnt.style.display=unread>0?'inline':'none';
+    const cnt=document.getElementById('inbox-count'); if(cnt){ cnt.textContent=unread; cnt.style.display=unread>0?'inline':'none'; }
   },
 
   viewMessage(id,tab){
@@ -1826,10 +2227,16 @@ const SMS = {
   globalSearch(q){
     const results=document.getElementById('search-results'); if(!q.trim()){ results.innerHTML=''; return; }
     const ql=q.toLowerCase(); const hits=[];
-    DB.get('students',[]).filter(s=>`${s.fname} ${s.lname} ${s.studentId}`.toLowerCase().includes(ql)).slice(0,4).forEach(s=>hits.push({icon:'students',title:`${s.fname} ${s.lname}`,sub:`${s.studentId} · ${this.className(s.classId)}`,action:()=>{ SMS.viewStudent(s.id); document.getElementById('search-overlay').style.display='none'; }}));
-    DB.get('staff',[]).filter(s=>`${s.fname} ${s.lname}`.toLowerCase().includes(ql)).slice(0,3).forEach(s=>hits.push({icon:'staff',title:`${s.fname} ${s.lname}`,sub:`${s.role} · ${s.dept||''}`,action:()=>{ SMS.nav('staff'); document.getElementById('search-overlay').style.display='none'; }}));
-    if(hits.length===0){ results.innerHTML='<div style="padding:1.5rem;text-align:center;font-size:.85rem;color:var(--t4)">No results found</div>'; return; }
-    results.innerHTML=hits.map((h,i)=>`<div style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1.25rem;cursor:pointer;border-bottom:1px solid var(--border);font-size:.85rem" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''" id="sr_${i}"><div style="font-size:1.2rem">${h.icon}</div><div><div style="font-weight:600;color:var(--t1)">${h.title}</div><div style="font-size:.75rem;color:var(--t3)">${h.sub}</div></div></div>`).join('');
+    const iconSvg={
+      students:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg>`,
+      staff:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
+      fees:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    };
+    DB.get('students',[]).filter(s=>`${s.fname} ${s.lname} ${s.studentId} ${s.dadName||''} ${s.dadPhone||''}`.toLowerCase().includes(ql)).slice(0,5).forEach(s=>hits.push({iconHtml:iconSvg.students,color:'var(--brand-lt)',iconColor:'var(--brand)',title:`${s.fname} ${s.lname}`,sub:`${s.studentId} · ${this.className(s.classId)} · ${s.status}`,action:()=>{ SMS.viewStudent(s.id); document.getElementById('search-overlay').style.display='none'; }}));
+    DB.get('staff',[]).filter(s=>`${s.fname} ${s.lname} ${s.subjects||''} ${s.email||''}`.toLowerCase().includes(ql)).slice(0,3).forEach(s=>hits.push({iconHtml:iconSvg.staff,color:'var(--brand-teal-lt)',iconColor:'var(--brand-teal)',title:`${s.fname} ${s.lname}`,sub:`${s.role} · ${s.dept||''} · ${s.phone}`,action:()=>{ SMS.nav('staff'); document.getElementById('search-overlay').style.display='none'; }}));
+    DB.get('feePayments',[]).filter(p=>{ const s=DB.get('students',[]).find(x=>x.id===p.studentId); return s&&`${s.fname} ${s.lname} ${p.receiptNo||''}`.toLowerCase().includes(ql); }).slice(0,2).forEach(p=>{ const s=DB.get('students',[]).find(x=>x.id===p.studentId); hits.push({iconHtml:iconSvg.fees,color:'rgba(13,148,136,.08)',iconColor:'var(--brand-teal)',title:`Receipt ${p.receiptNo||'—'}`,sub:`${s?.fname} ${s?.lname} · ${fmt(p.amount)} · Term ${p.term}`,action:()=>{ SMS.nav('fees'); document.getElementById('search-overlay').style.display='none'; }}); });
+    if(hits.length===0){ results.innerHTML='<div style="padding:2rem;text-align:center;font-size:.85rem;color:var(--t4)">No results found</div>'; return; }
+    results.innerHTML=hits.map((h,i)=>`<div style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1.25rem;cursor:pointer;border-bottom:1px solid var(--border);font-size:.85rem" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''" id="sr_${i}"><div style="width:32px;height:32px;border-radius:8px;background:${h.color};color:${h.iconColor};display:flex;align-items:center;justify-content:center;flex-shrink:0">${h.iconHtml}</div><div><div style="font-weight:600;color:var(--t1)">${h.title}</div><div style="font-size:.75rem;color:var(--t3)">${h.sub}</div></div></div>`).join('');
     hits.forEach((h,i)=>document.getElementById('sr_'+i)?.addEventListener('click',h.action));
   },
 
@@ -1860,6 +2267,7 @@ const SMS = {
       list.innerHTML='<div class="notif-empty">No activity yet</div>';
       badge.style.display='none'; return;
     }
+    const newCount=recent.filter(l=>Date.now()-new Date(l.time)<3*86400000).length;
     list.innerHTML=recent.map(l=>{
       const icon=icons[l.type]||icons.default;
       const color=colors[l.type]||colors.default;
@@ -1875,8 +2283,8 @@ const SMS = {
         </div>
       </div>`;
     }).join('');
-    badge.style.display='flex';
-    badge.textContent=recent.length>9?'9+':recent.length;
+    badge.style.display=newCount>0?'flex':'none';
+    badge.textContent=newCount>9?'9+':newCount;
   },
 
   // ══ HELPERS ══

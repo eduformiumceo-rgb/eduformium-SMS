@@ -177,10 +177,11 @@ img { max-width: 100%; }
 
 .login-wrap {
   display: flex;
-  min-height: 100vh; min-height: 100dvh;
+  height: 100vh; height: 100dvh;
+  max-height: 100vh; max-height: 100dvh;
+  overflow: hidden;
   font-family: 'DM Sans', system-ui, sans-serif;
   background: var(--login-navy);
-  overflow: hidden;
 }
 
 /* ══ LEFT HERO PANEL ══ */
@@ -274,18 +275,20 @@ img { max-width: 100%; }
   width: 100%; display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 4rem 5rem;
+  padding: 2.5rem 4rem;
   max-width: 780px;
   margin: 0 auto;
+  height: 100%;
 }
 
 /* Wordmark */
 .l-wordmark {
   display: flex; align-items: center;
   justify-content: center;
-  gap: .88rem; margin-bottom: auto;
-  padding-bottom: 2.75rem;
+  gap: .88rem; margin-bottom: 0;
+  padding-bottom: 1.5rem;
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
 }
 .l-mark-box {
@@ -315,7 +318,7 @@ img { max-width: 100%; }
   border-radius: 4px; padding: .28rem .78rem;
   font-size: .58rem; font-weight: 600; letter-spacing: .14em;
   text-transform: uppercase; color: rgba(20,184,166,.9);
-  margin-bottom: .85rem;
+  margin-bottom: .65rem;
   animation: lFadeUp .55s .1s cubic-bezier(.22,1,.36,1) both;
   font-family: 'DM Sans', sans-serif;
 }
@@ -332,15 +335,15 @@ img { max-width: 100%; }
 /* Headline — DM Sans bold and clean */
 .l-headline {
   display: flex; flex-direction: column; gap: 0;
-  margin-bottom: 1.15rem;
+  margin-bottom: .75rem;
 }
 .l-hl-1, .l-hl-2 {
   display: block;
   font-family: 'DM Sans', sans-serif;
-  font-size: clamp(3.2rem, 5.5vw, 6rem);
+  font-size: clamp(2rem, 3.2vw, 3.4rem);
   font-weight: 800;
   letter-spacing: -.03em;
-  line-height: 1.08; color: rgba(255,255,255,.95);
+  line-height: 1.1; color: rgba(255,255,255,.95);
 }
 .l-hl-2 em {
   font-style: normal;
@@ -357,12 +360,12 @@ img { max-width: 100%; }
 
 /* Tagline */
 .l-hero-desc {
-  font-size: .875rem; line-height: 1.9;
-  color: rgba(255,255,255,.38); max-width: 560px;
+  font-size: .82rem; line-height: 1.75;
+  color: rgba(255,255,255,.38); max-width: 520px;
   font-weight: 400; font-family: 'DM Sans', sans-serif;
   animation: lFadeUp .6s .32s cubic-bezier(.22,1,.36,1) both;
-  margin-bottom: auto;
-  padding-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0;
   text-align: center;
 }
 
@@ -373,14 +376,14 @@ img { max-width: 100%; }
   width: 100%;
   border: 1px solid rgba(13,148,136,.2);
   border-radius: 10px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   overflow: hidden;
   animation: lFadeUp .6s .4s cubic-bezier(.22,1,.36,1) both;
 }
 .l-stat {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 1rem .5rem; gap: .25rem;
+  padding: .75rem .5rem; gap: .2rem;
   border-right: 1px solid rgba(13,148,136,.15);
   text-align: center;
   background: rgba(13,148,136,.04);
@@ -401,8 +404,8 @@ img { max-width: 100%; }
 
 /* Feature tags */
 .l-feats {
-  display: flex; flex-wrap: wrap; gap: .38rem;
-  margin-bottom: 2rem;
+  display: flex; flex-wrap: wrap; gap: .35rem;
+  margin-bottom: 1rem;
   justify-content: center;
   animation: lFadeUp .6s .47s cubic-bezier(.22,1,.36,1) both;
 }
@@ -432,7 +435,8 @@ img { max-width: 100%; }
   width: 500px; flex-shrink: 0;
   background: #ffffff;
   display: flex; flex-direction: column;
-  min-height: 100vh; min-height: 100dvh;
+  height: 100vh; height: 100dvh;
+  max-height: 100vh; max-height: 100dvh;
   position: relative; overflow-y: auto;
   animation: lPanelIn .52s .06s cubic-bezier(.22,1,.36,1) both;
   box-shadow: -20px 0 80px rgba(0,0,0,.32);

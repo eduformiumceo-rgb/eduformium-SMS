@@ -287,6 +287,8 @@ const SMS = {
   _staffPage: 1,
   _auditPage: 1,
 
+  _demoMode: false,
+
   init() {
     if(!window.FAuth){ // fallback if Firebase didn't load
       seedData();
@@ -311,6 +313,7 @@ const SMS = {
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this.boot();
       } else {
+        if(this._demoMode) return; // demo login already handled — ignore Firebase null auth
         this.schoolId=null; this.currentUser=null;
         seedData();
         this.showLogin();
@@ -442,6 +445,7 @@ const SMS = {
   bindForms(){
     document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
       // Always seed fresh demo data and log in locally — never hits Firebase
+      this._demoMode = true;
       seedData();
       const users=DB.get('users',[]);
       const demoUser=users.find(u=>u.email==='demo@brightfutureacademy.edu.gh');
@@ -452,6 +456,7 @@ const SMS = {
         this.audit('Login','login',`Demo login: ${demoUser.name}`);
         this.boot();
       } else {
+        this._demoMode = false;
         // Fallback: fill fields and attempt normal login
         document.getElementById('l-user').value='demo@brightfutureacademy.edu.gh';
         document.getElementById('l-pass').value='BFA@demo2026';
@@ -591,6 +596,7 @@ const SMS = {
     const users=DB.get('users',[]);
     const localUser=users.find(u=>u.email===email&&u.password===pass);
     if(localUser){
+      this._demoMode = true;
       localUser.lastLogin=new Date().toISOString(); DB.set('users',users);
       DB.set('session',{userId:localUser.id});
       this.currentUser=localUser; this.audit('Login','login',`${localUser.name} signed in`);

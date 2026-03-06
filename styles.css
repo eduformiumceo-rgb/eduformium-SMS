@@ -254,17 +254,17 @@ img { max-width: 100%; }
 
 .l-hero-grid { display: none; }
 
-/* Large 'E' watermark in teal tone */
+/* Large 'E' watermark */
 .l-hero::before {
   content: 'E';
   position: absolute;
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(24rem, 36vw, 46rem);
-  font-weight: 400; font-style: italic;
-  color: rgba(13,148,136,.04);
-  right: -4%; top: -6%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(22rem, 34vw, 42rem);
+  font-weight: 800; font-style: normal;
+  color: rgba(13,148,136,.03);
+  right: -2%; top: -4%;
   line-height: 1; pointer-events: none;
-  z-index: 1; letter-spacing: -.04em;
+  z-index: 1; letter-spacing: -.06em;
 }
 
 /* ── Hero content ── */
@@ -324,21 +324,22 @@ img { max-width: 100%; }
   60%       { box-shadow: 0 0 0 7px rgba(13,148,136,.0); }
 }
 
-/* Headline — DM Serif Display for weight + distinction */
+/* Headline — DM Sans bold and clean */
 .l-headline {
   display: flex; flex-direction: column; gap: 0;
   margin-bottom: 1.15rem;
 }
 .l-hl-1, .l-hl-2 {
   display: block;
-  font-family: 'DM Serif Display', serif;
-  font-size: clamp(3rem, 4.6vw, 5rem);
-  font-weight: 400;
-  letter-spacing: -.015em;
-  line-height: 1.06; color: rgba(255,255,255,.95);
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(2.8rem, 4.4vw, 4.6rem);
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1.08; color: rgba(255,255,255,.95);
 }
 .l-hl-2 em {
-  font-style: italic;
+  font-style: normal;
+  font-weight: 800;
   color: #14b8a6;
   -webkit-text-fill-color: #14b8a6;
   background: none;
@@ -450,11 +451,11 @@ img { max-width: 100%; }
   animation: livePulse 2.4s ease-in-out infinite;
 }
 
-/* Title — DM Serif Display for distinction */
+/* Title — DM Sans bold */
 .l-title {
-  font-family: 'DM Serif Display', serif;
-  font-size: 2.6rem; font-weight: 400;
-  letter-spacing: -.015em; line-height: 1.1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 2.4rem; font-weight: 800;
+  letter-spacing: -.03em; line-height: 1.1;
   color: #071830; margin-bottom: .45rem;
 }
 .l-title-dot { color: #0d9488; }

@@ -279,23 +279,24 @@ img { max-width: 100%; }
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 2.75rem 4rem 4rem;
+  padding: 2.25rem 4rem 2.25rem;
   min-height: 100vh; min-height: 100dvh;
 }
 
-/* Wordmark — top, matching the right panel's top padding */
+/* Wordmark — top, clean separation via subtle bottom border */
 .l-wordmark {
   display: flex; align-items: center;
   justify-content: center;
   gap: .75rem;
   width: 100%;
   flex-shrink: 0;
-  margin-bottom: 0;
-  padding-bottom: 0;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(13,148,136,.12);
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
 }
 
-/* Mid block — fills remaining space and centers content */
+/* Mid block — fills remaining space and truly centers content */
 .l-hero-mid {
   flex: 1;
   display: flex;
@@ -303,7 +304,8 @@ img { max-width: 100%; }
   align-items: center;
   justify-content: center;
   width: 100%;
-  gap: 1.4rem;
+  gap: 1.25rem;
+  padding-bottom: 2rem;
 }
 .l-mark-box {
   width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
@@ -465,7 +467,7 @@ img { max-width: 100%; }
 }
 .l-panel-inner {
   flex: 1; display: flex; flex-direction: column;
-  justify-content: center; padding: 3.5rem 3.25rem;
+  justify-content: center; padding: 3rem 3.25rem;
 }
 
 /* Eyebrow */
@@ -540,7 +542,7 @@ img { max-width: 100%; }
 .l-btn-primary {
   width: 100%; height: 54px;
   display: flex; align-items: center; justify-content: center; gap: .6rem;
-  margin-top: 1.5rem;
+  margin-top: .5rem;
   background: linear-gradient(135deg, #0d9488 0%, #0a7a70 100%);
   color: white; border: none; border-radius: 10px;
   font-size: .9rem; font-weight: 600; letter-spacing: .01em; cursor: pointer;
@@ -569,7 +571,7 @@ img { max-width: 100%; }
 .l-btn-outline {
   width: 100%; height: 48px;
   display: flex; align-items: center; justify-content: center; gap: .55rem;
-  background: transparent; border: 1.5px solid #d4e8e6; border-radius: 10px;
+  background: transparent; border: 1.5px solid #b0ccc9; border-radius: 10px;
   font-size: .86rem; font-weight: 500; color: #0a2040; cursor: pointer;
   transition: border-color .18s, background .18s, color .18s;
   touch-action: manipulation; font-family: 'DM Sans', system-ui, sans-serif;

@@ -269,36 +269,41 @@ img { max-width: 100%; }
   z-index: 1; letter-spacing: -.06em;
 }
 
-/* ── Hero content — single centered column ── */
+/* ── Hero content ── */
 .l-hero-content {
   position: relative; z-index: 2;
   width: 100%;
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
-  padding: 3rem 4rem;
-  height: 100%;
-  gap: .9rem;
+  padding: 2.75rem 4rem 4rem;
+  min-height: 100vh; min-height: 100dvh;
 }
 
-/* Wordmark — part of the centered flow */
+/* Wordmark — top, matching the right panel's top padding */
 .l-wordmark {
   display: flex; align-items: center;
   justify-content: center;
   gap: .75rem;
+  width: 100%;
+  flex-shrink: 0;
   margin-bottom: 0;
   padding-bottom: 0;
-  width: 100%;
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
 }
 
-/* Mid block not needed separately anymore */
+/* Mid block — fills remaining space and centers content */
 .l-hero-mid {
-  display: contents;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 1.4rem;
 }
 .l-mark-box {
   width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
@@ -349,7 +354,7 @@ img { max-width: 100%; }
 .l-hl-1, .l-hl-2 {
   display: block;
   font-family: 'DM Sans', sans-serif;
-  font-size: clamp(2rem, 3.2vw, 3.4rem);
+  font-size: clamp(2.4rem, 3.8vw, 4rem);
   font-weight: 800;
   letter-spacing: -.03em;
   line-height: 1.1; color: rgba(255,255,255,.95);
@@ -429,17 +434,15 @@ img { max-width: 100%; }
 }
 .l-feat-ic { color: #14b8a6; font-size: .6rem; font-weight: 700; }
 
-/* Footer — absolute bottom */
+/* Footer — natural bottom of flex column */
 .l-hero-foot {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 0; right: 0;
   font-size: .58rem; color: rgba(255,255,255,.14);
-  padding-top: 0;
-  border-top: none;
-  animation: lFadeUp .5s .54s ease both;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(13,148,136,.1);
   font-family: 'DM Sans', sans-serif;
   width: 100%; text-align: center;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 /* ══ RIGHT FORM PANEL ══ */

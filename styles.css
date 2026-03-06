@@ -602,9 +602,9 @@ img { max-width: 100%; }
 @media (max-width: 768px) {
   .login-wrap { flex-direction: column; background: var(--login-navy); overflow-x: hidden; }
   .l-hero { min-height: auto; flex: 0 0 auto; }
-  .l-hero-content { max-width: 100%; padding: 2rem 1.5rem 3.75rem; align-items: flex-start; text-align: left; }
-  /* Hide everything except logo + headline on mobile — keep it clean */
-  .l-stats-row, .l-feats, .l-hero-foot, .l-hero-desc, .l-eyebrow-pill { display: none; }
+  .l-hero-content { max-width: 100%; padding: 1.75rem 1.5rem 3.25rem; align-items: flex-start; text-align: left; }
+  /* Hide everything except logo on mobile — clean and fast */
+  .l-stats-row, .l-feats, .l-hero-foot, .l-hero-desc, .l-eyebrow-pill, .l-headline { display: none; }
   .l-hl-1, .l-hl-2 { font-size: 2.2rem; }
   .l-headline { margin-bottom: 0; }
   .l-wordmark { margin-bottom: 1.25rem; padding-bottom: 0; }

@@ -931,17 +931,13 @@ img { max-width: 100%; height: auto; }
   .filter-row { flex-wrap: wrap; gap: .4rem; }
   .filter-select { flex: 1 1 calc(50% - .2rem); min-width: 0; }
   .card { min-width: 0; max-width: 100%; }
-  /* Mobile topbar — compact, keep brand visible */
+  /* Restore original mobile topbar exactly */
   .topbar { gap: .35rem; padding: 0 .75rem; }
   .topbar-title { font-size: .8rem; }
   .topbar-divider { display: none; }
-  /* Keep brand visible on mobile — sidebar is hidden so brand must show in topbar */
-  .topbar-brand { display: flex; }
-  .topbar-school-name { font-size: .78rem; }
-  .topbar-brand-sub { display: none; }
-  /* Hide user chip text on mobile to save space */
+  .topbar-brand { display: none; }
   .user-chip-info { display: none; }
-  .user-chip { padding: .25rem; border: none; }
+  .mobile-brand { display: flex; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .dash-panels { grid-template-columns: 1fr; }
   .charts-grid { grid-template-columns: 1fr; }

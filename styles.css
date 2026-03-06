@@ -1065,13 +1065,7 @@ img { max-width: 100%; }
 /* ══ FEE STRUCTURE ══ */
 .fee-struct-total { font-weight: 800; color: var(--brand); }
 
-/* ══ REPORT CARD ══ */
-@media print {
-  .topbar, .sidebar, .ph-right, .btn, .filter-row, .pager { display: none !important; }
-  .page-wrap { padding: 0; max-width: 100%; }
-  .card { box-shadow: none; border: 1px solid #ccc; }
-  body { background: white; color: black; }
-}
+/* ══ REPORT CARD (print handled in main print block below) ══ */
 
 /* ══ RESPONSIVE ══ */
 @media (max-width: 768px) {
@@ -1149,7 +1143,55 @@ img { max-width: 100%; }
 .btn { transition: background .15s, color .15s, border-color .15s; }
 .card { transition: box-shadow .15s; }
 
-/* ── SVG NAV ICONS ── */
+/* Try Demo button */
+.l-btn-demo {
+  width: 100%; height: 46px;
+  display: flex; align-items: center; justify-content: center; gap: .55rem;
+  background: transparent; border: 1.5px dashed var(--border-2); border-radius: 15px;
+  font-size: .84rem; font-weight: 600; color: var(--t3); cursor: pointer;
+  transition: border-color .18s, background .18s, color .18s;
+  touch-action: manipulation; font-family: 'Inter', system-ui, sans-serif;
+  margin-top: .75rem;
+}
+.l-btn-demo svg { flex-shrink: 0; color: var(--brand-teal); }
+.l-btn-demo:hover {
+  border-color: var(--brand-teal); background: var(--brand-teal-lt); color: var(--brand-teal);
+}
+
+/* ══ FOCUS-VISIBLE — keyboard nav accessibility ══ */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none; /* handled by border + box-shadow */
+}
+.nav-item:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* ══ PRINT STYLESHEET — report cards & attendance sheets ══ */
+@media print {
+  body { background: white !important; color: #111 !important; font-size: 12pt !important; }
+  .topbar, .sidebar, .sidebar-overlay, .ph-right, .filter-row,
+  .pager, .btn, #pwa-banner, .toast, #loading-overlay,
+  .modal-bg:not(#m-receipt), .tabs, .tab-pane:not(.active) { display: none !important; }
+  .main { overflow: visible !important; }
+  .page-wrap { padding: 0 !important; max-width: 100% !important; }
+  .shell { display: block !important; height: auto !important; }
+  .card { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; }
+  #m-receipt .modal-bg { position: static !important; background: none !important; padding: 0 !important; }
+  #m-receipt .modal { box-shadow: none !important; max-width: 100% !important; max-height: none !important; }
+  #m-receipt .modal-hd, #m-receipt .modal-foot { display: none !important; }
+  #m-receipt .modal-body { padding: 0 !important; overflow: visible !important; }
+}
+
 .nav-icon { width: 17px; height: 17px; flex-shrink: 0; }
 .nav-item { display: flex; align-items: center; gap: .65rem; }
 .tbl-icon { width: 14px; height: 14px; display: inline-block; vertical-align: middle; }

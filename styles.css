@@ -203,30 +203,7 @@ img { max-width: 100%; }
   width: 100%; height: 100%; pointer-events: none;
 }
 
-/* ── Floating module badge pills ── */
-.l-mod-badge {
-  position: absolute;
-  display: flex; align-items: center; gap: .45rem;
-  font-size: .68rem; font-weight: 600; letter-spacing: .01em;
-  padding: .42rem .85rem .42rem .6rem;
-  background: rgba(255,255,255,.055);
-  border: 1px solid rgba(255,255,255,.11);
-  border-radius: 99px; color: rgba(255,255,255,.7);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 6px 20px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.07);
-  white-space: nowrap; pointer-events: none; z-index: 1;
-}
-.l-mod-badge svg { width: 12px; height: 12px; flex-shrink: 0; color: #5eead4; opacity: .85; }
-.l-mod-badge--1 { top: 11%;  left: 7%;  animation: badgeFloat 9s  ease-in-out infinite; }
-.l-mod-badge--2 { top: 20%;  right: 7%; animation: badgeFloat 12s ease-in-out infinite 1.5s; }
-.l-mod-badge--3 { top: 60%;  left: 5%;  animation: badgeFloat 8s  ease-in-out infinite 2s; }
-.l-mod-badge--4 { bottom: 18%; right: 6%; animation: badgeFloat 11s ease-in-out infinite .5s; }
-.l-mod-badge--5 { bottom: 9%;  left: 16%; animation: badgeFloat 10s ease-in-out infinite 3s; }
-.l-mod-badge--6 { top: 43%;   right: 5%; animation: badgeFloat 13s ease-in-out infinite 1s; }
-@keyframes badgeFloat {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-9px); }
-}
+
 
 /* Hero content */
 .l-hero-content {
@@ -357,8 +334,7 @@ img { max-width: 100%; }
   justify-content: center; padding: 3.5rem 3.25rem;
 }
 
-/* Mobile brand */
-.l-mob-brand { display: none; }
+
 
 /* Eyebrow */
 .l-eyebrow {
@@ -484,11 +460,6 @@ img { max-width: 100%; }
   .l-hero { min-height: auto; padding: 3rem 1.5rem 4.75rem; flex: 0 0 auto; }
   .l-hero-content { max-width: 100%; }
   .l-stats-row, .l-feats, .l-hero-foot { display: none; }
-  .l-mod-badge--3, .l-mod-badge--5, .l-mod-badge--6 { display: none; }
-  .l-mod-badge { font-size: .62rem; padding: .35rem .72rem .35rem .52rem; }
-  .l-mod-badge--1 { top: 7%;  left: 5%; }
-  .l-mod-badge--2 { top: 15%; right: 4%; }
-  .l-mod-badge--4 { bottom: 7%; right: 4%; }
   .l-eyebrow-pill { margin-bottom: .8rem; }
   .l-hl-1, .l-hl-2 { font-size: 2.55rem; }
   .l-hero-desc { font-size: .82rem; margin-bottom: 0; }
@@ -503,15 +474,6 @@ img { max-width: 100%; }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
   .l-panel-bar { height: auto; background: transparent; padding: .88rem 0 0; display: flex; justify-content: center; }
   .l-panel-bar::after { content: ''; display: block; width: 36px; height: 4px; background: var(--border-2); border-radius: 99px; }
-  .l-mob-brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.6rem; }
-  .l-mob-logo {
-    width: 46px; height: 46px; border-radius: 14px;
-    background: linear-gradient(135deg, #1a3a6b, #0d9488);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; box-shadow: 0 4px 18px rgba(13,148,136,.3);
-  }
-  .l-mob-name { font-size: .95rem; font-weight: 800; color: var(--brand); letter-spacing: -.025em; }
-  .l-mob-sub { font-size: .65rem; color: var(--t4); margin-top: .1rem; }
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
   .l-title { font-size: 1.88rem; }
   .l-subtitle { margin-bottom: 1.4rem; }
@@ -524,7 +486,6 @@ img { max-width: 100%; }
   .l-hl-1, .l-hl-2 { font-size: 2.2rem; }
   .l-panel-inner { padding: 1.25rem 1.25rem 2rem; }
   .l-title { font-size: 1.68rem; }
-  .l-mod-badge--2, .l-mod-badge--4 { display: none; }
 }
 
 /* Dark mode login overrides */

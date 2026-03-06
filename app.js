@@ -168,7 +168,7 @@ function seedData(){
     {id:uid('e'),date:'2025-03-10',category:'Utilities',desc:'Water bill — February',amount:450,paidTo:'GWCL',approvedBy:'Admin'},
     {id:uid('e'),date:'2025-03-15',category:'Salaries',desc:'Staff salaries — March',amount:32000,paidTo:'All Staff',approvedBy:'Admin'},
   ]);
-  DB.set('auditLog',[{id:uid('al'),action:'System Initialized',type:'create',user:'System',details:'Eduformium SMS database seeded with demo data',time:new Date().toISOString()}]);
+  DB.set('auditLog',[]);
   DB.set('payroll',[]);
   DB.set('timetable',{
     cls7:{
@@ -291,7 +291,7 @@ const SMS = {
     FAuth.onAuthChange(async (firebaseUser)=>{
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
-        try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ console.warn('Load error:',e); }
+        try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
         try{ await Migration.run(this.schoolId); }catch(e){}
         const school=DB.get('school',{});
         _currency=school.currency||'GHS';
@@ -401,6 +401,7 @@ const SMS = {
     document.getElementById('sb-logout')?.addEventListener('click',()=>this.logout());
     document.getElementById('theme-btn')?.addEventListener('click',()=>this.toggleTheme());
     document.getElementById('search-btn')?.addEventListener('click',()=>{ const so=document.getElementById('search-overlay'); so.style.display='flex'; document.getElementById('global-search-input').focus(); });
+    document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const so=document.getElementById('search-overlay'); if(so&&so.style.display!=='none') so.style.display='none'; } });
     document.getElementById('global-search-input')?.addEventListener('input',e=>this.globalSearch(e.target.value));
     document.getElementById('notif-btn')?.addEventListener('click',()=>{ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
     document.getElementById('notif-clear')?.addEventListener('click',()=>{ document.getElementById('notif-list').innerHTML='<div class="notif-empty">No new notifications</div>'; document.getElementById('notif-badge').style.display='none'; document.getElementById('notif-panel').style.display='none'; });
@@ -424,6 +425,12 @@ const SMS = {
 
   // ── AUTH ──
   bindForms(){
+    document.getElementById('try-demo-btn')?.addEventListener('click',()=>{
+      document.getElementById('l-user').value='admin@school.edu';
+      document.getElementById('l-pass').value='admin123';
+      document.getElementById('l-err').style.display='none';
+      this.login();
+    });
     document.getElementById('login-btn')?.addEventListener('click',()=>this.login());
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
@@ -501,7 +508,7 @@ const SMS = {
     document.getElementById('add-user-btn')?.addEventListener('click',()=>this.openUserModal());
     document.getElementById('save-user-btn')?.addEventListener('click',()=>this.saveUser());
     document.getElementById('save-sms-btn')?.addEventListener('click',()=>this.toast('SMS settings saved','success'));
-    document.getElementById('test-sms-btn')?.addEventListener('click',()=>this.toast('Test SMS sent (mock)','success'));
+    document.getElementById('test-sms-btn')?.addEventListener('click',()=>this.toast('SMS gateway not yet configured — connect your provider in Settings to enable sending.','warn'));
     document.getElementById('backup-btn')?.addEventListener('click',()=>this.exportBackup());
     document.getElementById('upload-logo-btn')?.addEventListener('click',()=>document.getElementById('logo-file').click());
     document.getElementById('logo-file')?.addEventListener('change',e=>this.uploadLogo(e));
@@ -539,6 +546,7 @@ const SMS = {
 
   async register(){
     const school=document.getElementById('r-school').value.trim();
+    const motto=document.getElementById('r-motto')?.value.trim()||'';
     const name=document.getElementById('r-name').value.trim();
     const email=document.getElementById('r-email').value.trim();
     const pwd=document.getElementById('r-pwd').value;
@@ -551,7 +559,7 @@ const SMS = {
     btn.disabled=true; btn.querySelector('span').textContent='Creating account…'; errEl.style.display='none';
     if(!window.FAuth){
       const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.textContent='Email already registered.'; errEl.style.display='flex'; btn.disabled=false; btn.querySelector('span').textContent='Create School Account'; return; }
-      const sc=DB.get('school',{}); sc.name=school; DB.set('school',sc);
+      const sc=DB.get('school',{}); sc.name=school; sc.motto=motto||sc.motto; DB.set('school',sc);
       const newUser={id:uid('u'),email,password:pwd,name,role:'admin',phone:'',createdAt:new Date().toISOString(),lastLogin:null};
       users.push(newUser); DB.set('users',users); DB.set('session',{userId:newUser.id}); this.currentUser=newUser;
       this.toast(`Welcome, ${name.split(' ')[0]}!`,'success'); this.boot(); return;
@@ -595,7 +603,7 @@ const SMS = {
         <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
         <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
         <div class="mini-right">${statusBadge(s.status)}</div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students yet</div>';
+      </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students enrolled yet</div>';
     // Events
     const events=DB.get('events',[]);
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=new Date()).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
@@ -703,7 +711,7 @@ const SMS = {
           </div>
         </td>
       </tr>`;
-    }).join('') || '<tr><td colspan="9" class="tbl-empty">No students found</td></tr>';
+    }).join('') || SMS._emptyState('students','No Students Found','Try adjusting your filters, or enroll your first student using the button above.','+ Enrol Student',"SMS.openStudentModal()");
     // Pager
     let pager=`<span class="pager-info">Showing ${Math.min(filtered.length,perPage*(this._studPage-1)+1)}–${Math.min(filtered.length,perPage*this._studPage)} of ${total}</span>`;
     for(let i=1;i<=pages;i++) pager+=`<button class="pager-btn ${i===this._studPage?'active':''}" onclick="SMS._studPage=${i};SMS.renderStudents()">${i}</button>`;
@@ -804,8 +812,14 @@ const SMS = {
     const dob=document.getElementById('sf-dob').value;
     const admitDate=document.getElementById('sf-admit-date').value;
     const errEl=document.getElementById('sf-err');
-    if(!fname||!lname||!classId||!gender||!admitDate){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields (First Name, Last Name, Class, Gender, Admission Date).'; return; }
+    // Inline field highlighting
+    const fields=[['sf-fname',fname],['sf-lname',lname],['sf-class',classId],['sf-gender',gender],['sf-admit-date',admitDate]];
+    let hasError=false;
+    fields.forEach(([id,val])=>{ const el=document.getElementById(id); if(el){ el.style.borderColor=val?'':'var(--danger)'; if(!val) hasError=true; } });
+    if(hasError){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields (marked in red).'; return; }
     errEl.style.display='none';
+    // Reset field borders
+    fields.forEach(([id])=>{ const el=document.getElementById(id); if(el) el.style.borderColor=''; });
     const students=DB.get('students',[]);
     const existingId=document.getElementById('sf-id').value;
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(students.length+101).padStart(4,'0');
@@ -867,7 +881,7 @@ const SMS = {
       <td style="font-weight:600;color:var(--brand)">${fmt(s.salary)}</td>
       <td>${statusBadge(s.status||'active')}</td>
       <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openStaffModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove staff member ${s.fname} ${s.lname}?',()=>SMS.deleteStaff('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
-    </tr>`).join('')||'<tr><td colspan="9" class="tbl-empty">No staff found</td></tr>';
+    </tr>`).join('')||SMS._emptyState('staff','No Staff Members Found','Add your first staff member or adjust your search filters.','+ Add Staff',"SMS.openStaffModal()");
   },
 
   openStaffModal(id=null){
@@ -971,7 +985,7 @@ const SMS = {
         <td>${s.periods||'—'}/week</td>
         <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete subject ${s.name}?',()=>SMS.deleteSubject('${s.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
       </tr>`;
-    }).join('')||'<tr><td colspan="6" class="tbl-empty">No subjects added yet</td></tr>';
+    }).join('')||SMS._emptyState('default','No Subjects Added','Add subjects to your classes so you can assign exams and track grades.','+ Add Subject',"SMS.openSubjectModal()");
   },
 
   openClassModal(id=null){
@@ -1096,7 +1110,7 @@ const SMS = {
       <td style="color:var(--warn);font-weight:700">${a.late}</td>
       <td><span class="badge ${a.present/a.total>=0.9?'badge-success':'badge-warn'}">${Math.round(a.present/a.total*100)||0}%</span></td>
       <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this attendance record?',()=>SMS.deleteAtt('${a.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
-    </tr>`).join('')||'<tr><td colspan="7" class="tbl-empty">No attendance records found</td></tr>';
+    </tr>`).join('')||SMS._emptyState('attendance','No Attendance Records','No records match your date range. Take attendance for today using the form above.','');
   },
 
   deleteAtt(id){ const a=DB.get('attendance',[]); DB.set('attendance',a.filter(x=>x.id!==id)); this.renderAttSummary(); this.renderAttendanceRecords(); this.toast('Record deleted','warn'); },
@@ -1123,7 +1137,7 @@ const SMS = {
         <td>${statusBadge(e.status)}</td>
         <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openExamModal('${e.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete exam ${e.name}?',()=>SMS.deleteExam('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
       </tr>`;
-    }).join('')||'<tr><td colspan="8" class="tbl-empty">No exams created yet</td></tr>';
+    }).join('')||SMS._emptyState('exams','No Exams Created','Create your first exam to start tracking student performance.','+ Create Exam',"SMS.openExamModal()");
     // Populate grade exam selector
     const gex=document.getElementById('grade-exam-sel'); if(gex) gex.innerHTML='<option value="">— Select Exam —</option>'+exams.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
   },
@@ -1218,7 +1232,7 @@ const SMS = {
       <td><span class="badge ${r.grade==='F'?'badge-danger':r.grade==='D'||r.grade==='C'?'badge-warn':'badge-success'}">${r.grade}</span></td>
       <td style="font-weight:700;color:${i<3?'var(--warn)':'var(--t3)'}">${i===0?'1st':i===1?'2nd':i===2?'3rd':(i+1)+'th'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="SMS.viewStudent('${r.student.id}')" style="padding:.3rem .5rem">View →</button></td>
-    </tr>`).join('')||'<tr><td colspan="8" class="tbl-empty">No results found. Enter grades first.</td></tr>';
+    </tr>`).join('')||SMS._emptyState('exams','No Results Available','Create exams and enter student grades first, then view results here.','');
   },
 
   showReportCards(){
@@ -1395,7 +1409,7 @@ const SMS = {
         <td>${p?statusBadge('active'):`<span class="badge badge-warn">Pending</span>`}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="SMS.payStaff('${s.id}',${net},'${month}','${year}')" style="padding:.3rem .6rem">${p?'✓ Paid':'Pay'}</button></td>
       </tr>`;
-    }).join('')||'<tr><td colspan="8" class="tbl-empty">No staff</td></tr>';
+    }).join('')||SMS._emptyState('staff','No Staff Found','Add staff members to run payroll.','');
   },
 
   processPayroll(){
@@ -1443,7 +1457,7 @@ const SMS = {
         <td>${statusBadge(l.status)}</td>
         <td>${l.status==='pending'?`<div style="display:flex;gap:.3rem"><button class="btn btn-success btn-sm" onclick="SMS.updateLeave('${l.id}','approved')" style="padding:.3rem .6rem;font-size:.72rem">Approve</button><button class="btn btn-danger btn-sm" onclick="SMS.updateLeave('${l.id}','rejected')" style="padding:.3rem .6rem;font-size:.72rem">Reject</button></div>`:''}</td>
       </tr>`;
-    }).join('')||'<tr><td colspan="8" class="tbl-empty">No leave requests</td></tr>';
+    }).join('')||SMS._emptyState('default','No Leave Requests','Staff leave requests will appear here once submitted.','');
   },
 
   updateLeave(id,status){ const leaves=DB.get('leaves',[]); const i=leaves.findIndex(l=>l.id===id); if(i>-1){ leaves[i].status=status; DB.set('leaves',leaves); } this.audit('Leave','edit',`Leave ${status}: ${id}`); this.toast(`Leave ${status}`,'success'); this.renderLeave(); },
@@ -1502,7 +1516,7 @@ const SMS = {
         <td>${p.by||'—'}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="SMS.showReceipt('${p.id}')" style="padding:.3rem .5rem" title="Receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button></td>
       </tr>`;
-    }).join('')||'<tr><td colspan="9" class="tbl-empty">No fee payments found</td></tr>';
+    }).join('')||SMS._emptyState('fees','No Payments Found','Record your first fee payment or adjust the filters above.','+ Record Payment',"SMS.openFeeModal()");
   },
 
   renderFeeStructure(){
@@ -1517,7 +1531,7 @@ const SMS = {
         <td style="font-size:.75rem;color:var(--t3)">Tuition, Books, Activities</td>
         <td><button class="btn btn-ghost btn-sm" style="padding:.3rem .5rem;color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>
       </tr>`;
-    }).join('')||'<tr><td colspan="7" class="tbl-empty">No fee structure defined</td></tr>';
+    }).join('')||SMS._emptyState('fees','No Fee Structure Set','Define term fees for each class so the system can track balances.','');
   },
 
   renderDefaulters(){
@@ -1885,7 +1899,7 @@ const SMS = {
       <td>${e.paidTo}</td>
       <td>${e.approvedBy}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this expense?',()=>SMS.deleteExpense('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
-    </tr>`).join('')||'<tr><td colspan="7" class="tbl-empty">No expenses recorded</td></tr>';
+    </tr>`).join('')||SMS._emptyState('expenses','No Expenses Recorded','Track school expenditure here. Add your first expense entry.','');
     this.renderExpenseCharts(bycat,expenses);
   },
 
@@ -1973,7 +1987,7 @@ const SMS = {
       <td style="text-align:center;font-weight:700;color:${b.available>0?'var(--success)':'var(--danger)'}">${b.available}</td>
       <td>${b.available>0?statusBadge('available'):statusBadge('borrowed')}</td>
       <td><button class="btn btn-ghost btn-sm" style="color:var(--brand);padding:.3rem .5rem">Issue</button></td>
-    </tr>`).join('')||'<tr><td colspan="8" class="tbl-empty">No books found</td></tr>';
+    </tr>`).join('')||SMS._emptyState('books','No Books Found','Try a different search or category filter.','');
   },
 
   // ══ EVENTS ══
@@ -2306,6 +2320,28 @@ const SMS = {
   },
 
   // ══ HELPERS ══
+  _emptyState(icon, title, subtitle, actionLabel, actionFn) {
+    const svgIcons = {
+      students: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg>`,
+      staff: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+      fees: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+      exams: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+      books: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
+      attendance: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+      expenses: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+      default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+    };
+    const svg = svgIcons[icon] || svgIcons.default;
+    const btn = actionLabel ? `<button class="btn btn-primary btn-sm" style="margin-top:.85rem" onclick="${actionFn}">${actionLabel}</button>` : '';
+    return `<tr><td colspan="20" style="padding:3rem 1rem;text-align:center">
+      <div style="display:inline-flex;flex-direction:column;align-items:center;gap:.5rem;max-width:280px">
+        <div style="width:56px;height:56px;border-radius:14px;background:var(--surface-3);color:var(--t4);display:flex;align-items:center;justify-content:center;margin-bottom:.35rem">${svg}</div>
+        <div style="font-size:.9rem;font-weight:700;color:var(--t2)">${title}</div>
+        <div style="font-size:.78rem;color:var(--t4);line-height:1.55">${subtitle}</div>
+        ${btn}
+      </div>
+    </td></tr>`;
+  },
   className(id){ const c=DB.get('classes',[]).find(x=>x.id===id); return c?.name||'—'; },
   subjectName(id){ const s=DB.get('subjects',[]).find(x=>x.id===id); return s?.name||'—'; },
 
@@ -2321,8 +2357,39 @@ const SMS = {
     DB.set('auditLog',log);
   },
 
-  openModal(id){ document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; },
-  closeModal(id){ document.getElementById(id).style.display='none'; document.body.style.overflow=''; },
+  openModal(id){
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.style.display='flex';
+    modal.setAttribute('role','dialog');
+    modal.setAttribute('aria-modal','true');
+    document.body.style.overflow='hidden';
+    // Focus first focusable element
+    requestAnimationFrame(()=>{
+      const focusable = modal.querySelectorAll('input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled]),[tabindex]:not([tabindex="-1"])');
+      if(focusable.length) focusable[0].focus();
+    });
+    // Trap focus within modal
+    modal._trapFocus = (e)=>{
+      if(e.key!=='Tab') return;
+      const focusable = [...modal.querySelectorAll('input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled]),[tabindex]:not([tabindex="-1"])')];
+      if(!focusable.length) return;
+      const first=focusable[0], last=focusable[focusable.length-1];
+      if(e.shiftKey){ if(document.activeElement===first){ last.focus(); e.preventDefault(); } }
+      else { if(document.activeElement===last){ first.focus(); e.preventDefault(); } }
+    };
+    modal._escClose = (e)=>{ if(e.key==='Escape') this.closeModal(id); };
+    document.addEventListener('keydown', modal._trapFocus);
+    document.addEventListener('keydown', modal._escClose);
+  },
+  closeModal(id){
+    const modal = document.getElementById(id);
+    if (!modal) return;
+    modal.style.display='none';
+    document.body.style.overflow='';
+    if(modal._trapFocus) document.removeEventListener('keydown', modal._trapFocus);
+    if(modal._escClose) document.removeEventListener('keydown', modal._escClose);
+  },
 
   confirmDelete(msg,callback){
     document.getElementById('del-msg').textContent=msg;

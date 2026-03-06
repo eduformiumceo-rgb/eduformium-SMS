@@ -364,39 +364,33 @@ img { max-width: 100%; height: auto; }
 }
 
 /* ══ APP SHELL LAYOUT ══ */
-/* ── SHELL LAYOUT ── */
+/* ── SHELL: topbar full-width, sidebar is overlay ── */
 .shell {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: 1fr;
   grid-template-rows: var(--topbar-h) 1fr;
-  grid-template-areas: "sidebar topbar" "sidebar main";
+  grid-template-areas: "topbar" "main";
   height: 100vh; height: 100dvh;
   width: 100vw; max-width: 100%;
   overflow: hidden;
-  transition: grid-template-columns .28s cubic-bezier(.4,0,.2,1);
-}
-.shell.sidebar-collapsed {
-  grid-template-columns: 0px 1fr;
-}
-.shell.sidebar-collapsed .sidebar {
-  transform: translateX(-100%);
-  pointer-events: none;
 }
 
-/* ── TOPBAR ── */
+/* ── TOPBAR — always full width ── */
 .topbar {
+  grid-area: topbar;
   height: var(--topbar-h);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: .5rem;
+  display: flex; align-items: center; gap: .6rem;
   padding: 0 1.25rem; flex-shrink: 0;
-  box-shadow: 0 1px 0 var(--border), 0 2px 8px rgba(0,0,0,.04);
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
   z-index: 100; position: relative;
-  grid-area: topbar;
 }
+
+/* Hamburger */
 .topbar-menu {
   background: none; border: none;
-  width: 34px; height: 34px;
+  width: 36px; height: 36px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 5px; border-radius: var(--radius-sm);
@@ -405,30 +399,28 @@ img { max-width: 100%; height: auto; }
 }
 .topbar-menu:hover { background: var(--surface-3); }
 .burger {
-  display: block; width: 18px; height: 2px;
-  background: var(--t2); border-radius: 2px;
-  transition: all .28s cubic-bezier(.4,0,.2,1);
+  display: block; width: 20px; height: 2px;
+  background: var(--t1); border-radius: 2px;
+  transition: all .3s cubic-bezier(.4,0,.2,1);
   transform-origin: center;
 }
-.shell.sidebar-collapsed .topbar-menu .burger:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-.shell.sidebar-collapsed .topbar-menu .burger:nth-child(2) {
-  opacity: 0; transform: scaleX(0);
-}
-.shell.sidebar-collapsed .topbar-menu .burger:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
-/* Hide duplicate brand — sidebar already shows it */
-.topbar-brand { display: none; }
-.topbar-divider { display: none; }
-.topbar-title { font-size: .88rem; font-weight: 600; color: var(--t2); flex: 1; padding-left: .25rem; }
-.topbar-right { display: flex; align-items: center; gap: .35rem; margin-left: auto; }
-.icon-btn { width: 34px; height: 34px; border-radius: var(--radius-sm); background: none; border: none; display: flex; align-items: center; justify-content: center; color: var(--t3); transition: all .15s; flex-shrink: 0; }
+/* Burger animates to × when sidebar is open */
+.sidebar-open .burger:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.sidebar-open .burger:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.sidebar-open .burger:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Brand — always visible in topbar */
+.topbar-brand { display: flex; align-items: center; gap: .55rem; flex-shrink: 0; }
+.topbar-logo { width: 30px; height: 30px; flex-shrink: 0; }
+.topbar-school-name { font-size: .84rem; font-weight: 700; color: var(--t1); line-height: 1.2; white-space: nowrap; }
+.topbar-brand-sub { font-size: .62rem; color: var(--t4); }
+.topbar-divider { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 .1rem; }
+.topbar-title { font-size: .86rem; font-weight: 500; color: var(--t3); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-right { display: flex; align-items: center; gap: .25rem; margin-left: auto; flex-shrink: 0; }
+.icon-btn { width: 36px; height: 36px; border-radius: var(--radius-sm); background: none; border: none; display: flex; align-items: center; justify-content: center; color: var(--t3); transition: all .15s; flex-shrink: 0; cursor: pointer; }
 .icon-btn:hover { background: var(--surface-3); color: var(--t1); }
 .icon-btn svg { width: 17px; height: 17px; }
 .icon-sun, .icon-moon { width: 16px; height: 16px; }
-/* Logout button removed from topbar — only in sidebar footer */
 .logout-btn { display: none !important; }
 .notif-wrap { position: relative; }
 .notif-btn { position: relative; }
@@ -447,19 +439,32 @@ img { max-width: 100%; height: auto; }
 .user-chip-name { font-size: .78rem; font-weight: 600; color: var(--t1); line-height: 1.2; }
 .user-chip-role { font-size: .65rem; color: var(--t4); }
 
-/* SIDEBAR */
+/* ── SIDEBAR — fixed overlay, slides in from left ── */
 .sidebar {
-  grid-area: sidebar;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
   width: var(--sidebar-w);
   background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
-  overflow: hidden; z-index: 200;
+  overflow: hidden;
+  z-index: 500;
+  transform: translateX(-100%);
   transition: transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow: 6px 0 32px rgba(0,0,0,.13);
 }
-.sidebar-header { padding: .9rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
-/* sb-close button no longer needed on desktop — hidden */
-.sb-close { display: none; }
+.sidebar.open { transform: translateX(0); }
+.sidebar-header { padding: .85rem 1rem; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
+/* Close button in sidebar header — always visible */
+.sb-close {
+  position: absolute; top: .7rem; right: .7rem;
+  background: none; border: none;
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--t4); cursor: pointer; font-size: 1rem;
+  transition: all .15s;
+}
+.sb-close:hover { background: var(--surface-3); color: var(--t1); }
 .sb-brand { display: flex; align-items: center; gap: .65rem; margin-bottom: .85rem; }
 .sb-school-name { font-family:'Inter',system-ui,sans-serif; font-size: .95rem; font-weight: 700; color: var(--brand); line-height: 1.2; }
 .sb-brand-sub { font-size: .62rem; color: var(--t4); }
@@ -494,8 +499,8 @@ img { max-width: 100%; height: auto; }
 .sb-logout { background: none; border: none; display: flex; align-items: center; gap: .4rem; font-size: .75rem; color: var(--t4); cursor: pointer; padding: .4rem .6rem; border-radius: var(--radius-sm); }
 .sb-logout:hover { background: var(--danger-bg); color: var(--danger); }
 
-/* OVERLAY for mobile sidebar */
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 190; }
+/* ── OVERLAY — backdrop when sidebar is open (all screen sizes) ── */
+.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 499; backdrop-filter: blur(1px); }
 .sidebar-overlay.show { display: block; }
 
 /* MAIN */
@@ -940,33 +945,9 @@ img { max-width: 100%; height: auto; }
   .profile-info-grid { grid-template-columns: 1fr 1fr; }
   .att-summary { grid-template-columns: 1fr 1fr; }
   .form-grid-3 { grid-template-columns: 1fr 1fr; }
-  .shell {
-    grid-template-columns: 1fr;
-    grid-template-rows: var(--topbar-h) 1fr;
-    grid-template-areas: "topbar" "main";
-  }
-  /* On mobile the brand shows in topbar since sidebar is off-screen */
-  .topbar-brand { display: flex; }
-  .topbar-divider { display: block; }
-  .sidebar {
-    position: fixed; top: 0; left: 0; bottom: 0;
-    width: var(--sidebar-w); z-index: 300;
-    transform: translateX(-100%);
-    transition: transform .28s cubic-bezier(.4,0,.2,1);
-  }
-  .sidebar.open { transform: translateX(0); }
-  /* Show close button inside sidebar on mobile */
-  .sb-close {
-    display: flex; align-items: center; justify-content: center;
-    position: absolute; top: .75rem; right: .75rem;
-    background: none; border: none; font-size: 1rem;
-    color: var(--t4); cursor: pointer;
-    width: 28px; height: 28px; border-radius: 6px;
-  }
-  .sb-close:hover { background: var(--surface-3); }
-  /* Reset collapsed state on mobile — not applicable */
-  .shell.sidebar-collapsed { grid-template-columns: 1fr; }
-  .shell.sidebar-collapsed .sidebar { transform: translateX(-100%); pointer-events: none; }
+  /* Shell is already single-column — no change needed */
+  .user-chip-info { display: none; }
+  .topbar-title { font-size: .8rem; }
   .login-hero { display: none; }
   .login-form-panel { width: 100%; min-height: 100vh; }
 }

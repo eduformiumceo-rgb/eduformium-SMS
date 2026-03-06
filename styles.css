@@ -931,12 +931,17 @@ img { max-width: 100%; height: auto; }
   .filter-row { flex-wrap: wrap; gap: .4rem; }
   .filter-select { flex: 1 1 calc(50% - .2rem); min-width: 0; }
   .card { min-width: 0; max-width: 100%; }
+  /* Mobile topbar — compact, keep brand visible */
   .topbar { gap: .35rem; padding: 0 .75rem; }
   .topbar-title { font-size: .8rem; }
   .topbar-divider { display: none; }
-  .topbar-brand { display: none; }
+  /* Keep brand visible on mobile — sidebar is hidden so brand must show in topbar */
+  .topbar-brand { display: flex; }
+  .topbar-school-name { font-size: .78rem; }
+  .topbar-brand-sub { display: none; }
+  /* Hide user chip text on mobile to save space */
   .user-chip-info { display: none; }
-  .mobile-brand { display: flex; }
+  .user-chip { padding: .25rem; border: none; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .dash-panels { grid-template-columns: 1fr; }
   .charts-grid { grid-template-columns: 1fr; }
@@ -945,9 +950,6 @@ img { max-width: 100%; height: auto; }
   .profile-info-grid { grid-template-columns: 1fr 1fr; }
   .att-summary { grid-template-columns: 1fr 1fr; }
   .form-grid-3 { grid-template-columns: 1fr 1fr; }
-  /* Shell is already single-column — no change needed */
-  .user-chip-info { display: none; }
-  .topbar-title { font-size: .8rem; }
   .login-hero { display: none; }
   .login-form-panel { width: 100%; min-height: 100vh; }
 }
@@ -956,11 +958,6 @@ img { max-width: 100%; height: auto; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .data-stats-grid { grid-template-columns: 1fr 1fr; }
   .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
-  .hero-features { grid-template-columns: 1fr; }
-  .modal { margin: .5rem; }
-  .modal-lg, .modal-xl { max-width: calc(100vw - 1rem); }
-}
-  .form-grid-3 { grid-template-columns: 1fr; }
   .hero-features { grid-template-columns: 1fr; }
   .modal { margin: .5rem; }
   .modal-lg, .modal-xl { max-width: calc(100vw - 1rem); }

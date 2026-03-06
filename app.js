@@ -1382,60 +1382,48 @@ const SMS = {
 
   // ══ TIMETABLE ══
   loadTimetable(){
-    // Always repopulate class dropdown in case user hasn't visited Classes page
-    const classes=DB.get('classes',[]);
-    const sel=document.getElementById('tt-class-sel');
+    const classes = DB.get('classes',[]);
+    const sel = document.getElementById('tt-class-sel');
     if(sel){
-      const current=sel.value;
-      sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-      if(current) sel.value=current;
+      const current = sel.value;
+      sel.innerHTML = '<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      if(current) sel.value = current;
     }
-    // Wire Edit Timetable button
-    const editBtn=document.getElementById('edit-tt-btn');
-    if(editBtn) editBtn.onclick=()=>{
-      const classId=document.getElementById('tt-class-sel').value;
+    const editBtn = document.getElementById('edit-tt-btn');
+    if(editBtn) editBtn.onclick = ()=>{
+      const classId = document.getElementById('tt-class-sel').value;
       if(!classId){ this.toast('Please select a class first','warn'); return; }
       this.renderTimetable();
-      this.toast('Click any slot in the grid to add or edit it','info');
     };
     this.renderTimetable();
   },
 
   renderTimetable(){
-    const classId=document.getElementById('tt-class-sel').value;
-    const timetable=DB.get('timetable',{}); const classData=timetable[classId]||{};
-    const grid=document.getElementById('timetable-grid');
-    if(!classId){ grid.innerHTML='<div style="padding:2rem;text-align:center;color:var(--t4)">Select a class to view or edit timetable</div>'; return; }
-    const days=['Monday','Tuesday','Wednesday','Thursday','Friday'];
-    const periods=['7:30–8:30','8:30–9:30','9:30–10:30','10:30–11:00 (Break)','11:00–12:00','12:00–1:00','1:00–2:00'];
-    const isBreak=p=>p.includes('Break');
-    let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-      <span style="font-size:.8rem;color:var(--t3)">Click any slot to add or edit a subject. Changes are saved automatically.</span>
-      <button class="btn btn-secondary btn-sm" onclick="SMS.clearTimetable('${classId}')">Clear All</button>
-    </div>
-    <div style="overflow-x:auto"><table class="tt-table" style="width:100%;min-width:700px"><thead><tr><th style="width:120px">Period</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody>`;
-    periods.forEach(period=>{
-      html+=`<tr><td class="time-col" style="font-size:.72rem;font-weight:600">${period}</td>`;
-      days.forEach(day=>{
-        if(isBreak(period)){ html+=`<td style="background:var(--surface-2);color:var(--t4);font-size:.7rem;font-weight:600;text-align:center;letter-spacing:.05em">BREAK</td>`; return; }
-        const slot=classData[day]?.[period];
-        const penc=encodeURIComponent(period);
-        if(slot&&slot.subject){ html+=`<td style="cursor:pointer;padding:.3rem" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')"><div class="tt-cell" style="background:var(--brand-fade,rgba(26,58,107,.08));border-radius:6px;padding:.35rem .5rem"><div style="font-weight:600;font-size:.78rem">${slot.subject}</div><div style="font-size:.65rem;color:var(--t3);margin-top:.1rem">${slot.teacher||''}</div></div></td>`; }
-        else { html+=`<td style="cursor:pointer;padding:.3rem;text-align:center" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')" title="Click to add subject"><span style="color:var(--t4);font-size:1.1rem;line-height:1">+</span></td>`; }
-      });
-      html+=`</tr>`;
-    });
-    html+=`</tbody></table></div>`;
-    grid.innerHTML=html;
+    const classId = document.getElementById('tt-class-sel')?.value;
+    const grid = document.getElementById('timetable-grid');
+    if(!grid) return;
+    if(!classId){
+      const classes = DB.get('classes',[]);
+      grid.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--t4)">
+        <div style="font-size:2rem;margin-bottom:.75rem">📅</div>
+        <div style="font-weight:600;margin-bottom:.4rem;color:var(--t2)">Select a class to view its timetable</div>
+        <div style="font-size:.82rem">Use <strong>⚙ Design Structure</strong> to customise days, periods and times</div>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = this._buildTTTable(classId, true);
   },
 
-  openTimetableSlot(classId,day,period){
-    period=decodeURIComponent(period);
+  openTimetableSlot(classId,day,periodId){
+    periodId=decodeURIComponent(periodId);
+    const struct = this.getTTStructure();
+    const period = struct.periods.find(p=>p.id===periodId);
     const timetable=DB.get('timetable',{}); const classData=timetable[classId]||{};
-    const slot=classData[day]?.[period]||{};
+    const slot=classData[day]?.[periodId]||{};
     const subjects=DB.get('subjects',[]).filter(s=>!s.classId||s.classId===classId);
     const staff=DB.get('staff',[]);
-    document.getElementById('receipt-title').textContent=`${day} · ${period}`;
+    const periodLabel = period ? `${period.label} (${period.from}–${period.to})` : periodId;
+    document.getElementById('receipt-title').textContent=`${day} · ${periodLabel}`;
     document.getElementById('receipt-body').innerHTML=`
       <div style="display:grid;gap:.75rem;margin-top:.25rem">
         <div><label style="font-size:.8rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">Subject</label>
@@ -1445,29 +1433,29 @@ const SMS = {
           <input id="tt-teacher-inp" list="tt-teacher-list" value="${slot.teacher||''}" placeholder="Type or select teacher…" class="form-input" style="width:100%">
           <datalist id="tt-teacher-list">${staff.map(s=>`<option value="${s.fname+' '+s.lname}">`).join('')}</datalist></div>
         <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.25rem">
-          ${slot.subject?`<button class="btn btn-secondary btn-sm" onclick="SMS.clearTimetableSlot('${classId}','${day}','${period}')">Clear Slot</button>`:''}
-          <button class="btn btn-primary btn-sm" onclick="SMS.saveTimetableSlot('${classId}','${day}','${period}')">Save</button>
+          ${slot.subject?`<button class="btn btn-secondary btn-sm" onclick="SMS.clearTimetableSlot('${classId}','${day}','${periodId}')">Clear Slot</button>`:''}
+          <button class="btn btn-primary btn-sm" onclick="SMS.saveTimetableSlot('${classId}','${day}','${periodId}')">Save</button>
         </div>
       </div>`;
     this.openModal('m-receipt');
   },
 
-  saveTimetableSlot(classId,day,period){
+  saveTimetableSlot(classId,day,periodId){
     const subj=document.getElementById('tt-subj-inp').value.trim();
     const teacher=document.getElementById('tt-teacher-inp').value.trim();
     if(!subj){ this.toast('Enter a subject','warn'); return; }
     const timetable=DB.get('timetable',{});
     if(!timetable[classId]) timetable[classId]={};
     if(!timetable[classId][day]) timetable[classId][day]={};
-    timetable[classId][day][period]={subject:subj,teacher};
+    timetable[classId][day][periodId]={subject:subj,teacher};
     DB.set('timetable',timetable);
     this.closeModal('m-receipt'); this.renderTimetable();
-    this.toast(`${subj} saved for ${day} · ${period}`,'success');
+    this.toast(`${subj} saved!`,'success');
   },
 
-  clearTimetableSlot(classId,day,period){
+  clearTimetableSlot(classId,day,periodId){
     const timetable=DB.get('timetable',{});
-    if(timetable[classId]?.[day]?.[period]) delete timetable[classId][day][period];
+    if(timetable[classId]?.[day]?.[periodId]) delete timetable[classId][day][periodId];
     DB.set('timetable',timetable); this.closeModal('m-receipt'); this.renderTimetable();
   },
 
@@ -2807,6 +2795,290 @@ const SMS = {
     this.toast(`Fee structure saved for ${this.className(classId)}!`,'success');
     this.closeModal('m-fee-struct'); this.renderFeeStructure(); this.renderFeesKpis();
   },
+
+  // ══════════════════════════════════════════
+  //  TIMETABLE DESIGNER
+  // ══════════════════════════════════════════
+
+  // Default structure — used when no custom one is saved
+  _defaultTTStructure(){
+    return {
+      days: ['Monday','Tuesday','Wednesday','Thursday','Friday'],
+      periods: [
+        {id:'p1', label:'Period 1', from:'07:30', to:'08:30', isBreak:false},
+        {id:'p2', label:'Period 2', from:'08:30', to:'09:30', isBreak:false},
+        {id:'p3', label:'Period 3', from:'09:30', to:'10:30', isBreak:false},
+        {id:'pb', label:'Break',    from:'10:30', to:'11:00', isBreak:true},
+        {id:'p4', label:'Period 4', from:'11:00', to:'12:00', isBreak:false},
+        {id:'p5', label:'Period 5', from:'12:00', to:'13:00', isBreak:false},
+        {id:'p6', label:'Period 6', from:'13:00', to:'14:00', isBreak:false},
+      ]
+    };
+  },
+
+  getTTStructure(){
+    return DB.get('ttStructure', null) || this._defaultTTStructure();
+  },
+
+  openTimetableDesigner(){
+    const classes = DB.get('classes',[]);
+    // Populate class selects in tabs 2 & 3
+    const opts = '<option value="">— Select Class —</option>' + classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('tt-fill-class').innerHTML = opts;
+    document.getElementById('tt-preview-class').innerHTML = opts;
+
+    // Reset to tab 1
+    this._ttTab('structure', document.querySelector('#m-tt-designer .mtab'));
+
+    this._renderTTDays();
+    this._renderTTPeriods();
+    this.openModal('m-tt-designer');
+  },
+
+  _ttTab(name, btn){
+    document.querySelectorAll('#m-tt-designer .modal-tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#m-tt-designer .mtab').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tt-tab-'+name).classList.add('active');
+    if(btn) btn.classList.add('active');
+    // Save button only relevant on tab 1
+    document.getElementById('tt-save-structure-btn').style.display = name==='structure'?'':'none';
+    if(name==='slots') this.renderTTFillGrid();
+    if(name==='preview') this.renderTTPreview();
+  },
+
+  _renderTTDays(){
+    const struct = this.getTTStructure();
+    const allDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    document.getElementById('tt-days-list').innerHTML = allDays.map(d=>`
+      <label style="display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:7px;cursor:pointer;background:var(--surface-2);font-size:.85rem;font-weight:500;color:var(--t1)">
+        <input type="checkbox" id="ttd-${d}" value="${d}" ${struct.days.includes(d)?'checked':''} onchange="SMS._syncTTDays()" style="width:16px;height:16px;accent-color:var(--brand)">
+        ${d}
+      </label>`).join('');
+  },
+
+  _syncTTDays(){
+    // No-op — days read on save. Just visual feedback.
+  },
+
+  _renderTTPeriods(){
+    const struct = this.getTTStructure();
+    const list = document.getElementById('tt-periods-list');
+    list.innerHTML = struct.periods.map((p,i)=>`
+      <div id="tt-period-row-${p.id}" style="display:grid;grid-template-columns:auto 1fr 80px 80px auto auto;gap:.4rem;align-items:center;background:${p.isBreak?'rgba(245,158,11,.08)':'var(--surface-2)'};border:1px solid ${p.isBreak?'rgba(245,158,11,.35)':'var(--border)'};border-radius:8px;padding:.5rem .6rem">
+        <div style="cursor:grab;color:var(--t4);padding:0 .2rem;font-size:1rem" title="Drag to reorder">⠿</div>
+        <input class="form-input" style="height:32px;font-size:.82rem;padding:.2rem .5rem" value="${p.label}" id="ttpl-${p.id}" placeholder="Label (e.g. Period 1)">
+        <input type="time" class="form-input" style="height:32px;font-size:.79rem;padding:.2rem .4rem" value="${p.from}" id="ttpf-${p.id}">
+        <input type="time" class="form-input" style="height:32px;font-size:.79rem;padding:.2rem .4rem" value="${p.to}" id="ttpt-${p.id}">
+        <label style="display:flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:600;color:var(--warn);white-space:nowrap;cursor:pointer" title="Mark as break (non-editable row)">
+          <input type="checkbox" id="ttpb-${p.id}" ${p.isBreak?'checked':''} onchange="SMS._renderTTPeriods()" style="accent-color:var(--warn)"> Break
+        </label>
+        <button onclick="SMS.ttRemovePeriod('${p.id}')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:1rem;padding:.1rem .3rem" title="Remove">✕</button>
+      </div>`).join('');
+
+    // Enable drag-to-reorder
+    this._initPeriodDrag();
+  },
+
+  _initPeriodDrag(){
+    const list = document.getElementById('tt-periods-list');
+    let dragging = null;
+    list.querySelectorAll('[style*="cursor:grab"]').forEach(handle=>{
+      const row = handle.closest('[id^="tt-period-row-"]');
+      row.setAttribute('draggable','true');
+      row.addEventListener('dragstart',()=>{ dragging=row; row.style.opacity='.4'; });
+      row.addEventListener('dragend',()=>{ row.style.opacity='1'; dragging=null; });
+      row.addEventListener('dragover',e=>{ e.preventDefault(); if(dragging&&dragging!==row){ const after=row.getBoundingClientRect().top+row.offsetHeight/2>e.clientY; list.insertBefore(dragging,after?row:row.nextSibling); } });
+    });
+  },
+
+  ttAddPeriod(){
+    const struct = this.getTTStructure();
+    const newId = 'p'+Date.now();
+    // Suggest next time from last period
+    const last = struct.periods[struct.periods.length-1];
+    const nextFrom = last?.to || '07:30';
+    const [h,m] = nextFrom.split(':').map(Number);
+    const nextTo = `${String(h+(m===30?1:0)).padStart(2,'0')}:${m===30?'00':'30'}`;
+    struct.periods.push({id:newId, label:`Period ${struct.periods.filter(p=>!p.isBreak).length+1}`, from:nextFrom, to:nextTo, isBreak:false});
+    DB.set('ttStructure',struct);
+    this._renderTTPeriods();
+    // Scroll to bottom
+    setTimeout(()=>{ const el=document.getElementById('tt-periods-list'); el.scrollTop=el.scrollHeight; },50);
+  },
+
+  ttRemovePeriod(id){
+    const struct = this.getTTStructure();
+    struct.periods = struct.periods.filter(p=>p.id!==id);
+    DB.set('ttStructure',struct);
+    this._renderTTPeriods();
+  },
+
+  saveTTStructure(){
+    // Read days
+    const allDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const days = allDays.filter(d=>document.getElementById('ttd-'+d)?.checked);
+    if(days.length===0){ this.toast('Select at least one day','warn'); return; }
+
+    // Read periods from DOM (in current drag order)
+    const rows = document.querySelectorAll('#tt-periods-list > div[id^="tt-period-row-"]');
+    const periods = [];
+    rows.forEach(row=>{
+      const id = row.id.replace('tt-period-row-','');
+      const label = document.getElementById('ttpl-'+id)?.value.trim() || 'Period';
+      const from  = document.getElementById('ttpf-'+id)?.value || '00:00';
+      const to    = document.getElementById('ttpt-'+id)?.value || '00:00';
+      const isBreak = document.getElementById('ttpb-'+id)?.checked || false;
+      periods.push({id, label, from, to, isBreak});
+    });
+    if(periods.length===0){ this.toast('Add at least one period','warn'); return; }
+
+    DB.set('ttStructure',{days,periods});
+    this.toast('Timetable structure saved!','success');
+    this.renderTimetable(); // Refresh main view
+    this._ttTab('slots', document.querySelectorAll('#m-tt-designer .mtab')[1]);
+  },
+
+  // ── Fill Subjects Grid (Tab 2) ──
+  renderTTFillGrid(){
+    const classId = document.getElementById('tt-fill-class').value;
+    const grid = document.getElementById('tt-fill-grid');
+    if(!classId){ grid.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--t4);font-size:.85rem">Select a class to fill in subjects</div>'; return; }
+
+    const struct = this.getTTStructure();
+    const timetable = DB.get('timetable',{});
+    const classData = timetable[classId]||{};
+    const subjects = DB.get('subjects',[]).filter(s=>!s.classId||s.classId===classId);
+    const staff = DB.get('staff',[]);
+
+    const subjOpts = subjects.map(s=>`<option value="${s.name}">`).join('');
+    const staffOpts = staff.map(s=>`<option value="${s.fname+' '+s.lname}">`).join('');
+    const datalists = `<datalist id="ttf-subj-dl">${subjOpts}</datalist><datalist id="ttf-staff-dl">${staffOpts}</datalist>`;
+
+    let html = datalists + `<table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:var(--surface-2)">
+        <th style="padding:.5rem .7rem;font-weight:700;color:var(--t2);text-align:left;white-space:nowrap;border:1px solid var(--border);min-width:120px">Period</th>
+        ${struct.days.map(d=>`<th style="padding:.5rem .7rem;font-weight:700;color:var(--t2);text-align:center;border:1px solid var(--border);min-width:140px">${d}</th>`).join('')}
+      </tr></thead><tbody>`;
+
+    struct.periods.forEach(p=>{
+      const label = p.label + (p.from&&p.to ? `<div style="font-size:.7rem;font-weight:400;color:var(--t3)">${p.from}–${p.to}</div>` : '');
+      if(p.isBreak){
+        html += `<tr><td style="padding:.4rem .7rem;background:var(--surface-2);font-weight:600;font-size:.75rem;color:var(--warn);text-align:center;border:1px solid var(--border)">${p.label}</td>
+          ${struct.days.map(()=>`<td style="background:var(--surface-2);border:1px solid var(--border);text-align:center;color:var(--t4);font-size:.72rem;letter-spacing:.05em">BREAK</td>`).join('')}</tr>`;
+        return;
+      }
+      html += `<tr><td style="padding:.4rem .7rem;border:1px solid var(--border);background:var(--surface-2)">${label}</td>`;
+      struct.days.forEach(day=>{
+        const slot = classData[day]?.[p.id]||{};
+        html += `<td style="padding:.3rem;border:1px solid var(--border);vertical-align:top">
+          <input list="ttf-subj-dl" class="form-input" style="height:28px;font-size:.75rem;padding:.15rem .4rem;margin-bottom:.25rem" placeholder="Subject…" value="${slot.subject||''}" id="ttf-subj-${classId}-${day.slice(0,3)}-${p.id}" oninput="SMS._ttAutoSaveSlot('${classId}','${day}','${p.id}')">
+          <input list="ttf-staff-dl" class="form-input" style="height:26px;font-size:.72rem;padding:.12rem .4rem;color:var(--t3)" placeholder="Teacher…" value="${slot.teacher||''}" id="ttf-tchr-${classId}-${day.slice(0,3)}-${p.id}" oninput="SMS._ttAutoSaveSlot('${classId}','${day}','${p.id}')">
+        </td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+    grid.innerHTML = html;
+  },
+
+  _ttAutoSaveSlot(classId, day, periodId){
+    const subjEl = document.getElementById(`ttf-subj-${classId}-${day.slice(0,3)}-${periodId}`);
+    const tchrEl = document.getElementById(`ttf-tchr-${classId}-${day.slice(0,3)}-${periodId}`);
+    if(!subjEl) return;
+    const subj = subjEl.value.trim();
+    const tchr = tchrEl?.value.trim()||'';
+    const timetable = DB.get('timetable',{});
+    if(!timetable[classId]) timetable[classId]={};
+    if(!timetable[classId][day]) timetable[classId][day]={};
+    if(subj) timetable[classId][day][periodId]={subject:subj,teacher:tchr};
+    else delete timetable[classId][day][periodId];
+    DB.set('timetable',timetable);
+  },
+
+  ttClearSlots(){
+    const classId = document.getElementById('tt-fill-class').value;
+    if(!classId){ this.toast('Select a class first','warn'); return; }
+    this.confirmDelete(`Clear all timetable slots for ${this.className(classId)}?`,()=>{
+      const timetable = DB.get('timetable',{});
+      delete timetable[classId];
+      DB.set('timetable',timetable);
+      this.renderTTFillGrid();
+      this.renderTimetable();
+      this.toast('Slots cleared','warn');
+    });
+  },
+
+  // ── Preview (Tab 3) ──
+  renderTTPreview(){
+    const classId = document.getElementById('tt-preview-class').value;
+    const grid = document.getElementById('tt-preview-grid');
+    if(!classId){ grid.innerHTML='<div style="padding:1.5rem;text-align:center;color:var(--t4);font-size:.85rem">Select a class to preview</div>'; return; }
+    grid.innerHTML = this._buildTTTable(classId, false);
+  },
+
+  // ── Main timetable grid renderer ──
+  _buildTTTable(classId, editable=true){
+    const struct = this.getTTStructure();
+    const timetable = DB.get('timetable',{});
+    const classData = timetable[classId]||{};
+
+    if(!classId) return '<div style="padding:2rem;text-align:center;color:var(--t4)">Select a class to view timetable</div>';
+
+    const cls = DB.get('classes',[]).find(c=>c.id===classId);
+
+    let html = `<div style="margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:.9rem;font-weight:700;color:var(--t1)">${cls?.name||''} — Weekly Schedule</div>
+      ${editable?`<span style="font-size:.75rem;color:var(--t3)">Click any slot to edit</span>`:''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <thead><tr style="background:var(--brand);color:#fff">
+        <th style="padding:.55rem .8rem;text-align:left;font-weight:600;border:1px solid rgba(255,255,255,.15);white-space:nowrap;min-width:110px">Period</th>
+        ${struct.days.map(d=>`<th style="padding:.55rem .8rem;font-weight:600;text-align:center;border:1px solid rgba(255,255,255,.15)">${d}</th>`).join('')}
+      </tr></thead><tbody>`;
+
+    struct.periods.forEach((p,idx)=>{
+      const bg = idx%2===0 ? 'var(--surface)' : 'var(--surface-2)';
+      const timeLabel = p.from&&p.to ? `<div style="font-size:.68rem;color:var(--t3);margin-top:.1rem">${p.from}–${p.to}</div>` : '';
+      if(p.isBreak){
+        html += `<tr><td style="padding:.4rem .8rem;background:rgba(245,158,11,.08);font-weight:600;font-size:.75rem;color:var(--warn);border:1px solid var(--border)">
+          ${p.label}${timeLabel}</td>
+          ${struct.days.map(()=>`<td style="background:rgba(245,158,11,.06);border:1px solid var(--border);text-align:center;color:var(--warn);font-size:.7rem;font-weight:600;letter-spacing:.06em">☕ BREAK</td>`).join('')}</tr>`;
+        return;
+      }
+      html += `<tr>`;
+      html += `<td style="padding:.4rem .8rem;background:var(--surface-2);border:1px solid var(--border);font-weight:600">${p.label}${timeLabel}</td>`;
+      struct.days.forEach(day=>{
+        const slot = classData[day]?.[p.id];
+        const penc = encodeURIComponent(p.id);
+        if(editable){
+          if(slot?.subject){
+            html += `<td style="padding:.35rem;border:1px solid var(--border);background:${bg};cursor:pointer" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')">
+              <div style="background:var(--brand-lt2,rgba(26,58,107,.08));border-radius:6px;padding:.35rem .5rem">
+                <div style="font-weight:600;font-size:.79rem">${slot.subject}</div>
+                ${slot.teacher?`<div style="font-size:.67rem;color:var(--t3);margin-top:.1rem">${slot.teacher}</div>`:''}
+              </div></td>`;
+          } else {
+            html += `<td style="padding:.35rem;border:1px solid var(--border);background:${bg};cursor:pointer;text-align:center" onclick="SMS.openTimetableSlot('${classId}','${day}','${penc}')" title="Click to add">
+              <span style="color:var(--t4);font-size:1.2rem">+</span></td>`;
+          }
+        } else {
+          if(slot?.subject){
+            html += `<td style="padding:.4rem .6rem;border:1px solid var(--border);background:${bg}">
+              <div style="font-weight:600;font-size:.8rem">${slot.subject}</div>
+              ${slot.teacher?`<div style="font-size:.68rem;color:var(--t3)">${slot.teacher}</div>`:''}
+            </td>`;
+          } else {
+            html += `<td style="border:1px solid var(--border);background:${bg}"></td>`;
+          }
+        }
+      });
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table>`;
+    return html;
+  },
+
 };
 
 // ── BOOT ──

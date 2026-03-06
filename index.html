@@ -6,7 +6,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
 <title>Eduformium School Management System</title>
 <meta name="description" content="World-class School Management System by Eduformium — Shape Knowledge, Build Mastery."/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
@@ -46,80 +45,45 @@
 <!-- ══════════════════ LOGIN ══════════════════ -->
 <div id="login-screen" class="login-wrap" style="display:none">
 
-  <!-- ═══ LEFT HERO PANEL ═══ -->
-  <div class="login-hero">
-    <!-- Layered background -->
-    <div class="lh-bg"></div>
-    <div class="lh-noise"></div>
-    <div class="lh-lines"></div>
-    <!-- Ambient glows -->
-    <div class="lh-glow lh-glow1"></div>
-    <div class="lh-glow lh-glow2"></div>
-    <div class="lh-glow lh-glow3"></div>
-    <!-- Floating geometric shapes -->
-    <div class="lh-geo lh-geo1"></div>
-    <div class="lh-geo lh-geo2"></div>
-    <div class="lh-geo lh-geo3"></div>
-
-    <div class="login-hero-content">
-
-      <!-- Brand lockup -->
-      <div class="lh-brand">
-        <div class="lh-logo-wrap">
-          <div class="lh-logo-ring"></div>
-          <div class="lh-logo">
-            <svg viewBox="0 0 60 60" fill="none" width="28" height="28">
-              <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
-              <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
-              <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/>
-              <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
-            </svg>
-          </div>
+  <!-- TOP HERO SECTION -->
+  <div class="lh-hero-top">
+    <div class="lh-hero-bg"></div>
+    <div class="lh-hero-glow1"></div>
+    <div class="lh-hero-glow2"></div>
+    <div class="lh-hero-body">
+      <div class="lh-hero-brand">
+        <div class="lh-hero-logo">
+          <svg viewBox="0 0 60 60" fill="none" width="26" height="26">
+            <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
+            <rect x="20" y="8" width="30" height="10" rx="5" fill="rgba(255,255,255,.7)"/>
+            <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.45)"/>
+            <rect x="20" y="42" width="26" height="10" rx="5" fill="rgba(255,255,255,.7)"/>
+          </svg>
         </div>
-        <div class="lh-brand-text">
-          <div class="lh-brand-name">Eduformium</div>
-          <div class="lh-brand-pill">School Management System</div>
-        </div>
+        <span class="lh-hero-brand-name">Eduformium</span>
+      </div>
+      <h1 class="lh-hero-title">Welcome Back</h1>
+      <p class="lh-hero-sub">Sign in to manage your school</p>
+
+      <!-- Desktop metrics (hidden on mobile) -->
+      <div class="lh-metrics-desktop">
+        <div class="lh-metric"><div class="lh-metric-val">18+</div><div class="lh-metric-lbl">Modules</div></div>
+        <div class="lh-metric-div"></div>
+        <div class="lh-metric"><div class="lh-metric-val">PWA</div><div class="lh-metric-lbl">Offline</div></div>
+        <div class="lh-metric-div"></div>
+        <div class="lh-metric"><div class="lh-metric-val">∞</div><div class="lh-metric-lbl">Students</div></div>
+        <div class="lh-metric-div"></div>
+        <div class="lh-metric"><div class="lh-metric-val">Free</div><div class="lh-metric-lbl">To Start</div></div>
       </div>
 
-      <!-- Main headline -->
-      <div class="lh-headline">
-        <span class="lh-hl-top">Shape Knowledge.</span>
-        <span class="lh-hl-accent">Build Mastery.</span>
-      </div>
-      <p class="lh-desc">The complete school management platform built for modern institutions across Africa and beyond. Trusted, powerful, beautiful.</p>
-
-      <!-- Metric strip -->
-      <div class="lh-metrics">
-        <div class="lh-metric">
-          <div class="lh-metric-val">18+</div>
-          <div class="lh-metric-lbl">Modules</div>
-        </div>
-        <div class="lh-metric-div"></div>
-        <div class="lh-metric">
-          <div class="lh-metric-val">PWA</div>
-          <div class="lh-metric-lbl">Offline Ready</div>
-        </div>
-        <div class="lh-metric-div"></div>
-        <div class="lh-metric">
-          <div class="lh-metric-val">∞</div>
-          <div class="lh-metric-lbl">Students</div>
-        </div>
-        <div class="lh-metric-div"></div>
-        <div class="lh-metric">
-          <div class="lh-metric-val">Free</div>
-          <div class="lh-metric-lbl">To Start</div>
-        </div>
-      </div>
-
-      <!-- Feature list -->
-      <div class="lh-features">
-        <div class="lh-feat"><div class="lh-feat-dot"></div>Students, Staff &amp; Classes</div>
-        <div class="lh-feat"><div class="lh-feat-dot"></div>Fees, Payroll &amp; Expenses</div>
-        <div class="lh-feat"><div class="lh-feat-dot"></div>Exams, Grades &amp; Report Cards</div>
-        <div class="lh-feat"><div class="lh-feat-dot"></div>Attendance &amp; Timetable</div>
-        <div class="lh-feat"><div class="lh-feat-dot"></div>Library &amp; Homework Tracker</div>
-        <div class="lh-feat"><div class="lh-feat-dot"></div>Cloud Sync via Firebase</div>
+      <!-- Desktop feature list (hidden on mobile) -->
+      <div class="lh-desktop-features">
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Students &amp; Staff</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Fees &amp; Payroll</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Exams &amp; Grades</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Attendance</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Library &amp; Homework</div>
+        <div class="lh-feat"><div class="lh-feat-dot"></div>Cloud Firebase Sync</div>
       </div>
 
       <div class="lh-footer">
@@ -130,37 +94,17 @@
     </div>
   </div>
 
-  <!-- ═══ RIGHT FORM PANEL ═══ -->
+  <!-- BOTTOM FORM CARD -->
   <div class="login-form-panel">
-    <!-- Subtle top accent line -->
-    <div class="lfp-accent"></div>
-
     <div class="login-box">
 
-      <!-- Mobile brand (shown only on mobile) -->
-      <div class="mobile-brand">
-        <div class="mob-logo">
-          <svg viewBox="0 0 60 60" fill="none" width="24" height="24">
-            <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
-            <rect x="20" y="8" width="30" height="10" rx="5" fill="#5eead4"/>
-            <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.45)"/>
-            <rect x="20" y="42" width="26" height="10" rx="5" fill="#5eead4"/>
-          </svg>
-        </div>
-        <div>
-          <div class="mb-name">Eduformium</div>
-          <div class="mb-sub">School Management System</div>
-        </div>
-      </div>
-
-      <!-- ── SIGN IN FORM ── -->
+      <!-- SIGN IN -->
       <div id="auth-signin">
         <div class="auth-eyebrow">
-          <span class="auth-eyebrow-dot"></span>
-          Welcome back
+          <span class="auth-eyebrow-dot"></span>Sign In
         </div>
-        <h2 class="auth-title">Sign in to your<br/><span class="auth-title-accent">school portal</span></h2>
-        <p class="auth-sub">Enter your credentials to access your dashboard</p>
+        <h2 class="auth-title">Access your<br/><span class="auth-title-accent">school portal</span></h2>
+        <p class="auth-sub">Enter your credentials to continue</p>
 
         <div class="form-field">
           <label class="form-label" for="l-user">Email Address</label>
@@ -198,11 +142,10 @@
         <button class="btn btn-outline btn-full auth-submit" id="go-register" type="button">Register a New School</button>
       </div>
 
-      <!-- ── REGISTER FORM ── -->
+      <!-- REGISTER -->
       <div id="auth-register" style="display:none">
         <div class="auth-eyebrow">
-          <span class="auth-eyebrow-dot"></span>
-          New School
+          <span class="auth-eyebrow-dot"></span>New School
         </div>
         <h2 class="auth-title">Create your<br/><span class="auth-title-accent">school account</span></h2>
         <p class="auth-sub">Get started with Eduformium in minutes — free forever</p>
@@ -245,6 +188,7 @@
 
     </div>
   </div>
+
 </div>
 
 <!-- ══════════════════ APP SHELL ══════════════════ -->
@@ -1719,7 +1663,7 @@
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <!-- Firebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1732,10 +1676,4 @@
 // Error fallback
 window.addEventListener('error', function(e){
   console.error('SMS Error:', e.message);
-  var ol = document.getElementById('loading-overlay');
-  if(ol) ol.style.display = 'none';
-  var ls = document.getElementById('login-screen');
-  if(ls) ls.style.display = 'flex';
-});
-setTimeout(function(){
-  var ol = document.getElementBy
+  var ol =

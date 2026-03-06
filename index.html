@@ -1691,6 +1691,220 @@
 <!-- Toast -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
 
+<!-- ══ EXPENSE FORM MODAL ══ -->
+<div id="m-expense" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="expense-modal-title">Add Expense</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-expense')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="exp-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Date *</label><input class="form-input" type="date" id="exp-date"/></div>
+        <div class="form-field"><label class="form-label">Category *</label>
+          <select class="form-input" id="exp-category">
+            <option value="">— Select —</option>
+            <option value="Salaries">Salaries</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Supplies">Supplies</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Sports">Sports</option>
+            <option value="Transport">Transport</option>
+            <option value="Events">Events</option>
+            <option value="ICT">ICT</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Description *</label><input class="form-input" id="exp-desc" placeholder="Brief description of expense"/></div>
+        <div class="form-field"><label class="form-label">Amount ({{currency}}) *</label><input class="form-input" type="number" id="exp-amount" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="form-field"><label class="form-label">Paid To *</label><input class="form-input" id="exp-paidto" placeholder="Vendor / Recipient name"/></div>
+        <div class="form-field"><label class="form-label">Approved By</label><input class="form-input" id="exp-approved" placeholder="Approver name"/></div>
+        <div class="form-field"><label class="form-label">Receipt / Ref #</label><input class="form-input" id="exp-ref" placeholder="Optional reference"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Notes</label><textarea class="form-input" id="exp-notes" rows="2" placeholder="Additional notes (optional)"></textarea></div>
+      <div id="exp-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-expense')">Cancel</button>
+      <button class="btn btn-primary" id="save-expense-btn">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HOMEWORK FORM MODAL ══ -->
+<div id="m-homework" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="hw-modal-title">Assign Homework</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-homework')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hw-id"/>
+      <div class="form-grid-2">
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Title *</label><input class="form-input" id="hw-title" placeholder="e.g. Chapter 5 Essay — My Future Career"/></div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="hw-class-sel"><option value="">— Select Class —</option></select></div>
+        <div class="form-field"><label class="form-label">Subject</label><select class="form-input" id="hw-subject-sel"><option value="">— Select Subject —</option></select></div>
+        <div class="form-field"><label class="form-label">Due Date *</label><input class="form-input" type="date" id="hw-due"/></div>
+        <div class="form-field"><label class="form-label">Status</label>
+          <select class="form-input" id="hw-status-sel">
+            <option value="pending">Pending</option>
+            <option value="submitted">Submitted</option>
+            <option value="graded">Graded</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field"><label class="form-label">Description / Instructions</label><textarea class="form-input" id="hw-desc" rows="4" placeholder="Detailed instructions for the assignment…"></textarea></div>
+      <div id="hw-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-homework')">Cancel</button>
+      <button class="btn btn-primary" id="save-hw-btn">Assign Homework</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LEAVE FORM MODAL ══ -->
+<div id="m-leave" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Apply for Leave</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-leave')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="lv-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Staff Member *</label><select class="form-input" id="lv-staff"><option value="">— Select Staff —</option></select></div>
+        <div class="form-field"><label class="form-label">Leave Type *</label>
+          <select class="form-input" id="lv-type">
+            <option value="Annual">Annual Leave</option>
+            <option value="Sick">Sick Leave</option>
+            <option value="Maternity">Maternity Leave</option>
+            <option value="Paternity">Paternity Leave</option>
+            <option value="Emergency">Emergency Leave</option>
+            <option value="Study">Study Leave</option>
+            <option value="Unpaid">Unpaid Leave</option>
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">From Date *</label><input class="form-input" type="date" id="lv-from"/></div>
+        <div class="form-field"><label class="form-label">To Date *</label><input class="form-input" type="date" id="lv-to"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Reason *</label><textarea class="form-input" id="lv-reason" rows="3" placeholder="Reason for leave application…"></textarea></div>
+      <div id="lv-days-preview" style="display:none;background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:8px;padding:.65rem 1rem;font-size:.82rem;color:var(--brand);margin-top:.5rem"></div>
+      <div id="lv-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-leave')">Cancel</button>
+      <button class="btn btn-primary" id="save-leave-btn">Submit Application</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOOK FORM MODAL ══ -->
+<div id="m-book" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="book-modal-title">Add Book</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-book')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bk-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">ISBN</label><input class="form-input" id="bk-isbn" placeholder="e.g. 978-0-06-112008-4"/></div>
+        <div class="form-field"><label class="form-label">Category *</label>
+          <select class="form-input" id="bk-cat">
+            <option value="">— Select —</option>
+            <option value="Textbook">Textbook</option>
+            <option value="Literature">Literature</option>
+            <option value="Fiction">Fiction</option>
+            <option value="Reference">Reference</option>
+            <option value="Science">Science</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="History">History</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Title *</label><input class="form-input" id="bk-title" placeholder="Full book title"/></div>
+        <div class="form-field"><label class="form-label">Author *</label><input class="form-input" id="bk-author" placeholder="Author name(s)"/></div>
+        <div class="form-field"><label class="form-label">Publisher</label><input class="form-input" id="bk-publisher" placeholder="Publisher name"/></div>
+        <div class="form-field"><label class="form-label">Total Copies *</label><input class="form-input" type="number" id="bk-copies" placeholder="1" min="1" value="1"/></div>
+        <div class="form-field"><label class="form-label">Location / Shelf</label><input class="form-input" id="bk-location" placeholder="e.g. Shelf A2"/></div>
+      </div>
+      <div id="bk-err" class="form-err" style="display:none">Please fill in required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-book')">Cancel</button>
+      <button class="btn btn-primary" id="save-book-btn">Save Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOOK ISSUE MODAL ══ -->
+<div id="m-book-issue" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="issue-modal-title">Issue / Return Book</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-book-issue')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="issue-tabs" style="margin-bottom:1rem">
+        <button class="tab active" data-tab="issue-tab">Issue Book</button>
+        <button class="tab" data-tab="return-tab">Return Book</button>
+      </div>
+      <div id="issue-tab" class="tab-pane active">
+        <div class="form-grid-2">
+          <div class="form-field"><label class="form-label">Book *</label><select class="form-input" id="issue-book"><option value="">— Select Book —</option></select></div>
+          <div class="form-field"><label class="form-label">Borrower *</label>
+            <select class="form-input" id="issue-borrower-type" onchange="SMS.toggleBorrowerType()">
+              <option value="student">Student</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div class="form-field" id="issue-student-wrap"><label class="form-label">Student *</label><select class="form-input" id="issue-student"><option value="">— Select Student —</option></select></div>
+          <div class="form-field" id="issue-staff-wrap" style="display:none"><label class="form-label">Staff *</label><select class="form-input" id="issue-staff-mem"><option value="">— Select Staff —</option></select></div>
+          <div class="form-field"><label class="form-label">Issue Date *</label><input class="form-input" type="date" id="issue-date"/></div>
+          <div class="form-field"><label class="form-label">Due Date *</label><input class="form-input" type="date" id="issue-due"/></div>
+        </div>
+        <div id="issue-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+        <div style="margin-top:.85rem"><button class="btn btn-primary" id="confirm-issue-btn">Issue Book</button></div>
+      </div>
+      <div id="return-tab" class="tab-pane">
+        <div class="form-field"><label class="form-label">Select Active Borrowing</label>
+          <select class="form-input" id="return-issue-sel"><option value="">— Select Record —</option></select>
+        </div>
+        <div id="return-preview" style="display:none;background:var(--surface-2);border-radius:8px;padding:.85rem;font-size:.82rem;margin-top:.75rem"></div>
+        <div style="margin-top:.85rem"><button class="btn btn-primary" id="confirm-return-btn">Return Book</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FEE STRUCTURE EDITOR MODAL ══ -->
+<div id="m-fee-struct" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="fee-struct-modal-title">Edit Fee Structure</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-fee-struct')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="fs-class-id"/>
+      <div class="form-field"><label class="form-label">Class</label><input class="form-input" id="fs-class-name" readonly style="background:var(--surface-2)"/></div>
+      <div class="form-grid-3" style="margin-top:.5rem">
+        <div class="form-field"><label class="form-label">Term 1 Fee *</label><input class="form-input" type="number" id="fs-term1" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="form-field"><label class="form-label">Term 2 Fee *</label><input class="form-input" type="number" id="fs-term2" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="form-field"><label class="form-label">Term 3 Fee *</label><input class="form-input" type="number" id="fs-term3" placeholder="0.00" min="0" step="0.01"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">What's Included</label><input class="form-input" id="fs-includes" placeholder="e.g. Tuition, Books, Activities, Feeding"/></div>
+      <div id="fs-total-preview" style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:8px;padding:.65rem 1rem;font-size:.85rem;color:var(--brand);margin-top:.5rem"></div>
+      <div id="fs-err" class="form-err" style="display:none">Please fill in all term fees.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-fee-struct')">Cancel</button>
+      <button class="btn btn-primary" id="save-fee-struct-btn">Save Fee Structure</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>

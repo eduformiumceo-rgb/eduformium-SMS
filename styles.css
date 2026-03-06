@@ -275,21 +275,33 @@ img { max-width: 100%; }
   width: 100%; display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
-  padding: 2.5rem 4rem;
+  padding: 2.75rem 4rem 2rem;
   max-width: 780px;
   margin: 0 auto;
   height: 100%;
 }
 
-/* Wordmark */
+/* Wordmark pinned to top */
 .l-wordmark {
   display: flex; align-items: center;
   justify-content: center;
-  gap: .88rem; margin-bottom: 0;
-  padding-bottom: 1.5rem;
+  gap: .88rem;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  width: 100%;
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* Middle content block — headline, desc, stats, feats — vertically centered */
+.l-hero-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 1rem;
 }
 .l-mark-box {
   width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
@@ -318,7 +330,7 @@ img { max-width: 100%; }
   border-radius: 4px; padding: .28rem .78rem;
   font-size: .58rem; font-weight: 600; letter-spacing: .14em;
   text-transform: uppercase; color: rgba(20,184,166,.9);
-  margin-bottom: .65rem;
+  margin-bottom: 0;
   animation: lFadeUp .55s .1s cubic-bezier(.22,1,.36,1) both;
   font-family: 'DM Sans', sans-serif;
 }
@@ -335,7 +347,7 @@ img { max-width: 100%; }
 /* Headline — DM Sans bold and clean */
 .l-headline {
   display: flex; flex-direction: column; gap: 0;
-  margin-bottom: .75rem;
+  margin-bottom: 0;
 }
 .l-hl-1, .l-hl-2 {
   display: block;
@@ -364,7 +376,7 @@ img { max-width: 100%; }
   color: rgba(255,255,255,.38); max-width: 520px;
   font-weight: 400; font-family: 'DM Sans', sans-serif;
   animation: lFadeUp .6s .32s cubic-bezier(.22,1,.36,1) both;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   padding-bottom: 0;
   text-align: center;
 }
@@ -376,7 +388,7 @@ img { max-width: 100%; }
   width: 100%;
   border: 1px solid rgba(13,148,136,.2);
   border-radius: 10px;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   overflow: hidden;
   animation: lFadeUp .6s .4s cubic-bezier(.22,1,.36,1) both;
 }
@@ -405,7 +417,7 @@ img { max-width: 100%; }
 /* Feature tags */
 .l-feats {
   display: flex; flex-wrap: wrap; gap: .35rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   justify-content: center;
   animation: lFadeUp .6s .47s cubic-bezier(.22,1,.36,1) both;
 }

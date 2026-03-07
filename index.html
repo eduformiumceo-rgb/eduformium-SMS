@@ -15,6 +15,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="stylesheet" href="styles.css?v=19"/>
 <style>@media (max-width:768px){.l-panel::before{display:none!important;content:none!important;}}</style>
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 <noscript><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0d1f42;color:white;font-family:system-ui,sans-serif;text-align:center;padding:2rem"><div><svg viewBox="0 0 60 60" fill="none" width="52" height="52" style="margin:0 auto 1rem"><rect x="10" y="8" width="8" height="44" rx="4" fill="white"/><rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/><rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/><rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/></svg><h2 style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">JavaScript Required</h2><p style="font-size:.9rem;opacity:.7;max-width:320px">Eduformium SMS requires JavaScript to run. Please enable JavaScript in your browser and reload the page.</p></div></div></noscript>
@@ -217,6 +219,55 @@
         <button class="l-btn-outline" id="go-signin" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           Back to Sign In
+        </button>
+      </div>
+
+      <!-- OTP VERIFICATION -->
+      <div id="auth-otp" style="display:none">
+        <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>Email Verification</div>
+        <h2 class="l-title">Check your inbox</h2>
+        <p class="l-subtitle">We sent a 6-digit code to<br><strong id="otp-email-display" style="color:#071830;font-weight:600"></strong></p>
+
+        <!-- OTP Input Boxes -->
+        <div class="otp-boxes">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-0" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-1" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-2" autocomplete="off"/>
+          <div class="otp-sep">—</div>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-3" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-4" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-5" autocomplete="off"/>
+        </div>
+
+        <!-- Expiry countdown -->
+        <div class="otp-timer-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Code expires in <span id="otp-countdown" style="font-weight:700;color:#0d9488">10:00</span>
+        </div>
+
+        <div id="otp-err" class="form-err" style="display:none"></div>
+        <div id="otp-success" class="otp-success-msg" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+          New code sent! Check your inbox.
+        </div>
+
+        <button class="l-btn-primary" id="otp-verify-btn" type="button" disabled>
+          <span>Verify & Create Account</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+
+        <!-- Resend row -->
+        <div class="otp-resend-row">
+          Didn't receive it?
+          <button id="otp-resend-btn" type="button" class="otp-resend-btn" disabled>
+            Resend code <span id="otp-resend-timer" class="otp-resend-countdown">(60s)</span>
+          </button>
+        </div>
+
+        <div class="l-divider"><span>Wrong email?</span></div>
+        <button class="l-btn-outline" id="otp-back-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to Registration
         </button>
       </div>
 

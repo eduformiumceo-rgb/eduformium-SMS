@@ -276,6 +276,402 @@
 
 </div>
 
+<!-- ══════════════════ PENDING ACTIVATION SCREEN ══════════════════ -->
+<div id="pending-screen" style="display:none">
+
+  <style>
+    #pending-screen {
+      position: fixed; inset: 0; z-index: 200;
+      background: #060d1a;
+      font-family: 'DM Sans', sans-serif;
+      overflow-y: auto;
+    }
+
+    /* Animated background mesh */
+    #pending-screen::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(13,148,136,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(26,58,107,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,0,0,0) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Subtle grid */
+    #pending-screen::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .ps-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── TOP WORDMARK ── */
+    .ps-wordmark {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: 3.5rem;
+      animation: psFadeUp .6s ease both;
+    }
+    .ps-mark {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #0f2144, #1a3a6b);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 8px 24px rgba(0,0,0,.4);
+    }
+    .ps-brand-name {
+      font-size: .95rem; font-weight: 700;
+      color: rgba(255,255,255,.9); letter-spacing: .02em;
+    }
+    .ps-brand-tag {
+      font-size: .65rem; color: rgba(255,255,255,.35);
+      letter-spacing: .12em; text-transform: uppercase; margin-top: .1rem;
+    }
+
+    /* ── MAIN CARD ── */
+    .ps-card {
+      width: 100%; max-width: 560px;
+      background: rgba(13,22,44,.7);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      backdrop-filter: blur(20px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.04),
+        0 32px 80px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.06);
+      animation: psFadeUp .7s .1s ease both;
+      position: relative; overflow: hidden;
+    }
+
+    /* card accent glow top-left */
+    .ps-card::before {
+      content: '';
+      position: absolute; top: -60px; left: -60px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(13,148,136,.15), transparent 65%);
+      pointer-events: none;
+    }
+
+    /* ── STATUS INDICATOR ── */
+    .ps-status-ring {
+      width: 76px; height: 76px;
+      margin: 0 auto 1.75rem;
+      position: relative;
+    }
+    .ps-status-ring svg.ring-svg {
+      width: 76px; height: 76px;
+      animation: psSpin 3s linear infinite;
+    }
+    @keyframes psSpin { to { transform: rotate(360deg); } }
+    .ps-status-icon {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ps-status-icon svg { animation: psOrbitPulse 2s ease-in-out infinite; }
+    @keyframes psOrbitPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.7;transform:scale(.9);} }
+
+    /* ── HEADLINE ── */
+    .ps-eyebrow {
+      text-align: center;
+      font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
+      color: #0d9488; margin-bottom: .75rem;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    .ps-eyebrow-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #0d9488;
+      animation: psBlip 1.6s ease-in-out infinite;
+    }
+    @keyframes psBlip { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+
+    .ps-headline {
+      text-align: center;
+      font-size: 1.75rem; font-weight: 800;
+      color: #fff; line-height: 1.2;
+      margin-bottom: .85rem; letter-spacing: -.02em;
+    }
+    .ps-headline span { color: #0d9488; }
+
+    .ps-desc {
+      text-align: center;
+      font-size: .9rem; color: rgba(255,255,255,.45);
+      line-height: 1.7; margin-bottom: 2rem;
+      max-width: 400px; margin-left: auto; margin-right: auto;
+    }
+
+    /* ── STEP TRACKER ── */
+    .ps-steps {
+      display: flex; flex-direction: column; gap: .75rem;
+      margin-bottom: 2.25rem;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 16px; padding: 1.25rem 1.5rem;
+    }
+    .ps-step {
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .ps-step-num {
+      width: 28px; height: 28px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700;
+    }
+    .ps-step.done .ps-step-num  { background: rgba(13,148,136,.2); color: #0d9488; border: 1px solid rgba(13,148,136,.35); }
+    .ps-step.active .ps-step-num{ background: rgba(255,179,0,.15); color: #ffb300; border: 1px solid rgba(255,179,0,.3); }
+    .ps-step.wait .ps-step-num  { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.08); }
+    .ps-step-info { flex: 1; }
+    .ps-step-label {
+      font-size: .82rem; font-weight: 600;
+    }
+    .ps-step.done .ps-step-label  { color: rgba(255,255,255,.7); }
+    .ps-step.active .ps-step-label{ color: #fff; }
+    .ps-step.wait .ps-step-label  { color: rgba(255,255,255,.3); }
+    .ps-step-sub {
+      font-size: .73rem; margin-top: .1rem;
+    }
+    .ps-step.done .ps-step-sub  { color: #0d9488; }
+    .ps-step.active .ps-step-sub{ color: rgba(255,179,0,.8); }
+    .ps-step.wait .ps-step-sub  { color: rgba(255,255,255,.2); }
+
+    /* ── SCHOOL INFO PILL ── */
+    .ps-school-pill {
+      display: flex; align-items: center; gap: .75rem;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 12px; padding: .85rem 1.1rem;
+      margin-bottom: 1.75rem;
+    }
+    .ps-school-avatar {
+      width: 38px; height: 38px; border-radius: 9px;
+      background: linear-gradient(135deg, #0f2144, #1a3a6b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .ps-school-name { font-size: .88rem; font-weight: 700; color: #fff; }
+    .ps-school-email { font-size: .73rem; color: rgba(255,255,255,.35); margin-top: .1rem; font-family: monospace; }
+
+    /* ── WHATSAPP CTA ── */
+    .ps-wa-btn {
+      display: flex; align-items: center; justify-content: center; gap: .85rem;
+      width: 100%;
+      background: linear-gradient(135deg, #128c7e, #075e54);
+      border: none; border-radius: 14px;
+      padding: 1.1rem 1.5rem;
+      color: #fff; font-family: 'DM Sans', sans-serif;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 8px 28px rgba(18,140,126,.35), inset 0 1px 0 rgba(255,255,255,.12);
+      transition: transform .15s, box-shadow .15s;
+      letter-spacing: .01em;
+      position: relative; overflow: hidden;
+    }
+    .ps-wa-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.08), transparent);
+      pointer-events: none;
+    }
+    .ps-wa-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(18,140,126,.45), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    .ps-wa-btn:active { transform: translateY(0); }
+    .ps-wa-text { display: flex; flex-direction: column; align-items: flex-start; }
+    .ps-wa-main { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+    .ps-wa-sub  { font-size: .72rem; opacity: .75; font-weight: 400; margin-top: .1rem; }
+
+    /* ── DIVIDER ── */
+    .ps-divider {
+      display: flex; align-items: center; gap: .75rem;
+      margin: 1.25rem 0; color: rgba(255,255,255,.18); font-size: .75rem;
+    }
+    .ps-divider::before, .ps-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(255,255,255,.07);
+    }
+
+    /* ── SECONDARY ACTIONS ── */
+    .ps-secondary {
+      display: flex; gap: .75rem; flex-wrap: wrap;
+    }
+    .ps-sec-btn {
+      flex: 1; min-width: 130px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 11px; padding: .75rem 1rem;
+      color: rgba(255,255,255,.55); font-family: 'DM Sans', sans-serif;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center;
+      justify-content: center; gap: .45rem; text-decoration: none;
+    }
+    .ps-sec-btn:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.15);
+      color: rgba(255,255,255,.85);
+    }
+
+    /* ── FOOTER ── */
+    .ps-footer {
+      margin-top: 2.5rem; text-align: center;
+      font-size: .72rem; color: rgba(255,255,255,.2);
+      animation: psFadeUp .8s .3s ease both;
+      letter-spacing: .04em;
+    }
+
+    /* ── SUSPENDED VARIANT ── */
+    #pending-screen.suspended .ps-eyebrow { color: #ff4757; }
+    #pending-screen.suspended .ps-eyebrow-dot { background: #ff4757; }
+    #pending-screen.suspended .ps-headline span { color: #ff4757; }
+    #pending-screen.suspended .ps-card::before {
+      background: radial-gradient(circle, rgba(255,71,87,.1), transparent 65%);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes psFadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .ps-card { padding: 2rem 1.4rem; }
+      .ps-headline { font-size: 1.4rem; }
+      .ps-secondary { flex-direction: column; }
+    }
+  </style>
+
+  <div class="ps-wrap">
+
+    <!-- Wordmark -->
+    <div class="ps-wordmark">
+      <div class="ps-mark">
+        <svg viewBox="0 0 60 60" fill="none" width="24" height="24">
+          <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
+          <rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/>
+          <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.35)"/>
+          <rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ps-brand-name">Eduformium</div>
+        <div class="ps-brand-tag">School Management System</div>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="ps-card">
+
+      <!-- Spinning ring -->
+      <div class="ps-status-ring">
+        <svg class="ring-svg" viewBox="0 0 76 76" fill="none">
+          <circle cx="38" cy="38" r="34" stroke="rgba(255,255,255,.06)" stroke-width="3"/>
+          <path d="M38 4 A34 34 0 0 1 72 38" stroke="#0d9488" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="ps-status-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Eyebrow -->
+      <div class="ps-eyebrow" id="ps-eyebrow">
+        <span class="ps-eyebrow-dot"></span>
+        <span id="ps-eyebrow-text">Awaiting Activation</span>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="ps-headline" id="ps-headline">
+        Your account is <span>pending review</span>
+      </h1>
+
+      <p class="ps-desc" id="ps-desc">
+        Thank you for registering with Eduformium SMS. Your school account has been created and is currently awaiting activation by our team. This typically takes less than 24 hours.
+      </p>
+
+      <!-- School info pill -->
+      <div class="ps-school-pill" id="ps-school-pill">
+        <div class="ps-school-avatar" id="ps-school-avatar">B</div>
+        <div>
+          <div class="ps-school-name" id="ps-school-name-display">Your School</div>
+          <div class="ps-school-email" id="ps-school-email-display">—</div>
+        </div>
+      </div>
+
+      <!-- Step tracker -->
+      <div class="ps-steps" id="ps-steps">
+        <div class="ps-step done">
+          <div class="ps-step-num">✓</div>
+          <div class="ps-step-info">
+            <div class="ps-step-label">Account Created</div>
+            <div class="ps-step-sub">Registration complete</div>
+          </div>
+        </div>
+        <div class="ps-step active" id="ps-step-review">
+          <div class="ps-step-num">2</div>
+          <div class="ps-step-info">
+            <div class="ps-step-label">Under Review</div>
+            <div class="ps-step-sub" id="ps-step2-sub">Eduformium is reviewing your application</div>
+          </div>
+        </div>
+        <div class="ps-step wait" id="ps-step-access">
+          <div class="ps-step-num">3</div>
+          <div class="ps-step-info">
+            <div class="ps-step-label">Full Access Granted</div>
+            <div class="ps-step-sub">You'll be notified once activated</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp CTA -->
+      <a id="ps-wa-btn" class="ps-wa-btn"
+         href="https://wa.me/233553774541?text=Hello%20Eduformium%2C%20I%20just%20registered%20my%20school%20on%20Eduformium%20SMS%20and%20I%20am%20requesting%20account%20activation.%20School%3A%20"
+         target="_blank" rel="noopener">
+        <!-- WhatsApp icon -->
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        <div class="ps-wa-text">
+          <span class="ps-wa-main">Contact Eduformium on WhatsApp</span>
+          <span class="ps-wa-sub">+233 055 377 4541 · Tap to message us now</span>
+        </div>
+      </a>
+
+      <div class="ps-divider">or</div>
+
+      <!-- Secondary actions -->
+      <div class="ps-secondary">
+        <a href="mailto:eduformium.ceo@gmail.com?subject=Account%20Activation%20Request" class="ps-sec-btn" target="_blank">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send Email
+        </a>
+        <button class="ps-sec-btn" id="ps-signout-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+
+    </div>
+
+    <div class="ps-footer">© 2026 Eduformium · Shape Knowledge, Build Mastery</div>
+  </div>
+</div>
+
 <!-- ══════════════════ APP SHELL ══════════════════ -->
 <div id="app" class="shell" style="display:none" role="application" aria-label="Eduformium School Management System">
 

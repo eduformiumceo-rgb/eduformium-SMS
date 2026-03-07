@@ -111,153 +111,302 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font-family: inherit; }
 img { max-width: 100%; }
 
-/* ══════════════════════════════════════
-   LOADING OVERLAY — Premium White
-   ══════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   LOADING OVERLAY  —  World-Class Premium Edition
+   ══════════════════════════════════════════════════════ */
+
+/* ── Google Font import (added to <head> separately, but fallback here) ── */
 #loading-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: #f5f8fa;
+  background: #f0f4f8;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'DM Sans', 'Outfit', sans-serif;
 }
 
-/* Ambient orbs */
-.lo-orb {
+/* ── Background layers ── */
+.lo-bg { position: absolute; inset: 0; pointer-events: none; }
+
+.lo-bg-mesh {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(13,148,136,.11) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 70% at 85% 90%, rgba(26,58,107,.09) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(20,184,166,.05) 0%, transparent 70%),
+    linear-gradient(160deg, #eef3f8 0%, #f5f9fa 40%, #eaf4f3 100%);
+}
+
+.lo-bg-glow {
   position: absolute; border-radius: 50%;
-  pointer-events: none; filter: blur(80px);
+  filter: blur(90px); pointer-events: none;
 }
-.lo-orb-a {
-  width: 520px; height: 520px;
-  background: radial-gradient(circle, rgba(13,148,136,.09) 0%, transparent 70%);
-  top: -140px; left: -100px;
-  animation: loOrbDrift 8s ease-in-out infinite alternate;
+.lo-glow-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(13,148,136,.1) 0%, transparent 70%);
+  top: -180px; left: -150px;
+  animation: loGlowDrift1 9s ease-in-out infinite alternate;
 }
-.lo-orb-b {
-  width: 420px; height: 420px;
-  background: radial-gradient(circle, rgba(26,58,107,.07) 0%, transparent 70%);
-  bottom: -100px; right: -80px;
-  animation: loOrbDrift 10s ease-in-out infinite alternate-reverse;
+.lo-glow-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(26,58,107,.08) 0%, transparent 70%);
+  bottom: -120px; right: -100px;
+  animation: loGlowDrift2 11s ease-in-out infinite alternate;
 }
-.lo-orb-c {
-  width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(20,184,166,.06) 0%, transparent 70%);
-  top: 50%; left: 50%; transform: translate(-50%,-50%);
-  animation: loOrbPulse 4s ease-in-out infinite;
+.lo-glow-3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(20,184,166,.07) 0%, transparent 70%);
+  top: 50%; left: 55%; transform: translate(-50%,-50%);
+  animation: loGlowPulse 5s ease-in-out infinite;
 }
-@keyframes loOrbDrift {
+
+@keyframes loGlowDrift1 {
   from { transform: translate(0,0) scale(1); }
-  to   { transform: translate(30px, 20px) scale(1.08); }
+  to   { transform: translate(40px,30px) scale(1.1); }
 }
-@keyframes loOrbPulse {
-  0%,100% { opacity: .6; transform: translate(-50%,-50%) scale(1); }
-  50%     { opacity: 1;  transform: translate(-50%,-50%) scale(1.15); }
+@keyframes loGlowDrift2 {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(-30px,-25px) scale(1.08); }
+}
+@keyframes loGlowPulse {
+  0%,100% { opacity: .5; transform: translate(-50%,-50%) scale(1); }
+  50%     { opacity: 1;  transform: translate(-50%,-50%) scale(1.2); }
 }
 
-/* Dot grid */
-.lo-grid {
-  position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(circle, rgba(13,148,136,.1) 1px, transparent 1px);
-  background-size: 32px 32px;
-  opacity: .6;
-  animation: loGridFade 1.5s ease both;
+/* Fine dot grid */
+.lo-bg-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(13,148,136,.12) 1px, transparent 1px);
+  background-size: 34px 34px;
+  animation: loGridFadeIn 1.2s ease both;
 }
-@keyframes loGridFade { from { opacity: 0; } to { opacity: .6; } }
+@keyframes loGridFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Centre content */
-.lo-center {
+/* Noise grain overlay */
+.lo-bg-noise {
+  position: absolute; inset: 0;
+  opacity: .022;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* ── Floating particles ── */
+.lo-particles { position: absolute; inset: 0; pointer-events: none; }
+.lo-p {
+  position: absolute; border-radius: 50%;
+  background: linear-gradient(135deg, #0d9488, #1a3a6b);
+  opacity: 0;
+  animation: loParticleFly var(--dur, 7s) var(--delay, 0s) ease-in-out infinite;
+}
+.lo-p1  { width:4px; height:4px; left:8%;  top:20%; --dur:8s;  --delay:0s;   }
+.lo-p2  { width:3px; height:3px; left:18%; top:70%; --dur:9s;  --delay:1.2s; }
+.lo-p3  { width:5px; height:5px; left:35%; top:15%; --dur:7s;  --delay:0.5s; }
+.lo-p4  { width:3px; height:3px; left:65%; top:80%; --dur:10s; --delay:2s;   }
+.lo-p5  { width:4px; height:4px; left:78%; top:25%; --dur:8s;  --delay:0.8s; }
+.lo-p6  { width:2px; height:2px; left:88%; top:60%; --dur:6s;  --delay:1.5s; }
+.lo-p7  { width:5px; height:5px; left:50%; top:88%; --dur:9s;  --delay:3s;   }
+.lo-p8  { width:3px; height:3px; left:25%; top:45%; --dur:7s;  --delay:0.3s; }
+@keyframes loParticleFly {
+  0%   { opacity: 0; transform: translateY(0) scale(.6); }
+  20%  { opacity: .7; }
+  80%  { opacity: .4; }
+  100% { opacity: 0; transform: translateY(-80px) scale(1.1); }
+}
+
+/* ── Corner accent marks ── */
+.lo-corner {
+  position: absolute; width: 40px; height: 40px;
+  pointer-events: none;
+  animation: loCornersIn .8s .6s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-corner-tl {
+  top: 28px; left: 28px;
+  border-top: 2px solid rgba(13,148,136,.35);
+  border-left: 2px solid rgba(13,148,136,.35);
+}
+.lo-corner-br {
+  bottom: 28px; right: 28px;
+  border-bottom: 2px solid rgba(26,58,107,.25);
+  border-right: 2px solid rgba(26,58,107,.25);
+}
+@keyframes loCornersIn {
+  from { opacity: 0; transform: scale(.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Stage (centre content) ── */
+.lo-stage {
   position: relative; z-index: 2;
-  display: flex; flex-direction: column;
-  align-items: center; gap: 0;
-  animation: loCenterUp .7s cubic-bezier(.22,1,.36,1) both;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0;
 }
-@keyframes loCenterUp {
-  from { opacity: 0; transform: translateY(24px); }
+
+/* ── Logo assembly ── */
+.lo-logo-wrap {
+  position: relative;
+  width: 160px; height: 160px;
+  margin-bottom: 2rem;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Outer halo pulse */
+.lo-halo {
+  position: absolute; inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(13,148,136,.12) 0%, transparent 70%);
+  animation: loHaloPulse 3s ease-in-out infinite;
+}
+@keyframes loHaloPulse {
+  0%,100% { transform: scale(1);   opacity: .6; }
+  50%     { transform: scale(1.12); opacity: 1; }
+}
+
+/* Spinning outer arc */
+.lo-arc {
+  position: absolute; inset: -20px;
+  width: calc(100% + 40px); height: calc(100% + 40px);
+  animation: loArcSpin 4s linear infinite;
+}
+@keyframes loArcSpin { to { transform: rotate(360deg); } }
+
+/* Counter-spin dashed ring */
+.lo-arc-inner {
+  position: absolute; inset: -4px;
+  width: calc(100% + 8px); height: calc(100% + 8px);
+  animation: loArcSpin 10s linear infinite reverse;
+}
+
+/* Logo disc */
+.lo-logo-disc {
+  position: relative; z-index: 3;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(13,148,136,.15),
+    0 8px 40px rgba(13,148,136,.15),
+    0 2px 8px rgba(0,0,0,.06),
+    inset 0 1px 0 rgba(255,255,255,.9);
+  animation: loDiscIn .7s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes loDiscIn {
+  from { opacity: 0; transform: scale(.7) rotate(-8deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.lo-logo-img {
+  width: 88%; height: 88%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+/* ── Brand text ── */
+.lo-brand {
+  text-align: center; margin-bottom: 1.8rem;
+}
+.lo-brand-name {
+  font-family: 'Outfit', 'DM Sans', sans-serif;
+  font-size: 1.65rem; font-weight: 800; line-height: 1;
+  letter-spacing: -.04em;
+  animation: loTextUp .6s .1s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-brand-edu     { color: #0f2144; }
+.lo-brand-formium { color: #0d9488; }
+
+.lo-brand-pill {
+  display: inline-block;
+  margin-top: .55rem;
+  padding: .22rem .9rem;
+  background: linear-gradient(90deg, rgba(13,148,136,.08), rgba(26,58,107,.06));
+  border: 1px solid rgba(13,148,136,.18);
+  border-radius: 99px;
+  font-size: .64rem; font-weight: 700;
+  color: #5a7a96; letter-spacing: .18em; text-transform: uppercase;
+  animation: loTextUp .6s .2s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ── Progress ── */
+.lo-progress-wrap {
+  width: 200px; margin-bottom: 1.6rem;
+  animation: loTextUp .6s .3s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-progress-track {
+  position: relative; height: 3px;
+  background: rgba(13,148,136,.1);
+  border-radius: 99px; overflow: visible;
+}
+.lo-progress-fill {
+  position: absolute; top: 0; left: 0;
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #0d9488 0%, #1a56a0 60%, #0d9488 100%);
+  background-size: 300% 100%;
+  animation: loBarSweep 2.4s cubic-bezier(.4,0,.2,1) infinite,
+             loBarShimmer 2.4s linear infinite;
+}
+.lo-progress-glow {
+  position: absolute; top: -2px; left: 0;
+  width: 40px; height: 7px; border-radius: 99px;
+  background: rgba(13,148,136,.5);
+  filter: blur(4px);
+  animation: loGlowSweep 2.4s cubic-bezier(.4,0,.2,1) infinite;
+}
+@keyframes loBarSweep {
+  0%   { width: 0%;  margin-left: 0; }
+  50%  { width: 75%; margin-left: 0; }
+  75%  { width: 20%; margin-left: 80%; }
+  100% { width: 0%;  margin-left: 100%; }
+}
+@keyframes loBarShimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+@keyframes loGlowSweep {
+  0%   { left: -5%;  opacity: 0; }
+  20%  { opacity: 1; }
+  75%  { left: 82%;  opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+.lo-progress-dots {
+  display: flex; gap: 6px; justify-content: center; margin-top: .7rem;
+}
+.lo-progress-dots span {
+  display: block; width: 5px; height: 5px; border-radius: 50%;
+  background: #0d9488;
+  animation: loDotBounce 1.4s ease-in-out infinite;
+}
+.lo-progress-dots span:nth-child(1) { animation-delay: 0s;    background: #0d9488; }
+.lo-progress-dots span:nth-child(2) { animation-delay: .2s;   background: #1a56a0; }
+.lo-progress-dots span:nth-child(3) { animation-delay: .4s;   background: #0f2144; }
+@keyframes loDotBounce {
+  0%,80%,100% { transform: scale(.55); opacity: .3; }
+  40%         { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Tagline ── */
+.lo-tagline {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .68rem; font-weight: 600;
+  color: #9ab5cc; letter-spacing: .08em;
+  animation: loTextUp .6s .4s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-tagline-icon { color: #0d9488; font-size: .55rem; opacity: .7; }
+
+/* ── Version stamp ── */
+.lo-ver {
+  position: absolute; bottom: 1.4rem; right: 1.8rem;
+  font-size: .62rem; font-weight: 700; letter-spacing: .1em;
+  color: #c5d8e6; text-transform: uppercase;
+  animation: loCornersIn .8s .6s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ── Shared entrance animation ── */
+@keyframes loTextUp {
+  from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* Logo mark + orbital ring */
-.lo-mark-wrap {
-  position: relative;
-  width: 140px; height: 140px;
-  margin-bottom: 1.75rem;
-}
-.lo-ring {
-  position: absolute; inset: 0;
-  width: 140px; height: 140px;
-  animation: loSpin 3s linear infinite;
-}
-@keyframes loSpin { to { transform: rotate(360deg); } }
-.lo-mark-box {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  background: transparent;
-  border-radius: 50%;
-  margin: 12px;
-  overflow: hidden;
-}
-.lo-real-logo {
-  width: 100%; height: 100%;
-  object-fit: contain;
-  border-radius: 50%;
-  box-shadow: 0 4px 24px rgba(26,58,107,.18), 0 1px 6px rgba(0,0,0,.07);
-}
-
-/* Wordmark */
-.lo-wordmark {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-.lo-name {
-  font-size: 1.45rem; font-weight: 800;
-  color: #0f2144; letter-spacing: -.03em;
-  line-height: 1;
-  animation: loCenterUp .7s .1s cubic-bezier(.22,1,.36,1) both;
-}
-.lo-tag {
-  font-size: .68rem; font-weight: 600;
-  color: #7a9bb5; letter-spacing: .16em;
-  text-transform: uppercase; margin-top: .4rem;
-  animation: loCenterUp .7s .2s cubic-bezier(.22,1,.36,1) both;
-}
-
-/* Progress bar */
-.lo-bar-wrap {
-  width: 180px; margin-bottom: 1.4rem;
-  animation: loCenterUp .7s .3s cubic-bezier(.22,1,.36,1) both;
-}
-.lo-bar-track {
-  height: 3px; background: #e2eaf2;
-  border-radius: 99px; overflow: hidden;
-}
-.lo-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #0d9488, #1a3a6b);
-  border-radius: 99px;
-  animation: loBarFill 2.2s cubic-bezier(.4,0,.2,1) infinite;
-}
-@keyframes loBarFill {
-  0%   { width: 0%;   margin-left: 0; }
-  50%  { width: 75%;  margin-left: 0; }
-  80%  { width: 20%;  margin-left: 80%; }
-  100% { width: 0%;   margin-left: 100%; }
-}
-
-/* Tagline */
-.lo-tagline {
-  font-size: .72rem; color: #a0b8cc;
-  letter-spacing: .06em; font-weight: 500;
-  animation: loCenterUp .7s .4s cubic-bezier(.22,1,.36,1) both;
-}
-
-/* Version */
-.lo-version {
-  position: absolute; bottom: 1.5rem; right: 1.75rem;
-  font-size: .65rem; color: #c8d8e8; letter-spacing: .08em;
-  font-weight: 600; font-family: 'DM Sans', sans-serif;
-}
-
-/* Keep old class names alive so JS hide still works */
+/* Keep old class names alive so JS .hide() still works */
 .loader-brand, .loader-logo, .loader-text,
 .loader-sub, .loader-bar, .loader-progress,
 .loader-dots { display: none !important; }

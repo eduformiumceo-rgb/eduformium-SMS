@@ -317,10 +317,9 @@ const SMS = {
         this.boot();
       } else {
         this.schoolId=null; this.currentUser=null;
-        // Do NOT call seedData() here - demo data must never bleed into real accounts
-        // Do NOT call showLogin if the pending screen is already showing
-        const ps = document.getElementById('pending-screen');
-        if(!ps || ps.style.display === 'none' || ps.style.display === '') {
+        // Only show login if pending screen is not already visible
+        const _ps = document.getElementById('pending-screen');
+        if (!_ps || _ps.style.display === 'none' || _ps.style.display === '') {
           this.showLogin();
         }
       }
@@ -933,15 +932,16 @@ const SMS = {
 
     this._registering = true;
     const result = await FAuth.register(school, name, email, pwd);
-    this._registering = false;
     if (result.success) {
       this.clearOTPState();
-      // Show pending screen FIRST — before logout triggers onAuthStateChanged null event
+      // Show pending screen immediately — BEFORE anything else
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
-      // Logout silently in background — the else-branch guard will ignore it
-      if(window.FAuth) FAuth.logout().catch(()=>{});
+      // Fire logout in background AFTER showing screen — _registering stays true until done
+      if(window.FAuth) FAuth.logout().catch(()=>{}).finally(()=>{ this._registering = false; });
+      else this._registering = false;
     } else {
+      this._registering = false;
       errEl.textContent = result.error;
       errEl.style.display = 'flex';
       btn.disabled = false;

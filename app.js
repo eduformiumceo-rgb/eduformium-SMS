@@ -292,6 +292,7 @@ const SMS = {
     _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     FAuth.onAuthChange(async (firebaseUser)=>{
       if(this._demoMode) return;
+      if(this._registering) return; // suppress during account creation
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
         // Clear leftover demo data before loading real account
@@ -926,13 +927,16 @@ const SMS = {
       this.boot(); return;
     }
 
+    this._registering = true;
     const result = await FAuth.register(school, name, email, pwd);
+    this._registering = false;
     if (result.success) {
-      this.toast(`Welcome, ${name.split(' ')[0]}! Your school is ready.`, 'success');
       this.clearOTPState();
-      // Redirect to sign in
+      // Sign out immediately — school must wait for approval before accessing dashboard
+      if(window.FAuth) await FAuth.logout();
+      // Show the pending activation screen
       document.getElementById('auth-otp').style.display = 'none';
-      document.getElementById('auth-signin').style.display = 'block';
+      this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
     } else {
       errEl.textContent = result.error;
       errEl.style.display = 'flex';

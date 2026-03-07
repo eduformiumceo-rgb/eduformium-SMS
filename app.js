@@ -319,7 +319,7 @@ const SMS = {
         this.schoolId=null; this.currentUser=null;
         // Only show login if pending screen is not already visible
         const _ps = document.getElementById('pending-screen');
-        if (!_ps || _ps.style.display === 'none' || _ps.style.display === '') {
+        if(!_ps || _ps.style.display === 'none' || _ps.style.display === '') {
           this.showLogin();
         }
       }
@@ -934,10 +934,10 @@ const SMS = {
     const result = await FAuth.register(school, name, email, pwd);
     if (result.success) {
       this.clearOTPState();
-      // Show pending screen immediately — BEFORE anything else
+      // Show pending screen FIRST — before logout fires onAuthStateChanged
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
-      // Fire logout in background AFTER showing screen — _registering stays true until done
+      // Logout in background — _registering stays true until complete so onAuthChange is suppressed
       if(window.FAuth) FAuth.logout().catch(()=>{}).finally(()=>{ this._registering = false; });
       else this._registering = false;
     } else {

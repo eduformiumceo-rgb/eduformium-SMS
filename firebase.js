@@ -89,6 +89,7 @@ const FAuth = {
         currency:'GHS', academicYear:'2025/2026', currentTerm:'2',
         gradeSystem:'percentage', passMark:50, type:'k12',
         adminName, adminEmail:email,
+        status: 'pending',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
       await FDB.set(uid,'users',uid,{id:uid,name:adminName,email,role:'admin',phone:'',createdAt:new Date().toISOString()});

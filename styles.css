@@ -254,10 +254,6 @@ img { max-width: 100%; }
     transparent 100%);
 }
 
-@media (max-width: 768px) {
-  .l-hero-glow-b { display: none; }
-}
-
 .l-hero-grid { display: none; }
 
 /* Large 'E' watermark */
@@ -294,9 +290,9 @@ img { max-width: 100%; }
   gap: .75rem;
   width: 100%;
   flex-shrink: 0;
-  padding-bottom: 1.5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(13,148,136,.12);
+  padding-bottom: 1.75rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid rgba(13,148,136,.18);
   animation: lFadeUp .55s .05s cubic-bezier(.22,1,.36,1) both;
 }
 
@@ -309,7 +305,8 @@ img { max-width: 100%; }
   justify-content: center;
   width: 100%;
   gap: 1.25rem;
-  padding-bottom: 2rem;
+  padding-bottom: 0;
+  margin-top: -1.5rem;
 }
 .l-mark-box {
   width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
@@ -464,14 +461,19 @@ img { max-width: 100%; }
 }
 @keyframes lPanelIn { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: translateX(0); } }
 
-/* Panel bars */
-.l-panel-bar--desktop {
-  height: 4px; flex-shrink: 0;
-  background: linear-gradient(90deg, #071830 0%, #0d9488 40%, #14b8a6 75%, #0a7a70 100%);
-}
+/* Desktop teal bar via pseudo-element */
+.l-panel-bar--desktop { display: none; }
 .l-panel-bar--mobile { display: none; }
 
-
+@media (min-width: 769px) {
+  .l-panel::before {
+    content: '';
+    display: block;
+    height: 4px;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, #071830 0%, #0d9488 40%, #14b8a6 75%, #0a7a70 100%);
+  }
+}
 
 @media (max-width: 768px) {
   .l-panel-bar--mobile {
@@ -667,6 +669,7 @@ img { max-width: 100%; }
     border-bottom: none;
     flex-shrink: 0;
   }
+  .l-hero-mid { margin-top: 0; }
   .l-panel {
     width: 100%; min-height: auto;
     height: auto; max-height: none;
@@ -676,17 +679,7 @@ img { max-width: 100%; }
     animation: lCardUp .48s .1s cubic-bezier(.22,1,.36,1) both;
   }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
-  /* panel bars on mobile */
-  .l-panel-bar--desktop { display: none; }
-  .l-panel-bar--mobile {
-    display: flex; justify-content: center;
-    padding: .85rem 0 0; background: transparent;
-  }
-  .l-panel-bar--mobile::after {
-    content: ''; display: block;
-    width: 36px; height: 4px;
-    background: #d1d5db; border-radius: 99px;
-  }
+  /* panel bar handled globally above */
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
   .l-title { font-size: 2.1rem; }
   .l-subtitle { margin-bottom: 1.5rem; }

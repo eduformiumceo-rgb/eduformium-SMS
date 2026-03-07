@@ -311,6 +311,7 @@ img { max-width: 100%; }
   object-fit: cover;
   border-radius: 50%;
   display: block;
+  transform: scale(1.15);
 }
 .l-mark-text { display: flex; flex-direction: column; gap: .18rem; }
 .l-mark-name {

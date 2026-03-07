@@ -331,6 +331,7 @@ const SMS = {
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('pending-screen').style.display='none';
     this.bindForms(); // bind login/register buttons
+    PWABanner.tryShow();
   },
 
   showPendingScreen(profile, email){
@@ -3426,3 +3427,64 @@ const SMS = {
 // ── BOOT ──
 document.addEventListener('DOMContentLoaded',()=>SMS.init());
 window.SMS=SMS;
+
+// ── PWA INSTALL BANNER ──
+const PWABanner = (() => {
+  const DISMISSED_KEY = 'sms_pwa_banner_dismissed';
+  let _prompt = null;
+  let _ready  = false;
+  let _login  = false;
+
+  function show() {
+    if (localStorage.getItem(DISMISSED_KEY)) return;
+    const el = document.getElementById('pwa-banner');
+    if (!el) return;
+    el.style.transition = 'none';
+    el.style.transform  = 'translateY(100%)';
+    el.style.display    = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'transform .38s cubic-bezier(.34,1.4,.64,1)';
+      el.style.transform  = 'translateY(0)';
+    }));
+  }
+
+  function hide(permanent) {
+    const el = document.getElementById('pwa-banner');
+    if (el) {
+      el.style.transition = 'transform .28s ease-in';
+      el.style.transform  = 'translateY(100%)';
+      setTimeout(() => { el.style.display = 'none'; }, 290);
+    }
+    if (permanent) localStorage.setItem(DISMISSED_KEY, '1');
+  }
+
+  function tryShow() {
+    _login = true;
+    if (_ready) show();
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _prompt = e;
+    _ready  = true;
+    if (_login) show();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#pwa-install-btn')) {
+      if (!_prompt) return;
+      _prompt.prompt();
+      _prompt.userChoice.then(({ outcome }) => {
+        hide(outcome === 'accepted');
+        _prompt = null;
+      });
+    }
+    if (e.target.closest('#pwa-close-btn')) {
+      hide(false);
+    }
+  });
+
+  window.addEventListener('appinstalled', () => hide(true));
+
+  return { tryShow };
+})();

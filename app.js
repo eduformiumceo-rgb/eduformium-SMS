@@ -703,21 +703,30 @@ const SMS = {
 
   async _sendOTPEmail(email, name, otp) {
     try {
-      // ── REPLACE THESE WITH YOUR EMAILJS CREDENTIALS ──
-      const SERVICE_ID  = 'service_o5op7ns';
-      const TEMPLATE_ID = 'template_x25lxlc';
-      const PUBLIC_KEY  = 'qTSA91Nl3gMRAyLat';
-      // ─────────────────────────────────────────────────
+      // ── RESEND via Cloudflare Worker proxy ──────────────────────────────
+      // Deploy the worker from: /cloudflare-worker/otp-worker.js
+      // Then paste your worker URL below (keep trailing slash off):
+      const WORKER_URL = 'https://eduformium-otp.school-management.workers.dev';
+      // ────────────────────────────────────────────────────────────────────
 
-      emailjs.init(PUBLIC_KEY);
-      await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
-        to_name:  name.split(' ')[0],
-        to_email: email,
-        otp_code: otp,
+      const res = await fetch(`${WORKER_URL}/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to_name:  name.split(' ')[0],
+          to_email: email,
+          otp_code: otp,
+        }),
       });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('OTP worker error:', err);
+        return false;
+      }
       return true;
     } catch (e) {
-      console.error('EmailJS error:', e);
+      console.error('OTP send error:', e);
       return false;
     }
   },

@@ -3,7 +3,7 @@
 //  Cache-first strategy for offline use
 // ══════════════════════════════════════════
 
-const CACHE_NAME = 'eduformium-sms-v1.1.4';
+const CACHE_NAME = 'eduformium-sms-v1.1.5';
 const STATIC_ASSETS = [
   './',
   './index.html',

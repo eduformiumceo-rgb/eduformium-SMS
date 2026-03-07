@@ -1,0 +1,2433 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400;1,9..40,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<title>Eduformium School Management System</title>
+<meta name="description" content="Eduformium SMS — School management built for African institutions. Manage students, staff, fees, exams, attendance and more from one dashboard."/>
+<link rel="icon" type="image/svg+xml" href="icon.svg"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#1a3a6b"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="stylesheet" href="styles.css?v=19"/>
+<style>@media (max-width:768px){.l-panel::before{display:none!important;content:none!important;}}</style>
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+<noscript><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0d1f42;color:white;font-family:system-ui,sans-serif;text-align:center;padding:2rem"><div><svg viewBox="0 0 60 60" fill="none" width="52" height="52" style="margin:0 auto 1rem"><rect x="10" y="8" width="8" height="44" rx="4" fill="white"/><rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/><rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.5)"/><rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/></svg><h2 style="font-size:1.3rem;font-weight:700;margin-bottom:.5rem">JavaScript Required</h2><p style="font-size:.9rem;opacity:.7;max-width:320px">Eduformium SMS requires JavaScript to run. Please enable JavaScript in your browser and reload the page.</p></div></div></noscript>
+
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="loading-overlay">
+  <div class="loader-brand">
+    <div class="loader-logo">
+      <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="8" width="8" height="44" rx="4" fill="#1a3a6b"/>
+        <rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/>
+        <rect x="20" y="25" width="20" height="10" rx="5" fill="#1a3a6b"/>
+        <rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/>
+      </svg>
+    </div>
+    <div class="loader-text">Eduformium SMS</div>
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+    <div class="loader-sub">Shape Knowledge, Build Mastery</div>
+  </div>
+</div>
+
+<!-- ══ PWA INSTALL BANNER ══ -->
+<div id="pwa-banner" style="display:none">
+  <div class="pwa-icon"><svg viewBox="0 0 60 60" fill="none"><rect x="10" y="8" width="8" height="44" rx="4" fill="#fff"/><rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/><rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,0.7)"/><rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/></svg></div>
+  <div class="pwa-info"><strong>Install Eduformium SMS</strong><span>Add to home screen for the best experience</span></div>
+  <button id="pwa-install-btn" class="btn btn-sm btn-white">Install</button>
+  <button id="pwa-close-btn" class="pwa-close">&#x2715;</button>
+</div>
+
+<!-- ══════════════════ LOGIN ══════════════════ -->
+<div id="login-screen" class="login-wrap" style="display:none">
+
+  <!-- ════ LEFT HERO ════ -->
+  <div class="l-hero">
+    <div class="l-hero-bg"></div>
+    <div class="l-hero-dots"></div>
+    <div class="l-hero-glow-a"></div>
+    <div class="l-hero-glow-b"></div>
+    <svg class="l-hero-grid" viewBox="0 0 900 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <pattern id="lgrid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+          <path d="M60 0L0 0 0 60" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#lgrid)"/>
+    </svg>
+
+
+    <div class="l-hero-content">
+      <div class="l-wordmark">
+        <div class="l-mark-box">
+          <svg viewBox="0 0 60 60" fill="none" width="26" height="26">
+            <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
+            <rect x="20" y="8" width="30" height="10" rx="5" fill="#14b8a6"/>
+            <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.4)"/>
+            <rect x="20" y="42" width="26" height="10" rx="5" fill="#14b8a6"/>
+          </svg>
+        </div>
+        <div class="l-mark-text">
+          <span class="l-mark-name">Eduformium</span>
+          <span class="l-mark-tag">School Management System</span>
+        </div>
+      </div>
+
+      <div class="l-hero-mid">
+
+      <div class="l-eyebrow-pill">
+        <span class="l-eyebrow-pulse"></span>
+        Built for Ghanaian &amp; African Schools
+      </div>
+
+      <div class="l-headline">
+        <span class="l-hl-1">Manage Progress.</span>
+        <span class="l-hl-2">Support <span style="color:#14b8a6">Success.</span></span>
+      </div>
+      <p class="l-hero-desc">A modern school management platform built for Ghanaian and African institutions — streamline admissions, fees, exams, attendance, payroll and more from one clean dashboard.</p>
+
+      <div class="l-stats-row">
+        <div class="l-stat"><span class="l-stat-n">18+</span><span class="l-stat-l">Modules</span></div>
+        <div class="l-stat-sep"></div>
+        <div class="l-stat"><span class="l-stat-n">GHS</span><span class="l-stat-l">GH Cedi Ready</span></div>
+        <div class="l-stat-sep"></div>
+        <div class="l-stat"><span class="l-stat-n">PWA</span><span class="l-stat-l">Offline PWA</span></div>
+        <div class="l-stat-sep"></div>
+        <div class="l-stat"><span class="l-stat-n">FREE</span><span class="l-stat-l">Free to Start</span></div>
+      </div>
+
+      <div class="l-feats">
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Students, Staff &amp; Classes</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Fees, Payroll &amp; Expenses</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Exams, Grades &amp; Reports</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Attendance &amp; Timetable</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Library &amp; Homework</div>
+        <div class="l-feat"><span class="l-feat-ic">&#x2713;</span>Cloud Sync &amp; Backup</div>
+      </div>
+
+      </div><!-- end l-hero-mid -->
+
+      <div class="l-hero-foot">&#169; 2026 Eduformium &middot; Manage Progress, Support Success</div>
+    </div>
+  </div>
+
+  <!-- ════ RIGHT FORM PANEL ════ -->
+  <div class="l-panel">
+    <div class="l-panel-bar--desktop"></div>
+    <div class="l-panel-bar--mobile"></div>
+    <div class="l-panel-inner">
+      <!-- SIGN IN -->
+      <div id="auth-signin">
+        <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>Secure Sign In</div>
+        <h2 class="l-title">Welcome back</h2>
+        <p class="l-subtitle">Sign in to access your school dashboard</p>
+
+        <div class="form-field">
+          <label class="form-label" for="l-user">Email Address</label>
+          <div class="fi-wrap">
+            <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <input class="form-input fi-input" type="email" id="l-user" placeholder="your@email.com" autocomplete="email"/>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="l-pass">Password</label>
+          <div class="pw-wrap fi-wrap">
+            <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input class="form-input fi-input" type="password" id="l-pass" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password"/>
+            <button type="button" class="pw-toggle" id="l-pass-toggle" aria-label="Toggle password">
+              <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div style="text-align:right;margin-bottom:.5rem">
+          <button type="button" id="forgot-pw-btn" style="background:none;border:none;color:var(--brand-teal);font-size:.8rem;cursor:pointer;text-decoration:underline;padding:0">Forgot password?</button>
+        </div>
+
+        <div id="l-err" class="form-err" style="display:none">Incorrect email or password.</div>
+
+        <button class="l-btn-primary" id="login-btn" type="button">
+          <span>Sign In to Dashboard</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <button class="l-btn-demo" id="try-demo-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M5 3l14 9-14 9V3z"/></svg>
+          Explore Demo School
+        </button>
+
+        <div class="l-divider"><span>New to Eduformium?</span></div>
+        <button class="l-btn-outline" id="go-register" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Register a New School
+        </button>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="auth-register" style="display:none">
+        <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>New School</div>
+        <h2 class="l-title">Get started</h2>
+        <p class="l-subtitle">Set up your school account — takes under 2 minutes</p>
+
+        <div class="form-field">
+          <label class="form-label" for="r-school">School Name *</label>
+          <input class="form-input" type="text" id="r-school" placeholder="e.g. Bright Future Academy"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="r-motto">School Motto</label>
+          <input class="form-input" type="text" id="r-motto" placeholder="e.g. Integrity, Excellence, Service"/>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label class="form-label" for="r-name">Your Full Name (Admin) *</label>
+            <input class="form-input" type="text" id="r-name" placeholder="e.g. Anna Mensah"/>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="r-email">Email *</label>
+            <input class="form-input" type="email" id="r-email" placeholder="your@email.com"/>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label class="form-label" for="r-pwd">Password *</label>
+            <input class="form-input" type="password" id="r-pwd" placeholder="Min. 6 characters"/>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="r-cpwd">Confirm Password *</label>
+            <input class="form-input" type="password" id="r-cpwd" placeholder="Repeat password"/>
+          </div>
+        </div>
+
+        <div id="r-err" class="form-err" style="display:none"></div>
+
+        <button class="l-btn-primary" id="register-btn" type="button">
+          <span>Create School Account</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <div class="l-divider"><span>Already have an account?</span></div>
+        <button class="l-btn-outline" id="go-signin" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Back to Sign In
+        </button>
+      </div>
+
+      <!-- OTP VERIFICATION -->
+      <div id="auth-otp" style="display:none">
+        <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>Email Verification</div>
+        <h2 class="l-title">Check your inbox</h2>
+        <p class="l-subtitle">We sent a 6-digit code to<br><strong id="otp-email-display" style="color:#071830;font-weight:600"></strong></p>
+
+        <!-- OTP Input Boxes -->
+        <div class="otp-boxes">
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-0" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-1" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-2" autocomplete="off"/>
+          <div class="otp-sep">—</div>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-3" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-4" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-5" autocomplete="off"/>
+        </div>
+
+        <!-- Expiry countdown -->
+        <div class="otp-timer-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Code expires in <span id="otp-countdown" style="font-weight:700;color:#0d9488">10:00</span>
+        </div>
+
+        <div id="otp-err" class="form-err" style="display:none"></div>
+        <div id="otp-success" class="otp-success-msg" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+          New code sent! Check your inbox.
+        </div>
+
+        <button class="l-btn-primary" id="otp-verify-btn" type="button" disabled>
+          <span>Verify & Create Account</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+
+        <!-- Resend row -->
+        <div class="otp-resend-row">
+          Didn't receive it?
+          <button id="otp-resend-btn" type="button" class="otp-resend-btn" disabled>
+            Resend code <span id="otp-resend-timer" class="otp-resend-countdown">(60s)</span>
+          </button>
+        </div>
+
+        <div class="l-divider"><span>Wrong email?</span></div>
+        <button class="l-btn-outline" id="otp-back-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to Registration
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════ PENDING ACTIVATION SCREEN ══════════════════ -->
+<div id="pending-screen" style="display:none">
+
+  <style>
+    #pending-screen {
+      position: fixed; inset: 0; z-index: 200;
+      background: #060d1a;
+      font-family: 'DM Sans', sans-serif;
+      overflow-y: auto;
+    }
+
+    /* Animated background mesh */
+    #pending-screen::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(13,148,136,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(26,58,107,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,0,0,0) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Subtle grid */
+    #pending-screen::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    .ps-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── TOP WORDMARK ── */
+    .ps-wordmark {
+      display: flex; align-items: center; gap: .75rem;
+      margin-bottom: 3.5rem;
+      animation: psFadeUp .6s ease both;
+    }
+    .ps-mark {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, #0f2144, #1a3a6b);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 8px 24px rgba(0,0,0,.4);
+    }
+    .ps-brand-name {
+      font-size: .95rem; font-weight: 700;
+      color: rgba(255,255,255,.9); letter-spacing: .02em;
+    }
+    .ps-brand-tag {
+      font-size: .65rem; color: rgba(255,255,255,.35);
+      letter-spacing: .12em; text-transform: uppercase; margin-top: .1rem;
+    }
+
+    /* ── MAIN CARD ── */
+    .ps-card {
+      width: 100%; max-width: 560px;
+      background: rgba(13,22,44,.7);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      backdrop-filter: blur(20px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.04),
+        0 32px 80px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.06);
+      animation: psFadeUp .7s .1s ease both;
+      position: relative; overflow: hidden;
+    }
+
+    /* card accent glow top-left */
+    .ps-card::before {
+      content: '';
+      position: absolute; top: -60px; left: -60px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(13,148,136,.15), transparent 65%);
+      pointer-events: none;
+    }
+
+    /* ── STATUS INDICATOR ── */
+    .ps-status-ring {
+      width: 76px; height: 76px;
+      margin: 0 auto 1.75rem;
+      position: relative;
+    }
+    .ps-status-ring svg.ring-svg {
+      width: 76px; height: 76px;
+      animation: psSpin 3s linear infinite;
+    }
+    @keyframes psSpin { to { transform: rotate(360deg); } }
+    .ps-status-icon {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ps-status-icon svg { animation: psOrbitPulse 2s ease-in-out infinite; }
+    @keyframes psOrbitPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.7;transform:scale(.9);} }
+
+    /* ── HEADLINE ── */
+    .ps-eyebrow {
+      text-align: center;
+      font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
+      color: #0d9488; margin-bottom: .75rem;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+    }
+    .ps-eyebrow-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #0d9488;
+      animation: psBlip 1.6s ease-in-out infinite;
+    }
+    @keyframes psBlip { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+
+    .ps-headline {
+      text-align: center;
+      font-size: 1.75rem; font-weight: 800;
+      color: #fff; line-height: 1.2;
+      margin-bottom: .85rem; letter-spacing: -.02em;
+    }
+    .ps-headline span { color: #0d9488; }
+
+    .ps-desc {
+      text-align: center;
+      font-size: .9rem; color: rgba(255,255,255,.45);
+      line-height: 1.7; margin-bottom: 2rem;
+      max-width: 400px; margin-left: auto; margin-right: auto;
+    }
+
+    /* ── STEP TRACKER ── */
+    .ps-steps {
+      display: flex; flex-direction: column; gap: .75rem;
+      margin-bottom: 2.25rem;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 16px; padding: 1.25rem 1.5rem;
+    }
+    .ps-step {
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .ps-step-num {
+      width: 28px; height: 28px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700;
+    }
+    .ps-step.done .ps-step-num  { background: rgba(13,148,136,.2); color: #0d9488; border: 1px solid rgba(13,148,136,.35); }
+    .ps-step.active .ps-step-num{ background: rgba(255,179,0,.15); color: #ffb300; border: 1px solid rgba(255,179,0,.3); }
+    .ps-step.wait .ps-step-num  { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.08); }
+    .ps-step-info { flex: 1; }
+    .ps-step-label {
+      font-size: .82rem; font-weight: 600;
+    }
+    .ps-step.done .ps-step-label  { color: rgba(255,255,255,.7); }
+    .ps-step.active .ps-step-label{ color: #fff; }
+    .ps-step.wait .ps-step-label  { color: rgba(255,255,255,.3); }
+    .ps-step-sub {
+      font-size: .73rem; margin-top: .1rem;
+    }
+    .ps-step.done .ps-step-sub  { color: #0d9488; }
+    .ps-step.active .ps-step-sub{ color: rgba(255,179,0,.8); }
+    .ps-step.wait .ps-step-sub  { color: rgba(255,255,255,.2); }
+
+    /* ── SCHOOL INFO PILL ── */
+    .ps-school-pill {
+      display: flex; align-items: center; gap: .75rem;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 12px; padding: .85rem 1.1rem;
+      margin-bottom: 1.75rem;
+    }
+    .ps-school-avatar {
+      width: 38px; height: 38px; border-radius: 9px;
+      background: linear-gradient(135deg, #0f2144, #1a3a6b);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .ps-school-name { font-size: .88rem; font-weight: 700; color: #fff; }
+    .ps-school-email { font-size: .73rem; color: rgba(255,255,255,.35); margin-top: .1rem; font-family: monospace; }
+
+    /* ── WHATSAPP CTA ── */
+    .ps-wa-btn {
+      display: flex; align-items: center; justify-content: center; gap: .85rem;
+      width: 100%;
+      background: linear-gradient(135deg, #128c7e, #075e54);
+      border: none; border-radius: 14px;
+      padding: 1.1rem 1.5rem;
+      color: #fff; font-family: 'DM Sans', sans-serif;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 8px 28px rgba(18,140,126,.35), inset 0 1px 0 rgba(255,255,255,.12);
+      transition: transform .15s, box-shadow .15s;
+      letter-spacing: .01em;
+      position: relative; overflow: hidden;
+    }
+    .ps-wa-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.08), transparent);
+      pointer-events: none;
+    }
+    .ps-wa-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(18,140,126,.45), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+    .ps-wa-btn:active { transform: translateY(0); }
+    .ps-wa-text { display: flex; flex-direction: column; align-items: flex-start; }
+    .ps-wa-main { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+    .ps-wa-sub  { font-size: .72rem; opacity: .75; font-weight: 400; margin-top: .1rem; }
+
+    /* ── DIVIDER ── */
+    .ps-divider {
+      display: flex; align-items: center; gap: .75rem;
+      margin: 1.25rem 0; color: rgba(255,255,255,.18); font-size: .75rem;
+    }
+    .ps-divider::before, .ps-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(255,255,255,.07);
+    }
+
+    /* ── SECONDARY ACTIONS ── */
+    .ps-secondary {
+      display: flex; gap: .75rem; flex-wrap: wrap;
+    }
+    .ps-sec-btn {
+      flex: 1; min-width: 130px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 11px; padding: .75rem 1rem;
+      color: rgba(255,255,255,.55); font-family: 'DM Sans', sans-serif;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center;
+      justify-content: center; gap: .45rem; text-decoration: none;
+    }
+    .ps-sec-btn:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.15);
+      color: rgba(255,255,255,.85);
+    }
+
+    /* ── FOOTER ── */
+    .ps-footer {
+      margin-top: 2.5rem; text-align: center;
+      font-size: .72rem; color: rgba(255,255,255,.2);
+      animation: psFadeUp .8s .3s ease both;
+      letter-spacing: .04em;
+    }
+
+    /* ── SUSPENDED VARIANT ── */
+    #pending-screen.suspended .ps-eyebrow { color: #ff4757; }
+    #pending-screen.suspended .ps-eyebrow-dot { background: #ff4757; }
+    #pending-screen.suspended .ps-headline span { color: #ff4757; }
+    #pending-screen.suspended .ps-card::before {
+      background: radial-gradient(circle, rgba(255,71,87,.1), transparent 65%);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes psFadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .ps-card { padding: 2rem 1.4rem; }
+      .ps-headline { font-size: 1.4rem; }
+      .ps-secondary { flex-direction: column; }
+    }
+  </style>
+
+  <div class="ps-wrap">
+
+    <!-- Wordmark -->
+    <div class="ps-wordmark">
+      <div class="ps-mark">
+        <svg viewBox="0 0 60 60" fill="none" width="24" height="24">
+          <rect x="10" y="8" width="8" height="44" rx="4" fill="white"/>
+          <rect x="20" y="8" width="30" height="10" rx="5" fill="#0d9488"/>
+          <rect x="20" y="25" width="20" height="10" rx="5" fill="rgba(255,255,255,.35)"/>
+          <rect x="20" y="42" width="26" height="10" rx="5" fill="#0d9488"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ps-brand-name">Eduformium</div>
+        <div class="ps-brand-tag">School Management System</div>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="ps-card">
+
+      <!-- Spinning ring -->
+      <div class="ps-status-ring">
+        <svg class="ring-svg" viewBox="0 0 76 76" fill="none">
+          <circle cx="38" cy="38" r="34" stroke="rgba(255,255,255,.06)" stroke-width="3"/>
+          <path d="M38 4 A34 34 0 0 1 72 38" stroke="#0d9488" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="ps-status-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Eyebrow -->
+      <div class="ps-eyebrow" id="ps-eyebrow">
+        <span class="ps-eyebrow-dot"></span>
+        <span id="ps-eyebrow-text">Awaiting Activation</span>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="ps-headline" id="ps-headline">
+        Your account is <span>pending review</span>
+      </h1>
+
+      <p class="ps-desc" id="ps-desc">
+        Thank you for registering with Eduformium SMS. Your school account has been created and is currently awaiting activation by our team. This typically takes less than 24 hours.
+      </p>
+
+      <!-- School info pill -->
+      <div class="ps-school-pill" id="ps-school-pill">
+        <div class="ps-school-avatar" id="ps-school-avatar">B</div>
+        <div>
+          <div class="ps-school-name" id="ps-school-name-display">Your School</div>
+          <div class="ps-school-email" id="ps-school-email-display">—</div>
+        </div>
+      </div>
+
+      <!-- Step tracker -->
+      <div class="ps-steps" id="ps-steps">
+        <div class="ps-step done">
+          <div class="ps-step-num">✓</div>
+          <div class="ps-step-info">
+            <div class="ps-step-label">Account Created</div>
+            <div class="ps-step-sub">Registration complete</div>
+          </div>
+        </div>
+        <div class="ps-step active" id="ps-step-review">
+          <div class="ps-step-num">2</div>
+          <div class="ps-step-info">
+            <div class="ps-step-label">Under Review</div>
+            <div class="ps-step-sub" id="ps-step2-sub">Eduformium is reviewing your application</div>
+          </div>
+        </div>
+        <div class="ps-step wait" id="ps-step-access">
+          <div class="ps-step-num">3</div>
+          <div class="ps-step-info">
+            <div class="ps-step-label">Full Access Granted</div>
+            <div class="ps-step-sub">You'll be notified once activated</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WhatsApp CTA -->
+      <a id="ps-wa-btn" class="ps-wa-btn"
+         href="https://wa.me/233553774541?text=Hello%20Eduformium%2C%20I%20just%20registered%20my%20school%20on%20Eduformium%20SMS%20and%20I%20am%20requesting%20account%20activation.%20School%3A%20"
+         target="_blank" rel="noopener">
+        <!-- WhatsApp icon -->
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        <div class="ps-wa-text">
+          <span class="ps-wa-main">Contact Eduformium on WhatsApp</span>
+          <span class="ps-wa-sub">+233 055 377 4541 · Tap to message us now</span>
+        </div>
+      </a>
+
+      <div class="ps-divider">or</div>
+
+      <!-- Secondary actions -->
+      <div class="ps-secondary">
+        <a href="/cdn-cgi/l/email-protection#51343524373e233c38243c7f32343e11363c30383d7f323e3c6e2224333b3432256c1032323e243f2574636110322538273025383e3f74636103342024342225" class="ps-sec-btn" target="_blank">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Send Email
+        </a>
+        <button class="ps-sec-btn" id="ps-signout-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+
+    </div>
+
+    <div class="ps-footer">© 2026 Eduformium · Shape Knowledge, Build Mastery</div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP SHELL ══════════════════ -->
+<div id="app" class="shell" style="display:none" role="application" aria-label="Eduformium School Management System">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="topbar-menu" id="menu-btn" aria-label="Toggle menu">
+      <span class="burger"></span><span class="burger"></span><span class="burger"></span>
+    </button>
+    <div class="topbar-brand" id="topbar-brand">
+      <div class="topbar-logo">
+        <svg viewBox="0 0 60 60" fill="none" width="28" height="28">
+          <rect x="10" y="8" width="8" height="44" rx="4" fill="var(--brand)"/>
+          <rect x="20" y="8" width="30" height="10" rx="5" fill="var(--brand-teal)"/>
+          <rect x="20" y="25" width="20" height="10" rx="5" fill="var(--brand)"/>
+          <rect x="20" y="42" width="26" height="10" rx="5" fill="var(--brand-teal)"/>
+        </svg>
+      </div>
+      <div class="topbar-brand-text">
+        <div class="topbar-school-name" id="topbar-school-name">School</div>
+        <div class="topbar-brand-sub">Eduformium SMS</div>
+      </div>
+    </div>
+    <div class="topbar-divider"></div>
+    <span class="topbar-title" id="topbar-title">Dashboard</span>
+    <div class="topbar-right">
+      <!-- Search -->
+      <button class="icon-btn" id="search-btn" title="Search" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <!-- Notifications -->
+      <div class="notif-wrap" id="notif-wrap">
+        <button class="icon-btn notif-btn" id="notif-btn" title="Notifications" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+        </button>
+        <div class="notif-panel" id="notif-panel" style="display:none">
+          <div class="notif-hd"><span>Notifications</span><button id="notif-clear" class="link-btn">Clear all</button></div>
+          <div class="notif-list" id="notif-list"><div class="notif-empty">No new notifications</div></div>
+        </div>
+      </div>
+      <!-- Theme -->
+      <button class="icon-btn" id="theme-btn" title="Toggle theme" aria-label="Toggle dark mode">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <!-- User chip -->
+      <div class="user-chip" id="user-chip" title="Settings">
+        <div class="user-av" id="user-av">AD</div>
+        <div class="user-chip-info">
+          <span class="user-chip-name" id="user-chip-name">Admin</span>
+          <span class="user-chip-role" id="user-chip-role">Administrator</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-header">
+      <button class="sb-close" id="sb-close">&#x2715;</button>
+      <div class="sb-brand">
+        <svg viewBox="0 0 60 60" fill="none" width="32" height="32">
+          <rect x="10" y="8" width="8" height="44" rx="4" fill="var(--brand)"/>
+          <rect x="20" y="8" width="30" height="10" rx="5" fill="var(--brand-teal)"/>
+          <rect x="20" y="25" width="20" height="10" rx="5" fill="var(--brand)"/>
+          <rect x="20" y="42" width="26" height="10" rx="5" fill="var(--brand-teal)"/>
+        </svg>
+        <div>
+          <div class="sb-school-name" id="sb-school-name">School</div>
+          <div class="sb-brand-sub">Eduformium SMS</div>
+        </div>
+      </div>
+      <div class="sb-user" id="sb-user-card">
+        <div class="sb-user-av" id="sb-user-av">AD</div>
+        <div><div class="sb-user-name" id="sb-user-name">Admin</div><div class="sb-user-role" id="sb-user-role">Administrator</div></div>
+      </div>
+    </div>
+    <div class="sidebar-body">
+      <div class="nav-group">
+        <div class="nav-label">Overview</div>
+        <div class="nav-item active" data-page="dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          Dashboard
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Academics</div>
+        <div class="nav-item" data-page="students">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Students
+        </div>
+        <div class="nav-item" data-page="classes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Classes & Subjects
+        </div>
+        <div class="nav-item" data-page="attendance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Attendance
+        </div>
+        <div class="nav-item" data-page="exams">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Exams & Grades
+        </div>
+        <div class="nav-item" data-page="timetable">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Timetable
+        </div>
+        <div class="nav-item" data-page="homework">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Homework
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Human Resources</div>
+        <div class="nav-item" data-page="staff">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Staff & Teachers
+        </div>
+        <div class="nav-item" data-page="payroll">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Payroll
+        </div>
+        <div class="nav-item" data-page="leave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Leave Management
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Finance</div>
+        <div class="nav-item" data-page="fees">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Fees & Payments
+        </div>
+        <div class="nav-item" data-page="expenses">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Expenses
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Communication</div>
+        <div class="nav-item" data-page="messages">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Messages & Notices
+        </div>
+        <div class="nav-item" data-page="library">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Library
+        </div>
+        <div class="nav-item" data-page="events">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></svg>
+          Events & Calendar
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Reports</div>
+        <div class="nav-item" data-page="reports">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Reports & Analytics
+        </div>
+        <div class="nav-item" data-page="audit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Audit Log
+        </div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">System</div>
+        <div class="nav-item" data-page="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          Settings
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <span>© 2026 Eduformium <span style="opacity:.5;font-size:.7rem">v2.1.4</span></span>
+      <button class="sb-logout" id="sb-logout" aria-label="Sign out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main-content" role="main" aria-label="Page content">
+    <div class="page-wrap">
+
+      <!-- ── DASHBOARD ── -->
+      <div id="page-dashboard" class="page active">
+        <div class="ph">
+          <div>
+            <div class="ph-title">Dashboard</div>
+            <div class="ph-sub" id="dash-welcome">Good morning! Here's your school overview.</div>
+          </div>
+          <div class="ph-right">
+            <button class="btn btn-ghost btn-sm" id="dash-refresh-btn" title="Refresh Dashboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="SMS.nav('students')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Enroll Student
+            </button>
+          </div>
+        </div>
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="dash-kpis"></div>
+        <!-- Charts Row -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Enrollment by Class</span></div>
+            <div class="chart-box"><canvas id="chart-enrollment"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Fee Collection</span><span class="card-subtitle">This term</span></div>
+            <div class="chart-box"><canvas id="chart-fees"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Attendance Rate</span><span class="card-subtitle">This week</span></div>
+            <div class="chart-box" style="height:160px"><canvas id="chart-attendance"></canvas></div>
+          </div>
+        </div>
+        <!-- Quick panels -->
+        <div class="dash-panels">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Recent Admissions</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('students')">View all →</button></div>
+            <div class="mini-list" id="dash-recent-students"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Upcoming Events</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('events')">View all →</button></div>
+            <div class="mini-list" id="dash-events"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Fee Defaulters</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('fees')">View all →</button></div>
+            <div class="mini-list" id="dash-defaulters"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── STUDENTS ── -->
+      <div id="page-students" class="page">
+        <div class="ph">
+          <div>
+            <div class="ph-title">Students</div>
+            <div class="ph-sub">Manage student enrollment, profiles and records</div>
+          </div>
+          <div class="ph-right">
+            <button class="btn btn-secondary btn-sm" id="exp-students-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export
+            </button>
+            <button class="btn btn-secondary btn-sm admin-only" id="import-students-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Import
+            </button>
+            <button class="btn btn-secondary btn-sm admin-only" id="promote-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg>
+              Promote
+            </button>
+            <button class="btn btn-primary btn-sm admin-only" id="add-student-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Enroll Student
+            </button>
+          </div>
+        </div>
+        <!-- Student Stats -->
+        <div class="stat-row" id="student-stats"></div>
+        <!-- Filters -->
+        <div class="filter-row">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="form-input" id="s-search" placeholder="Search name, ID, phone…"/>
+          </div>
+          <select class="filter-select" id="s-class-f"><option value="">All Classes</option></select>
+          <select class="filter-select" id="s-status-f">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="graduated">Graduated</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          <select class="filter-select" id="s-gender-f">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" id="s-reset">Reset</button>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>ID</th><th>Student</th><th>Class</th><th>Gender</th><th>Parent/Guardian</th><th>Phone</th><th>Fees</th><th>Status</th><th></th></tr></thead>
+              <tbody id="students-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="pager" id="students-pager"></div>
+      </div>
+
+      <!-- ── CLASSES ── -->
+      <div id="page-classes" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Classes & Subjects</div><div class="ph-sub">Manage class groups, subjects and teacher assignments</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm admin-only" id="add-class-btn">+ Add Class</button>
+            <button class="btn btn-secondary btn-sm" id="add-subject-btn">+ Add Subject</button>
+          </div>
+        </div>
+        <div class="classes-grid" id="classes-grid"></div>
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-hd"><span class="card-title">All Subjects</span></div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Subject</th><th>Code</th><th>Class</th><th>Teacher</th><th>Days/Week</th><th></th></tr></thead>
+              <tbody id="subjects-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ATTENDANCE ── -->
+      <div id="page-attendance" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Attendance</div><div class="ph-sub">Track and manage daily student and staff attendance</div></div>
+          <div class="ph-right">
+            <div class="date-range">
+              <input type="date" id="att-date" class="form-input" style="width:140px"/>
+            </div>
+            <select class="filter-select" id="att-class">
+              <option value="">Select Class</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="print-att-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Print Sheet
+            </button>
+            <button class="btn btn-primary btn-sm" id="take-att-btn">Take Attendance</button>
+          </div>
+        </div>
+        <!-- Summary cards -->
+        <div class="att-summary" id="att-summary"></div>
+        <!-- Attendance list -->
+        <div class="card" id="att-form-card" style="display:none">
+          <div class="card-hd">
+            <span class="card-title" id="att-form-title">Mark Attendance</span>
+            <div class="att-quick-btns">
+              <button class="btn btn-sm btn-success" id="att-all-present">All Present</button>
+              <button class="btn btn-sm btn-danger" id="att-all-absent">All Absent</button>
+            </div>
+          </div>
+          <div id="att-student-list"></div>
+          <div class="card-footer"><button class="btn btn-primary" id="save-attendance-btn">Save Attendance</button></div>
+        </div>
+        <!-- Attendance records table -->
+        <div class="card">
+          <div class="card-hd">
+            <span class="card-title">Attendance Records</span>
+            <div class="ph-right">
+              <input type="date" id="att-from" class="form-input" style="width:130px"/>
+              <span>—</span>
+              <input type="date" id="att-to" class="form-input" style="width:130px"/>
+              <button class="btn btn-ghost btn-sm" id="att-filter-btn">Filter</button>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Date</th><th>Class</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th><th></th></tr></thead>
+              <tbody id="att-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EXAMS ── -->
+      <div id="page-exams" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Exams & Grades</div><div class="ph-sub">Create exams, enter scores and generate report cards</div></div>
+          <div class="ph-right">
+            <button class="btn btn-secondary btn-sm" id="report-card-btn"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Report Cards</button>
+            <button class="btn btn-primary btn-sm admin-only" id="add-exam-btn">+ Create Exam</button>
+          </div>
+        </div>
+        <div class="tabs" id="exam-tabs">
+          <button class="tab active" data-tab="exams-list">Exams</button>
+          <button class="tab" data-tab="grades-entry">Grade Entry</button>
+          <button class="tab" data-tab="results">Results</button>
+        </div>
+        <div id="exams-list" class="tab-pane active">
+          <div class="card">
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>Exam Name</th><th>Type</th><th>Class</th><th>Subject</th><th>Date</th><th>Max Score</th><th>Status</th><th></th></tr></thead>
+                <tbody id="exams-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div id="grades-entry" class="tab-pane">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Enter Grades</span></div>
+            <div class="card-body">
+              <div class="form-grid-3">
+                <div class="form-field"><label class="form-label">Select Exam</label><select class="form-input" id="grade-exam-sel"><option value="">— Select —</option></select></div>
+                <div class="form-field"><label class="form-label">Class</label><select class="form-input" id="grade-class-sel"><option value="">— Select —</option></select></div>
+                <div><button class="btn btn-primary" id="load-grade-btn" style="margin-top:1.6rem">Load Students</button></div>
+              </div>
+              <div id="grade-entry-list" style="margin-top:1rem"></div>
+              <button class="btn btn-primary" id="save-grades-btn" style="display:none;margin-top:1rem">Save All Grades</button>
+            </div>
+          </div>
+        </div>
+        <div id="results" class="tab-pane">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Results Overview</span></div>
+            <div class="card-body">
+              <div class="form-grid-3">
+                <div class="form-field"><label class="form-label">Class</label><select class="form-input" id="res-class-sel"><option value="">All Classes</option></select></div>
+                <div class="form-field"><label class="form-label">Term</label><select class="form-input" id="res-term-sel"><option value="">All Terms</option><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select></div>
+                <div><button class="btn btn-primary" id="load-results-btn" style="margin-top:1.6rem">Load Results</button></div>
+              </div>
+              <div class="tbl-wrap" style="margin-top:1rem">
+                <table class="tbl">
+                  <thead><tr><th>Student</th><th>Class</th><th>Subjects</th><th>Total</th><th>Average</th><th>Grade</th><th>Position</th><th></th></tr></thead>
+                  <tbody id="results-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TIMETABLE ── -->
+      <div id="page-timetable" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Timetable</div><div class="ph-sub">Design and manage class schedules</div></div>
+          <div class="ph-right">
+            <select class="filter-select" id="tt-class-sel"><option value="">Select Class</option></select>
+            <button class="btn btn-secondary btn-sm admin-only" id="tt-design-btn" onclick="SMS.openTimetableDesigner()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;margin-right:.35rem;vertical-align:-.15em"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Design Structure</button>
+            <button class="btn btn-primary btn-sm admin-only" id="edit-tt-btn">Edit Timetable</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0">
+          <div id="timetable-grid" style="padding:1.25rem"></div>
+        </div>
+      </div>
+
+      <!-- ── HOMEWORK ── -->
+      <div id="page-homework" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Homework & Assignments</div><div class="ph-sub">Assign and track student homework</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm" id="add-hw-btn">+ Assign Homework</button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <select class="filter-select" id="hw-class-f"><option value="">All Classes</option></select>
+          <select class="filter-select" id="hw-subject-f"><option value="">All Subjects</option></select>
+          <select class="filter-select" id="hw-status-f">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="submitted">Submitted</option>
+            <option value="graded">Graded</option>
+          </select>
+        </div>
+        <div class="hw-cards" id="hw-cards"></div>
+      </div>
+
+      <!-- ── STAFF ── -->
+      <div id="page-staff" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Staff & Teachers</div><div class="ph-sub">Manage teaching and non-teaching staff records</div></div>
+          <div class="ph-right">
+            <button class="btn btn-secondary btn-sm" id="exp-staff-btn">Export</button>
+            <button class="btn btn-primary btn-sm admin-only" id="add-staff-btn">+ Add Staff</button>
+          </div>
+        </div>
+        <div class="stat-row" id="staff-stats"></div>
+        <div class="filter-row">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="form-input" id="staff-search" placeholder="Search name, subject…"/>
+          </div>
+          <select class="filter-select" id="staff-dept-f"><option value="">All Departments</option></select>
+          <select class="filter-select" id="staff-role-f">
+            <option value="">All Roles</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin Staff</option>
+            <option value="support">Support Staff</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>ID</th><th>Staff</th><th>Role</th><th>Department</th><th>Subjects</th><th>Phone</th><th>Salary</th><th>Status</th><th></th></tr></thead>
+              <tbody id="staff-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="pager" id="staff-pager"></div>
+      </div>
+
+      <!-- ── PAYROLL ── -->
+      <div id="page-payroll" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Payroll</div><div class="ph-sub">Manage staff salaries, deductions and payments</div></div>
+          <div class="ph-right">
+            <div class="period-sel">
+              <select id="pay-month" class="filter-select"></select>
+              <select id="pay-year" class="filter-select"></select>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="exp-payroll-btn">Export</button>
+            <button class="btn btn-primary btn-sm" id="process-payroll-btn">Process All</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="payroll-kpis"></div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Staff</th><th>Role</th><th>Basic</th><th>Allowances</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th></th></tr></thead>
+              <tbody id="payroll-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LEAVE ── -->
+      <div id="page-leave" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Leave Management</div><div class="ph-sub">Track and approve staff leave requests</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm" id="add-leave-btn">+ Apply for Leave</button>
+          </div>
+        </div>
+        <div class="stat-row" id="leave-stats"></div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Staff</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+              <tbody id="leave-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FEES ── -->
+      <div id="page-fees" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Fees & Payments</div><div class="ph-sub">Manage fee structures, collect payments and track defaulters</div></div>
+          <div class="ph-right">
+            <button class="btn btn-secondary btn-sm" id="exp-fees-btn">Export</button>
+            <button class="btn btn-primary btn-sm admin-only" id="add-fee-btn">+ Record Payment</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="fees-kpis"></div>
+        <div class="tabs" id="fees-tabs">
+          <button class="tab active" data-tab="fees-payments">Payments</button>
+          <button class="tab" data-tab="fees-structure">Fee Structure</button>
+          <button class="tab" data-tab="fees-defaulters">Defaulters</button>
+        </div>
+        <div id="fees-payments" class="tab-pane active">
+          <div class="filter-row">
+            <div class="search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" class="form-input" id="fee-search" placeholder="Search student…"/>
+            </div>
+            <select class="filter-select" id="fee-class-f"><option value="">All Classes</option></select>
+            <select class="filter-select" id="fee-term-f">
+              <option value="">All Terms</option>
+              <option value="1">Term 1</option>
+              <option value="2">Term 2</option>
+              <option value="3">Term 3</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>Receipt #</th><th>Student</th><th>Class</th><th>Term</th><th>Amount</th><th>Method</th><th>Date</th><th>By</th><th></th></tr></thead>
+                <tbody id="fees-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div id="fees-structure" class="tab-pane">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Fee Structure</span><button class="btn btn-primary btn-sm admin-only" id="add-fee-struct-btn">+ Add</button></div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>Class</th><th>Term 1</th><th>Term 2</th><th>Term 3</th><th>Total/Year</th><th>Includes</th><th></th></tr></thead>
+                <tbody id="fee-struct-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div id="fees-defaulters" class="tab-pane">
+          <div class="card">
+            <div class="card-hd">
+              <div><span class="card-title">Fee Defaulters</span><div class="card-subtitle">Students with outstanding balances</div></div>
+              <button class="btn btn-secondary btn-sm" id="send-reminder-btn"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Send Reminders</button>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>Student</th><th>Class</th><th>Parent Phone</th><th>Term 1</th><th>Term 2</th><th>Term 3</th><th>Total Owed</th><th></th></tr></thead>
+                <tbody id="defaulters-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EXPENSES ── -->
+      <div id="page-expenses" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Expenses</div><div class="ph-sub">Track school expenses and budget management</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm admin-only" id="add-expense-btn">+ Add Expense</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="expense-kpis"></div>
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Expenses by Category</span></div>
+            <div class="chart-box"><canvas id="chart-expenses"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Monthly Trend</span></div>
+            <div class="chart-box"><canvas id="chart-expense-trend"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Paid To</th><th>Approved By</th><th></th></tr></thead>
+              <tbody id="expense-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MESSAGES ── -->
+      <div id="page-messages" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Messages & Notices</div><div class="ph-sub">Communicate with parents, students and staff</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm" id="compose-btn"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Compose</button>
+          </div>
+        </div>
+        <div class="msg-layout">
+          <div class="msg-sidebar-panel">
+            <div class="msg-tabs">
+              <button class="msg-tab active" data-mtab="inbox">Inbox <span class="badge" id="inbox-count">0</span></button>
+              <button class="msg-tab" data-mtab="sent">Sent</button>
+              <button class="msg-tab" data-mtab="notices">Notices</button>
+            </div>
+            <div class="msg-list" id="msg-list"></div>
+          </div>
+          <div class="msg-content" id="msg-content">
+            <div class="msg-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <p>Select a message to read</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LIBRARY ── -->
+      <div id="page-library" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Library</div><div class="ph-sub">Manage books, borrowing and returns</div></div>
+          <div class="ph-right">
+            <button class="btn btn-secondary btn-sm" id="borrow-btn"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Issue Book</button>
+            <button class="btn btn-primary btn-sm admin-only" id="add-book-btn">+ Add Book</button>
+          </div>
+        </div>
+        <div class="stat-row" id="lib-stats"></div>
+        <div class="filter-row">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="form-input" id="lib-search" placeholder="Search title, author, ISBN…"/>
+          </div>
+          <select class="filter-select" id="lib-cat-f"><option value="">All Categories</option></select>
+          <select class="filter-select" id="lib-status-f">
+            <option value="">All Status</option>
+            <option value="available">Available</option>
+            <option value="borrowed">Borrowed</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>ISBN</th><th>Title</th><th>Author</th><th>Category</th><th>Copies</th><th>Available</th><th>Status</th><th></th></tr></thead>
+              <tbody id="lib-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EVENTS ── -->
+      <div id="page-events" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Events & Calendar</div><div class="ph-sub">Manage school events, holidays and term dates</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm admin-only" id="add-event-btn">+ Add Event</button>
+          </div>
+        </div>
+        <div class="events-layout">
+          <div class="calendar-panel" id="cal-panel"></div>
+          <div class="events-list-panel">
+            <div class="card">
+              <div class="card-hd"><span class="card-title">Upcoming Events</span></div>
+              <div id="events-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REPORTS ── -->
+      <div id="page-reports" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Reports & Analytics</div><div class="ph-sub">Comprehensive school performance insights</div></div>
+          <div class="ph-right">
+            <button class="btn btn-primary btn-sm" id="gen-report-btn"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Generate Report</button>
+          </div>
+        </div>
+        <div class="report-cards">
+          <div class="report-card" onclick="SMS.openReport('academic')">
+            <div class="rc-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+            <div class="rc-title">Academic Performance</div>
+            <div class="rc-desc">Class averages, subject performance, top students</div>
+          </div>
+          <div class="report-card" onclick="SMS.openReport('attendance')">
+            <div class="rc-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <div class="rc-title">Attendance Report</div>
+            <div class="rc-desc">Daily, weekly and monthly attendance trends</div>
+          </div>
+          <div class="report-card" onclick="SMS.openReport('finance')">
+            <div class="rc-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="rc-title">Financial Report</div>
+            <div class="rc-desc">Fee collection, expenses and budget overview</div>
+          </div>
+          <div class="report-card" onclick="SMS.openReport('enrollment')">
+            <div class="rc-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="rc-title">Enrollment Report</div>
+            <div class="rc-desc">Student enrollment trends by class and year</div>
+          </div>
+          <div class="report-card" onclick="SMS.openReport('staff')">
+            <div class="rc-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+            <div class="rc-title">Staff Report</div>
+            <div class="rc-desc">Staff performance, attendance and payroll summary</div>
+          </div>
+          <div class="report-card" onclick="SMS.openReport('library')">
+            <div class="rc-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+            <div class="rc-title">Library Report</div>
+            <div class="rc-desc">Book circulation, popular titles and overdue items</div>
+          </div>
+        </div>
+        <div class="card" id="report-output" style="display:none;margin-top:1.5rem">
+          <div class="card-hd">
+            <span class="card-title" id="report-output-title">Report</span>
+            <button class="btn btn-secondary btn-sm" onclick="window.print()"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print</button>
+          </div>
+          <div id="report-output-content"></div>
+        </div>
+      </div>
+
+      <!-- ── AUDIT LOG ── -->
+      <div id="page-audit" class="page">
+        <div class="ph">
+          <div><div class="ph-title">Audit Log</div><div class="ph-sub">Complete record of all system activities</div></div>
+          <div class="ph-right">
+            <button class="btn btn-secondary btn-sm" id="exp-audit-btn">Export</button>
+            <button class="btn btn-danger btn-sm admin-only" id="clear-audit-btn">Clear Log</button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" class="form-input" id="audit-q" placeholder="Search activities…"/>
+          </div>
+          <select class="filter-select" id="audit-type">
+            <option value="">All Types</option>
+            <option value="login">Login</option>
+            <option value="create">Create</option>
+            <option value="edit">Edit</option>
+            <option value="delete">Delete</option>
+          </select>
+        </div>
+        <div class="card">
+          <div id="audit-list"></div>
+        </div>
+        <div class="pager" id="audit-pager"></div>
+      </div>
+
+      <!-- ── SETTINGS ── -->
+      <div id="page-settings" class="page">
+        <div class="ph"><div><div class="ph-title">Settings</div><div class="ph-sub">Configure school information, preferences and appearance</div></div></div>
+        <div class="settings-tabs" id="stabs">
+          <button class="stab active" data-stab="school">School Info</button>
+          <button class="stab" data-stab="profile">My Profile</button>
+          <button class="stab" data-stab="security">Security</button>
+          <button class="stab" data-stab="appearance">Appearance</button>
+          <button class="stab" data-stab="academic">Academic</button>
+          <button class="stab admin-only" data-stab="users">User Accounts</button>
+          <button class="stab admin-only" data-stab="sms-notif">SMS Notifications</button>
+          <button class="stab admin-only" data-stab="data">Data & Backup</button>
+        </div>
+
+        <!-- School Info -->
+        <div class="spane active" id="sp-school">
+          <div class="card" style="max-width:680px">
+            <div class="card-hd"><span class="card-title">School Information</span></div>
+            <div class="card-body">
+              <div class="school-logo-upload">
+                <div class="school-logo-preview" id="school-logo-preview">
+                  <svg viewBox="0 0 60 60" fill="none" width="40" height="40"><rect x="10" y="8" width="8" height="44" rx="4" fill="var(--brand)"/><rect x="20" y="8" width="30" height="10" rx="5" fill="var(--brand-teal)"/><rect x="20" y="25" width="20" height="10" rx="5" fill="var(--brand)"/><rect x="20" y="42" width="26" height="10" rx="5" fill="var(--brand-teal)"/></svg>
+                </div>
+                <div>
+                  <div class="form-label">School Logo</div>
+                  <div class="form-sub-hint">PNG or JPG · Appears on reports and receipts</div>
+                  <button class="btn btn-secondary btn-sm" id="upload-logo-btn">Upload Logo</button>
+                  <input type="file" id="logo-file" accept="image/*" style="display:none"/>
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-field"><label class="form-label">School Name *</label><input class="form-input" type="text" id="sc-name" placeholder="Full school name"/></div>
+                <div class="form-field"><label class="form-label">Short Name / Motto</label><input class="form-input" type="text" id="sc-motto" placeholder="e.g. BFAS · Excellence"/></div>
+                <div class="form-field"><label class="form-label">Phone</label><input class="form-input" type="tel" id="sc-phone" placeholder="School phone number"/></div>
+                <div class="form-field"><label class="form-label">Email</label><input class="form-input" type="email" id="sc-email" placeholder="school@email.com"/></div>
+                <div class="form-field"><label class="form-label">Website</label><input class="form-input" type="url" id="sc-web" placeholder="https://school.edu"/></div>
+                <div class="form-field"><label class="form-label">Country</label>
+                  <select class="form-input" id="sc-country">
+                    <option value="GH">Ghana</option><option value="NG">Nigeria</option><option value="KE">Kenya</option>
+                    <option value="ZA">South Africa</option><option value="UG">Uganda</option><option value="TZ">Tanzania</option>
+                    <option value="US">United States</option><option value="GB">United Kingdom</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-field"><label class="form-label">Address</label><textarea class="form-input" id="sc-address" rows="2" placeholder="Full school address"></textarea></div>
+              <button class="btn btn-primary" id="save-school-btn">Save School Info</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile -->
+        <div class="spane" id="sp-profile">
+          <div class="card" style="max-width:520px">
+            <div class="card-hd"><span class="card-title">My Profile</span></div>
+            <div class="card-body">
+              <div class="avatar-upload">
+                <div class="av-preview" id="av-preview">AD</div>
+                <div>
+                  <div class="form-label">Profile Photo</div>
+                  <button class="btn btn-secondary btn-sm" id="upload-av-btn">Change Photo</button>
+                  <input type="file" id="av-file" accept="image/*" style="display:none"/>
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-field"><label class="form-label">Full Name</label><input class="form-input" type="text" id="p-name"/></div>
+                <div class="form-field"><label class="form-label">Email</label><input class="form-input" type="email" id="p-email"/></div>
+                <div class="form-field"><label class="form-label">Phone</label><input class="form-input" type="tel" id="p-phone"/></div>
+                <div class="form-field"><label class="form-label">Role</label><input class="form-input" id="p-role" readonly/></div>
+              </div>
+              <button class="btn btn-primary" id="save-profile-btn">Save Profile</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security -->
+        <div class="spane" id="sp-security">
+          <div class="card" style="max-width:440px">
+            <div class="card-hd"><span class="card-title">Change Password</span></div>
+            <div class="card-body">
+              <div class="form-field"><label class="form-label">Current Password</label><input class="form-input" type="password" id="pw-old" placeholder="Current password"/></div>
+              <div class="form-field"><label class="form-label">New Password</label><input class="form-input" type="password" id="pw-new" placeholder="Min. 6 characters"/></div>
+              <div class="form-field"><label class="form-label">Confirm New</label><input class="form-input" type="password" id="pw-confirm" placeholder="Repeat new password"/></div>
+              <div id="pw-err" class="form-err" style="display:none"></div>
+              <button class="btn btn-primary" id="save-pw-btn">Update Password</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance -->
+        <div class="spane" id="sp-appearance">
+          <div class="card" style="max-width:600px">
+            <div class="card-hd"><span class="card-title">Theme & Appearance</span></div>
+            <div class="card-body">
+              <div class="form-label">Color Theme</div>
+              <div class="theme-swatches" id="theme-swatches">
+                <div class="swatch active" data-theme-name="eduformium" data-primary="#1a3a6b" data-teal="#0d9488" title="Eduformium (Default)">
+                  <div style="background:#1a3a6b;flex:1;border-radius:4px 0 0 4px"></div>
+                  <div style="background:#0d9488;flex:1;border-radius:0 4px 4px 0"></div>
+                  <span>Eduformium</span>
+                </div>
+                <div class="swatch" data-theme-name="royal" data-primary="#4f46e5" data-teal="#7c3aed" title="Royal Purple">
+                  <div style="background:#4f46e5;flex:1;border-radius:4px 0 0 4px"></div>
+                  <div style="background:#7c3aed;flex:1;border-radius:0 4px 4px 0"></div>
+                  <span>Royal</span>
+                </div>
+                <div class="swatch" data-theme-name="forest" data-primary="#166534" data-teal="#15803d" title="Forest Green">
+                  <div style="background:#166534;flex:1;border-radius:4px 0 0 4px"></div>
+                  <div style="background:#15803d;flex:1;border-radius:0 4px 4px 0"></div>
+                  <span>Forest</span>
+                </div>
+                <div class="swatch" data-theme-name="sunset" data-primary="#c2410c" data-teal="#ea580c" title="Sunset Orange">
+                  <div style="background:#c2410c;flex:1;border-radius:4px 0 0 4px"></div>
+                  <div style="background:#ea580c;flex:1;border-radius:0 4px 4px 0"></div>
+                  <span>Sunset</span>
+                </div>
+                <div class="swatch" data-theme-name="maroon" data-primary="#881337" data-teal="#be123c" title="Maroon">
+                  <div style="background:#881337;flex:1;border-radius:4px 0 0 4px"></div>
+                  <div style="background:#be123c;flex:1;border-radius:0 4px 4px 0"></div>
+                  <span>Maroon</span>
+                </div>
+                <div class="swatch" data-theme-name="navy" data-primary="#1e3a5f" data-teal="#2563eb" title="Navy Blue">
+                  <div style="background:#1e3a5f;flex:1;border-radius:4px 0 0 4px"></div>
+                  <div style="background:#2563eb;flex:1;border-radius:0 4px 4px 0"></div>
+                  <span>Navy</span>
+                </div>
+              </div>
+              <div class="form-grid-2" style="margin-top:1.2rem">
+                <div class="form-field">
+                  <label class="form-label">Custom Primary Color</label>
+                  <div class="color-input-wrap">
+                    <input type="color" id="custom-primary" value="#1a3a6b"/>
+                    <input type="text" class="form-input" id="custom-primary-hex" value="#1a3a6b" placeholder="#1a3a6b"/>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Custom Accent Color</label>
+                  <div class="color-input-wrap">
+                    <input type="color" id="custom-teal" value="#0d9488"/>
+                    <input type="text" class="form-input" id="custom-teal-hex" value="#0d9488" placeholder="#0d9488"/>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="apply-custom-theme">Apply Custom Colors</button>
+              <div class="divider"></div>
+              <div class="form-label">Dark Mode</div>
+              <div class="toggle-row">
+                <div>
+                  <div style="font-size:.85rem;font-weight:600;color:var(--t1)">Enable Dark Mode</div>
+                  <div style="font-size:.75rem;color:var(--t3)">Switch to dark theme for low-light environments</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="dark-mode-toggle"/><span class="toggle-slider"></span></label>
+              </div>
+              <div class="form-label" style="margin-top:1rem">Font Size</div>
+              <div class="font-size-btns">
+                <button class="fsz-btn" data-size="small">Small</button>
+                <button class="fsz-btn active" data-size="medium">Medium</button>
+                <button class="fsz-btn" data-size="large">Large</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Academic Settings -->
+        <div class="spane" id="sp-academic">
+          <div class="card" style="max-width:600px">
+            <div class="card-hd"><span class="card-title">Academic Settings</span></div>
+            <div class="card-body">
+              <div class="form-grid-2">
+                <div class="form-field"><label class="form-label">Academic Year</label><input class="form-input" id="ac-year" placeholder="e.g. 2025/2026"/></div>
+                <div class="form-field"><label class="form-label">Current Term</label>
+                  <select class="form-input" id="ac-term">
+                    <option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option>
+                  </select>
+                </div>
+                <div class="form-field"><label class="form-label">Grading System</label>
+                  <select class="form-input" id="ac-grade-sys">
+                    <option value="percentage">Percentage (0-100%)</option>
+                    <option value="gpa">GPA (0-4.0)</option>
+                    <option value="letter">Letter Grade (A-F)</option>
+                  </select>
+                </div>
+                <div class="form-field"><label class="form-label">Pass Mark (%)</label><input class="form-input" type="number" id="ac-pass" value="50" min="0" max="100"/></div>
+                <div class="form-field"><label class="form-label">Currency</label>
+                  <select class="form-input" id="ac-currency">
+                    <option value="GHS">GHS — Ghana Cedi (₵)</option>
+                    <option value="NGN">NGN — Nigerian Naira (₦)</option>
+                    <option value="KES">KES — Kenyan Shilling (KSh)</option>
+                    <option value="USD">USD — US Dollar ($)</option>
+                    <option value="GBP">GBP — British Pound (£)</option>
+                    <option value="ZAR">ZAR — South African Rand (R)</option>
+                  </select>
+                </div>
+                <div class="form-field"><label class="form-label">School Type</label>
+                  <select class="form-input" id="ac-type">
+                    <option value="primary">Primary School</option>
+                    <option value="junior">Junior High School</option>
+                    <option value="senior">Senior High School</option>
+                    <option value="mixed">Primary + JHS</option>
+                    <option value="k12">K-12 (All Levels)</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="save-academic-btn">Save Academic Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users -->
+        <div class="spane" id="sp-users">
+          <div class="card">
+            <div class="card-hd">
+              <div><div class="card-title">User Accounts</div><div class="card-subtitle">Manage system access for staff</div></div>
+              <button class="btn btn-primary btn-sm" id="add-user-btn">+ Add User</button>
+            </div>
+            <div class="tbl-wrap">
+              <table class="tbl">
+                <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th></th></tr></thead>
+                <tbody id="users-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SMS Notifications -->
+        <div class="spane" id="sp-sms-notif">
+          <div class="card" style="max-width:680px">
+            <div class="card-hd">
+              <div><div class="card-title">SMS Notifications</div><div class="card-subtitle">Automated parent & staff alerts</div></div>
+              <span class="badge" id="sms-status-badge" style="background:var(--surface-3);color:var(--t3)">Disabled</span>
+            </div>
+            <div class="card-body">
+              <div class="info-banner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Powered by your preferred SMS gateway (Hubtel, Twilio, Africa's Talking, etc.)</span>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-field"><label class="form-label">SMS Provider</label>
+                  <select class="form-input" id="sms-provider">
+                    <option value="hubtel">Hubtel (Ghana)</option>
+                    <option value="africastalking">Africa's Talking</option>
+                    <option value="twilio">Twilio</option>
+                    <option value="termii">Termii (Nigeria)</option>
+                  </select>
+                </div>
+                <div class="form-field"><label class="form-label">Sender ID</label><input class="form-input" id="sms-sender" placeholder="e.g. SchoolName"/></div>
+                <div class="form-field"><label class="form-label">API Key / Client ID</label><input class="form-input" id="sms-key" placeholder="Your API key"/></div>
+                <div class="form-field"><label class="form-label">API Secret</label><input class="form-input" type="password" id="sms-secret" placeholder="Your API secret"/></div>
+              </div>
+              <div class="section-label">Notify On…</div>
+              <div class="sms-toggles">
+                <div class="sms-toggle-row"><div><div class="stl">New Admission</div><div class="std">Alert parent when student is enrolled</div></div><label class="toggle"><input type="checkbox" id="smt-admission" checked/><span class="toggle-slider"></span></label></div>
+                <div class="sms-toggle-row"><div><div class="stl">Fee Payment</div><div class="std">Send receipt SMS on fee payment</div></div><label class="toggle"><input type="checkbox" id="smt-fee" checked/><span class="toggle-slider"></span></label></div>
+                <div class="sms-toggle-row"><div><div class="stl">Fee Reminder</div><div class="std">Remind parents of outstanding fees</div></div><label class="toggle"><input type="checkbox" id="smt-reminder" checked/><span class="toggle-slider"></span></label></div>
+                <div class="sms-toggle-row"><div><div class="stl">Exam Results</div><div class="std">Notify parents when results are published</div></div><label class="toggle"><input type="checkbox" id="smt-results"/><span class="toggle-slider"></span></label></div>
+                <div class="sms-toggle-row"><div><div class="stl">Attendance Alert</div><div class="std">Alert parents when student is absent</div></div><label class="toggle"><input type="checkbox" id="smt-attendance" checked/><span class="toggle-slider"></span></label></div>
+                <div class="sms-toggle-row"><div><div class="stl">Events & Notices</div><div class="std">Send school announcements via SMS</div></div><label class="toggle"><input type="checkbox" id="smt-events"/><span class="toggle-slider"></span></label></div>
+              </div>
+              <div class="toggle-row" style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:var(--radius);padding:.85rem 1rem;margin:1rem 0">
+                <div><div style="font-size:.85rem;font-weight:600;color:var(--brand)">Master SMS Switch</div><div style="font-size:.75rem;color:var(--t3)">Enable/disable all SMS notifications</div></div>
+                <label class="toggle"><input type="checkbox" id="sms-master"/><span class="toggle-slider"></span></label>
+              </div>
+              <div class="d-flex gap-3">
+                <button class="btn btn-primary" id="save-sms-btn">Save Settings</button>
+                <button class="btn btn-secondary btn-sm" id="test-sms-btn">Send Test SMS <span class="badge badge-warn" style="margin-left:.3rem;font-size:.65rem">Setup Required</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data & Backup -->
+        <div class="spane" id="sp-data">
+          <div class="card" style="max-width:600px">
+            <div class="card-hd"><div><div class="card-title">Data & Backup</div><div class="card-subtitle">Export and backup all school data</div></div></div>
+            <div class="card-body">
+              <div class="data-stats-grid" id="backup-stats"></div>
+              <button class="btn btn-primary" id="backup-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Full Backup (.xlsx)
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /page-settings -->
+
+    </div><!-- /page-wrap -->
+  </main>
+</div><!-- /app -->
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Student Form Modal -->
+<div id="m-student" class="modal-bg" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <span class="modal-title" id="student-modal-title">Enroll New Student</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-student')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-tabs">
+        <button class="mtab active" data-mtab="basic">Basic Info</button>
+        <button class="mtab" data-mtab="academic-info">Academic</button>
+        <button class="mtab" data-mtab="parent-info">Parent/Guardian</button>
+        <button class="mtab" data-mtab="medical-info">Medical</button>
+      </div>
+      <div id="basic" class="modal-tab-pane active">
+        <input type="hidden" id="sf-id"/>
+        <div class="form-grid-3">
+          <div class="form-field"><label class="form-label">First Name *</label><input class="form-input" id="sf-fname" placeholder="First name"/></div>
+          <div class="form-field"><label class="form-label">Middle Name</label><input class="form-input" id="sf-mname" placeholder="Middle name"/></div>
+          <div class="form-field"><label class="form-label">Last Name *</label><input class="form-input" id="sf-lname" placeholder="Last name"/></div>
+          <div class="form-field"><label class="form-label">Date of Birth *</label><input class="form-input" type="date" id="sf-dob"/></div>
+          <div class="form-field"><label class="form-label">Gender *</label>
+            <select class="form-input" id="sf-gender"><option value="">— Select —</option><option>Male</option><option>Female</option></select>
+          </div>
+          <div class="form-field"><label class="form-label">Nationality</label><input class="form-input" id="sf-nation" placeholder="e.g. Ghanaian"/></div>
+          <div class="form-field"><label class="form-label">Religion</label><input class="form-input" id="sf-religion" placeholder="Optional"/></div>
+          <div class="form-field"><label class="form-label">Blood Group</label>
+            <select class="form-input" id="sf-blood"><option value="">— Select —</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+          </div>
+          <div class="form-field"><label class="form-label">Admission Date *</label><input class="form-input" type="date" id="sf-admit-date"/></div>
+        </div>
+        <div class="form-field"><label class="form-label">Address</label><textarea class="form-input" id="sf-address" rows="2" placeholder="Home address"></textarea></div>
+      </div>
+      <div id="academic-info" class="modal-tab-pane">
+        <div class="form-grid-3">
+          <div class="form-field"><label class="form-label">Student ID</label><input class="form-input" id="sf-sid" placeholder="Auto-generated if blank"/></div>
+          <div class="form-field"><label class="form-label">Class *</label>
+            <select class="form-input" id="sf-class"><option value="">— Select —</option></select>
+          </div>
+          <div class="form-field"><label class="form-label">Roll Number</label><input class="form-input" id="sf-roll" placeholder="Class roll number"/></div>
+          <div class="form-field"><label class="form-label">Previous School</label><input class="form-input" id="sf-prev-school" placeholder="Previous school name"/></div>
+          <div class="form-field"><label class="form-label">Status</label>
+            <select class="form-input" id="sf-status"><option value="active">Active</option><option value="inactive">Inactive</option><option value="suspended">Suspended</option></select>
+          </div>
+          <div class="form-field"><label class="form-label">Transport</label>
+            <select class="form-input" id="sf-transport"><option value="none">None</option><option value="school-bus">School Bus</option><option value="private">Private</option></select>
+          </div>
+        </div>
+        <div class="form-field"><label class="form-label">Notes / Special Needs</label><textarea class="form-input" id="sf-notes" rows="2" placeholder="Any special requirements or notes"></textarea></div>
+      </div>
+      <div id="parent-info" class="modal-tab-pane">
+        <div class="section-label">Father / Guardian 1</div>
+        <div class="form-grid-3">
+          <div class="form-field"><label class="form-label">Full Name</label><input class="form-input" id="sf-dad" placeholder="Father's full name"/></div>
+          <div class="form-field"><label class="form-label">Phone *</label><input class="form-input" type="tel" id="sf-dad-phone" placeholder="Phone number"/></div>
+          <div class="form-field"><label class="form-label">Occupation</label><input class="form-input" id="sf-dad-job" placeholder="Occupation"/></div>
+          <div class="form-field"><label class="form-label">Email</label><input class="form-input" type="email" id="sf-dad-email" placeholder="Email (optional)"/></div>
+        </div>
+        <div class="section-label">Mother / Guardian 2</div>
+        <div class="form-grid-3">
+          <div class="form-field"><label class="form-label">Full Name</label><input class="form-input" id="sf-mom" placeholder="Mother's full name"/></div>
+          <div class="form-field"><label class="form-label">Phone</label><input class="form-input" type="tel" id="sf-mom-phone" placeholder="Phone number"/></div>
+          <div class="form-field"><label class="form-label">Occupation</label><input class="form-input" id="sf-mom-job" placeholder="Occupation"/></div>
+        </div>
+        <div class="section-label">Emergency Contact</div>
+        <div class="form-grid-3">
+          <div class="form-field"><label class="form-label">Name</label><input class="form-input" id="sf-emer" placeholder="Emergency contact name"/></div>
+          <div class="form-field"><label class="form-label">Phone</label><input class="form-input" type="tel" id="sf-emer-phone" placeholder="Emergency phone"/></div>
+          <div class="form-field"><label class="form-label">Relationship</label><input class="form-input" id="sf-emer-rel" placeholder="e.g. Uncle, Aunt"/></div>
+        </div>
+      </div>
+      <div id="medical-info" class="modal-tab-pane">
+        <div class="form-grid-2">
+          <div class="form-field"><label class="form-label">Allergies</label><textarea class="form-input" id="sf-allergies" rows="3" placeholder="Known allergies"></textarea></div>
+          <div class="form-field"><label class="form-label">Medical Conditions</label><textarea class="form-input" id="sf-medical" rows="3" placeholder="Known medical conditions"></textarea></div>
+          <div class="form-field"><label class="form-label">Doctor's Name</label><input class="form-input" id="sf-doctor" placeholder="Family doctor"/></div>
+          <div class="form-field"><label class="form-label">Doctor's Phone</label><input class="form-input" type="tel" id="sf-doc-phone" placeholder="Doctor's phone"/></div>
+        </div>
+      </div>
+      <div id="sf-err" class="form-err" style="display:none">Please fill in required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-student')">Cancel</button>
+      <button class="btn btn-primary" id="save-student-btn">Enroll Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Form Modal -->
+<div id="m-staff" class="modal-bg" style="display:none">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <span class="modal-title" id="staff-modal-title">Add Staff Member</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-staff')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="stf-id"/>
+      <div class="form-grid-3">
+        <div class="form-field"><label class="form-label">First Name *</label><input class="form-input" id="stf-fname" placeholder="First name"/></div>
+        <div class="form-field"><label class="form-label">Last Name *</label><input class="form-input" id="stf-lname" placeholder="Last name"/></div>
+        <div class="form-field"><label class="form-label">Staff ID</label><input class="form-input" id="stf-id-no" placeholder="Auto-generated if blank"/></div>
+        <div class="form-field"><label class="form-label">Role *</label>
+          <select class="form-input" id="stf-role"><option value="">— Select —</option><option value="teacher">Teacher</option><option value="admin">Admin Staff</option><option value="support">Support Staff</option><option value="principal">Principal/Head</option></select>
+        </div>
+        <div class="form-field"><label class="form-label">Department</label><input class="form-input" id="stf-dept" placeholder="e.g. Sciences, Mathematics"/></div>
+        <div class="form-field"><label class="form-label">Subjects Taught</label><input class="form-input" id="stf-subjects" placeholder="e.g. Maths, Science"/></div>
+        <div class="form-field"><label class="form-label">Gender</label>
+          <select class="form-input" id="stf-gender"><option value="">— Select —</option><option>Male</option><option>Female</option></select>
+        </div>
+        <div class="form-field"><label class="form-label">Date of Birth</label><input class="form-input" type="date" id="stf-dob"/></div>
+        <div class="form-field"><label class="form-label">Join Date *</label><input class="form-input" type="date" id="stf-join"/></div>
+        <div class="form-field"><label class="form-label">Phone *</label><input class="form-input" type="tel" id="stf-phone" placeholder="Phone number"/></div>
+        <div class="form-field"><label class="form-label">Email</label><input class="form-input" type="email" id="stf-email" placeholder="Work email"/></div>
+        <div class="form-field"><label class="form-label">Basic Salary</label><input class="form-input" type="number" id="stf-salary" placeholder="Monthly salary"/></div>
+        <div class="form-field"><label class="form-label">Qualification</label><input class="form-input" id="stf-qual" placeholder="e.g. B.Ed, M.Ed"/></div>
+        <div class="form-field"><label class="form-label">NID/NHIS Number</label><input class="form-input" id="stf-nid" placeholder="National ID"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Address</label><textarea class="form-input" id="stf-addr" rows="2" placeholder="Home address"></textarea></div>
+      <div id="stf-err" class="form-err" style="display:none">Please fill in required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-staff')">Cancel</button>
+      <button class="btn btn-primary" id="save-staff-btn">Save Staff</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fee Payment Modal -->
+<div id="m-fee" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Record Fee Payment</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-fee')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="fee-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Student *</label><select class="form-input" id="fee-student"><option value="">— Select Student —</option></select></div>
+        <div class="form-field"><label class="form-label">Term *</label>
+          <select class="form-input" id="fee-term"><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select>
+        </div>
+        <div class="form-field"><label class="form-label">Amount *</label><input class="form-input" type="number" id="fee-amount" placeholder="0.00"/></div>
+        <div class="form-field"><label class="form-label">Payment Method</label>
+          <select class="form-input" id="fee-method">
+            <option value="cash">Cash</option>
+            <option value="bank">Bank Transfer</option>
+            <option value="mobile">Mobile Money</option>
+            <option value="cheque">Cheque</option>
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">Date *</label><input class="form-input" type="date" id="fee-date"/></div>
+        <div class="form-field"><label class="form-label">Reference / Receipt #</label><input class="form-input" id="fee-ref" placeholder="Optional reference"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Notes</label><textarea class="form-input" id="fee-notes" rows="2" placeholder="Optional notes"></textarea></div>
+      <div id="fee-err" class="form-err" style="display:none">Please fill in required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-fee')">Cancel</button>
+      <button class="btn btn-primary" id="save-fee-btn">Save Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Class Form Modal -->
+<div id="m-class" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="class-modal-title">Add Class</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-class')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="clf-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Class Name *</label><input class="form-input" id="clf-name" placeholder="e.g. Grade 7A, JSS 2B"/></div>
+        <div class="form-field"><label class="form-label">Level</label><input class="form-input" id="clf-level" placeholder="e.g. Grade 7"/></div>
+        <div class="form-field"><label class="form-label">Class Teacher</label><select class="form-input" id="clf-teacher"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Capacity</label><input class="form-input" type="number" id="clf-capacity" placeholder="Max students" value="40"/></div>
+        <div class="form-field"><label class="form-label">Room Number</label><input class="form-input" id="clf-room" placeholder="e.g. Room 12"/></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-class')">Cancel</button>
+      <button class="btn btn-primary" id="save-class-btn">Save Class</button>
+    </div>
+  </div>
+</div>
+
+<!-- Subject Form Modal -->
+<div id="m-subject" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Add Subject</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-subject')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Subject Name *</label><input class="form-input" id="subj-name" placeholder="e.g. Mathematics"/></div>
+        <div class="form-field"><label class="form-label">Subject Code</label><input class="form-input" id="subj-code" placeholder="e.g. MATH101"/></div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="subj-class"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Teacher</label><select class="form-input" id="subj-teacher"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Periods/Week</label><input class="form-input" type="number" id="subj-periods" value="5" min="1"/></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-subject')">Cancel</button>
+      <button class="btn btn-primary" id="save-subject-btn">Save Subject</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exam Form Modal -->
+<div id="m-exam" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Create Exam</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-exam')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Exam Name *</label><input class="form-input" id="ex-name" placeholder="e.g. Mid-Term Exam"/></div>
+        <div class="form-field"><label class="form-label">Type</label>
+          <select class="form-input" id="ex-type"><option value="midterm">Mid-Term</option><option value="endterm">End-Term</option><option value="quiz">Quiz</option><option value="assignment">Assignment</option><option value="mock">Mock Exam</option></select>
+        </div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="ex-class"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Subject *</label><select class="form-input" id="ex-subject"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Date *</label><input class="form-input" type="date" id="ex-date"/></div>
+        <div class="form-field"><label class="form-label">Max Score</label><input class="form-input" type="number" id="ex-max" value="100" min="1"/></div>
+        <div class="form-field"><label class="form-label">Term</label>
+          <select class="form-input" id="ex-term"><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select>
+        </div>
+        <div class="form-field"><label class="form-label">Duration (mins)</label><input class="form-input" type="number" id="ex-duration" value="90"/></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-exam')">Cancel</button>
+      <button class="btn btn-primary" id="save-exam-btn">Create Exam</button>
+    </div>
+  </div>
+</div>
+
+<!-- Event Form Modal -->
+<div id="m-event" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Add Event</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-event')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Event Title *</label><input class="form-input" id="ev-title" placeholder="Event name"/></div>
+        <div class="form-field"><label class="form-label">Type</label>
+          <select class="form-input" id="ev-type">
+            <option value="academic">Academic</option><option value="sports">Sports</option><option value="cultural">Cultural</option>
+            <option value="holiday">Holiday</option><option value="exam">Exam</option><option value="meeting">Meeting</option>
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">Start Date *</label><input class="form-input" type="date" id="ev-start"/></div>
+        <div class="form-field"><label class="form-label">End Date</label><input class="form-input" type="date" id="ev-end"/></div>
+        <div class="form-field"><label class="form-label">Time</label><input class="form-input" type="time" id="ev-time"/></div>
+        <div class="form-field"><label class="form-label">Venue</label><input class="form-input" id="ev-venue" placeholder="Event venue"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Description</label><textarea class="form-input" id="ev-desc" rows="3" placeholder="Event details…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-event')">Cancel</button>
+      <button class="btn btn-primary" id="save-event-btn">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- Student Profile Modal -->
+<div id="m-student-profile" class="modal-bg" style="display:none">
+  <div class="modal modal-xl">
+    <div class="modal-hd">
+      <span class="modal-title" id="sp-modal-title">Student Profile</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-student-profile')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="student-profile-body"></div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div id="m-delete" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-hd">
+      <span class="modal-title">Confirm Delete</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-delete')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p id="del-msg" style="font-size:.87rem;color:var(--t2);line-height:1.6"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-delete')">Cancel</button>
+      <button class="btn btn-danger" id="del-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt / Report Card Modal -->
+<div id="m-receipt" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hd">
+      <span class="modal-title" id="receipt-title">Receipt</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-receipt')">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="receipt-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-receipt')">Close</button>
+      <button class="btn btn-ghost btn-sm" onclick="window.print()"><svg style="width:14px;height:14px;margin-right:5px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- Compose Message Modal -->
+<div id="m-compose" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Compose Message</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-compose')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field"><label class="form-label">To *</label>
+        <select class="form-input" id="msg-to">
+          <option value="">— Select Recipients —</option>
+          <option value="all-parents">All Parents</option>
+          <option value="all-staff">All Staff</option>
+          <option value="all-students">All Students</option>
+          <option value="specific-class">Specific Class</option>
+        </select>
+      </div>
+      <div class="form-field" id="msg-class-field" style="display:none">
+        <label class="form-label">Select Class</label>
+        <select class="form-input" id="msg-class"><option value="">— Select Class —</option></select>
+      </div>
+      <div class="form-field"><label class="form-label">Subject *</label><input class="form-input" id="msg-subject" placeholder="Message subject"/></div>
+      <div class="form-field"><label class="form-label">Message *</label><textarea class="form-input" id="msg-body" rows="6" placeholder="Type your message here…"></textarea></div>
+      <div class="toggle-row">
+        <div><div style="font-size:.85rem;font-weight:600">Also send as SMS</div><div style="font-size:.75rem;color:var(--t3)">Send via configured SMS gateway</div></div>
+        <label class="toggle"><input type="checkbox" id="msg-sms"/><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-compose')">Cancel</button>
+      <button class="btn btn-primary" id="send-msg-btn">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Form Modal -->
+<div id="m-user" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="user-modal-title">Add User</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-user')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="uf-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Full Name *</label><input class="form-input" id="uf-name" placeholder="Full name"/></div>
+        <div class="form-field"><label class="form-label">Email *</label><input class="form-input" type="email" id="uf-email" placeholder="Email address"/></div>
+        <div class="form-field"><label class="form-label">Password *</label><input class="form-input" type="password" id="uf-pwd" placeholder="Min. 6 characters"/></div>
+        <div class="form-field"><label class="form-label">Role *</label>
+          <select class="form-input" id="uf-role">
+            <option value="admin">Administrator</option>
+            <option value="teacher">Teacher</option>
+            <option value="accountant">Accountant</option>
+            <option value="librarian">Librarian</option>
+            <option value="staff">General Staff</option>
+          </select>
+        </div>
+      </div>
+      <div id="uf-err" class="form-err" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-user')">Cancel</button>
+      <button class="btn btn-primary" id="save-user-btn">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Search Overlay -->
+<div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:8888;background:rgba(0,0,0,0.5)">
+  <div style="max-width:560px;margin:80px auto;background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,0.3)">
+    <div style="display:flex;align-items:center;padding:1rem 1.25rem;border-bottom:1px solid var(--border)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="global-search-input" placeholder="Search students, staff, anything…" style="flex:1;border:none;outline:none;background:transparent;padding:.5rem .75rem;font-size:.95rem;color:var(--t1);font-family:inherit"/>
+      <button onclick="document.getElementById('search-overlay').style.display='none'" aria-label="Close search" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:1.2rem">&#x2715;</button>
+    </div>
+    <div id="search-results" style="max-height:400px;overflow-y:auto;padding:.5rem 0"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg">Saved</span></div>
+
+<!-- ══ EXPENSE FORM MODAL ══ -->
+<div id="m-expense" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="expense-modal-title">Add Expense</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-expense')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="exp-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Date *</label><input class="form-input" type="date" id="exp-date"/></div>
+        <div class="form-field"><label class="form-label">Category *</label>
+          <select class="form-input" id="exp-category">
+            <option value="">— Select —</option>
+            <option value="Salaries">Salaries</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Supplies">Supplies</option>
+            <option value="Maintenance">Maintenance</option>
+            <option value="Sports">Sports</option>
+            <option value="Transport">Transport</option>
+            <option value="Events">Events</option>
+            <option value="ICT">ICT</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Description *</label><input class="form-input" id="exp-desc" placeholder="Brief description of expense"/></div>
+        <div class="form-field"><label class="form-label">Amount ({{currency}}) *</label><input class="form-input" type="number" id="exp-amount" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="form-field"><label class="form-label">Paid To *</label><input class="form-input" id="exp-paidto" placeholder="Vendor / Recipient name"/></div>
+        <div class="form-field"><label class="form-label">Approved By</label><input class="form-input" id="exp-approved" placeholder="Approver name"/></div>
+        <div class="form-field"><label class="form-label">Receipt / Ref #</label><input class="form-input" id="exp-ref" placeholder="Optional reference"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Notes</label><textarea class="form-input" id="exp-notes" rows="2" placeholder="Additional notes (optional)"></textarea></div>
+      <div id="exp-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-expense')">Cancel</button>
+      <button class="btn btn-primary" id="save-expense-btn">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HOMEWORK FORM MODAL ══ -->
+<div id="m-homework" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="hw-modal-title">Assign Homework</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-homework')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="hw-id"/>
+      <div class="form-grid-2">
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Title *</label><input class="form-input" id="hw-title" placeholder="e.g. Chapter 5 Essay — My Future Career"/></div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="hw-class-sel"><option value="">— Select Class —</option></select></div>
+        <div class="form-field"><label class="form-label">Subject</label><select class="form-input" id="hw-subject-sel"><option value="">— Select Subject —</option></select></div>
+        <div class="form-field"><label class="form-label">Due Date *</label><input class="form-input" type="date" id="hw-due"/></div>
+        <div class="form-field"><label class="form-label">Status</label>
+          <select class="form-input" id="hw-status-sel">
+            <option value="pending">Pending</option>
+            <option value="submitted">Submitted</option>
+            <option value="graded">Graded</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field"><label class="form-label">Description / Instructions</label><textarea class="form-input" id="hw-desc" rows="4" placeholder="Detailed instructions for the assignment…"></textarea></div>
+      <div id="hw-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-homework')">Cancel</button>
+      <button class="btn btn-primary" id="save-hw-btn">Assign Homework</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LEAVE FORM MODAL ══ -->
+<div id="m-leave" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">Apply for Leave</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-leave')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="lv-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">Staff Member *</label><select class="form-input" id="lv-staff"><option value="">— Select Staff —</option></select></div>
+        <div class="form-field"><label class="form-label">Leave Type *</label>
+          <select class="form-input" id="lv-type">
+            <option value="Annual">Annual Leave</option>
+            <option value="Sick">Sick Leave</option>
+            <option value="Maternity">Maternity Leave</option>
+            <option value="Paternity">Paternity Leave</option>
+            <option value="Emergency">Emergency Leave</option>
+            <option value="Study">Study Leave</option>
+            <option value="Unpaid">Unpaid Leave</option>
+          </select>
+        </div>
+        <div class="form-field"><label class="form-label">From Date *</label><input class="form-input" type="date" id="lv-from"/></div>
+        <div class="form-field"><label class="form-label">To Date *</label><input class="form-input" type="date" id="lv-to"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">Reason *</label><textarea class="form-input" id="lv-reason" rows="3" placeholder="Reason for leave application…"></textarea></div>
+      <div id="lv-days-preview" style="display:none;background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:8px;padding:.65rem 1rem;font-size:.82rem;color:var(--brand);margin-top:.5rem"></div>
+      <div id="lv-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-leave')">Cancel</button>
+      <button class="btn btn-primary" id="save-leave-btn">Submit Application</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOOK FORM MODAL ══ -->
+<div id="m-book" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="book-modal-title">Add Book</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-book')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="bk-id"/>
+      <div class="form-grid-2">
+        <div class="form-field"><label class="form-label">ISBN</label><input class="form-input" id="bk-isbn" placeholder="e.g. 978-0-06-112008-4"/></div>
+        <div class="form-field"><label class="form-label">Category *</label>
+          <select class="form-input" id="bk-cat">
+            <option value="">— Select —</option>
+            <option value="Textbook">Textbook</option>
+            <option value="Literature">Literature</option>
+            <option value="Fiction">Fiction</option>
+            <option value="Reference">Reference</option>
+            <option value="Science">Science</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="History">History</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Title *</label><input class="form-input" id="bk-title" placeholder="Full book title"/></div>
+        <div class="form-field"><label class="form-label">Author *</label><input class="form-input" id="bk-author" placeholder="Author name(s)"/></div>
+        <div class="form-field"><label class="form-label">Publisher</label><input class="form-input" id="bk-publisher" placeholder="Publisher name"/></div>
+        <div class="form-field"><label class="form-label">Total Copies *</label><input class="form-input" type="number" id="bk-copies" placeholder="1" min="1" value="1"/></div>
+        <div class="form-field"><label class="form-label">Location / Shelf</label><input class="form-input" id="bk-location" placeholder="e.g. Shelf A2"/></div>
+      </div>
+      <div id="bk-err" class="form-err" style="display:none">Please fill in required fields.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-book')">Cancel</button>
+      <button class="btn btn-primary" id="save-book-btn">Save Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOOK ISSUE MODAL ══ -->
+<div id="m-book-issue" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="issue-modal-title">Issue / Return Book</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-book-issue')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" id="issue-tabs" style="margin-bottom:1rem">
+        <button class="tab active" data-tab="issue-tab">Issue Book</button>
+        <button class="tab" data-tab="return-tab">Return Book</button>
+      </div>
+      <div id="issue-tab" class="tab-pane active">
+        <div class="form-grid-2">
+          <div class="form-field"><label class="form-label">Book *</label><select class="form-input" id="issue-book"><option value="">— Select Book —</option></select></div>
+          <div class="form-field"><label class="form-label">Borrower *</label>
+            <select class="form-input" id="issue-borrower-type" onchange="SMS.toggleBorrowerType()">
+              <option value="student">Student</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+          <div class="form-field" id="issue-student-wrap"><label class="form-label">Student *</label><select class="form-input" id="issue-student"><option value="">— Select Student —</option></select></div>
+          <div class="form-field" id="issue-staff-wrap" style="display:none"><label class="form-label">Staff *</label><select class="form-input" id="issue-staff-mem"><option value="">— Select Staff —</option></select></div>
+          <div class="form-field"><label class="form-label">Issue Date *</label><input class="form-input" type="date" id="issue-date"/></div>
+          <div class="form-field"><label class="form-label">Due Date *</label><input class="form-input" type="date" id="issue-due"/></div>
+        </div>
+        <div id="issue-err" class="form-err" style="display:none">Please fill in all required fields.</div>
+        <div style="margin-top:.85rem"><button class="btn btn-primary" id="confirm-issue-btn">Issue Book</button></div>
+      </div>
+      <div id="return-tab" class="tab-pane">
+        <div class="form-field"><label class="form-label">Select Active Borrowing</label>
+          <select class="form-input" id="return-issue-sel"><option value="">— Select Record —</option></select>
+        </div>
+        <div id="return-preview" style="display:none;background:var(--surface-2);border-radius:8px;padding:.85rem;font-size:.82rem;margin-top:.75rem"></div>
+        <div style="margin-top:.85rem"><button class="btn btn-primary" id="confirm-return-btn">Return Book</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FEE STRUCTURE EDITOR MODAL ══ -->
+<div id="m-fee-struct" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title" id="fee-struct-modal-title">Edit Fee Structure</span>
+      <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-fee-struct')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="fs-class-id"/>
+      <div class="form-field"><label class="form-label">Class</label><input class="form-input" id="fs-class-name" readonly style="background:var(--surface-2)"/></div>
+      <div class="form-grid-3" style="margin-top:.5rem">
+        <div class="form-field"><label class="form-label">Term 1 Fee *</label><input class="form-input" type="number" id="fs-term1" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="form-field"><label class="form-label">Term 2 Fee *</label><input class="form-input" type="number" id="fs-term2" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="form-field"><label class="form-label">Term 3 Fee *</label><input class="form-input" type="number" id="fs-term3" placeholder="0.00" min="0" step="0.01"/></div>
+      </div>
+      <div class="form-field"><label class="form-label">What's Included</label><input class="form-input" id="fs-includes" placeholder="e.g. Tuition, Books, Activities, Feeding"/></div>
+      <div id="fs-total-preview" style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:8px;padding:.65rem 1rem;font-size:.85rem;color:var(--brand);margin-top:.5rem"></div>
+      <div id="fs-err" class="form-err" style="display:none">Please fill in all term fees.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-fee-struct')">Cancel</button>
+      <button class="btn btn-primary" id="save-fee-struct-btn">Save Fee Structure</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- App -->
+<script src="firebase.js"></script>
+<script src="app.js"></script>
+
+<!-- ══ TIMETABLE DESIGNER ══ -->
+<div id="m-tt-designer" class="modal-bg" style="display:none">
+  <div class="modal modal-xl">
+    <div class="modal-hd">
+      <span class="modal-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;margin-right:.4rem;vertical-align:-.2em"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Timetable Structure Designer</span>
+      <button class="modal-close" onclick="SMS.closeModal('m-tt-designer')">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div class="modal-tabs" style="padding:0 1.25rem">
+        <button class="mtab active" onclick="SMS._ttTab('structure',this)">1 · Days &amp; Periods</button>
+        <button class="mtab" onclick="SMS._ttTab('slots',this)">2 · Fill Subjects</button>
+        <button class="mtab" onclick="SMS._ttTab('preview',this)">3 · Preview</button>
+      </div>
+      <div style="padding:1.25rem">
+
+        <!-- TAB 1: Structure -->
+        <div id="tt-tab-structure" class="modal-tab-pane active">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+            <!-- Days -->
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:var(--t2);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.05em">School Days</div>
+              <div id="tt-days-list" style="display:flex;flex-direction:column;gap:.45rem"></div>
+            </div>
+            <!-- Periods -->
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+                <div style="font-size:.82rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em">Time Periods</div>
+                <button class="btn btn-primary btn-sm" onclick="SMS.ttAddPeriod()">+ Add Period</button>
+              </div>
+              <div id="tt-periods-list" style="display:flex;flex-direction:column;gap:.5rem;max-height:360px;overflow-y:auto"></div>
+              <div style="margin-top:.75rem;font-size:.75rem;color:var(--t3)">Drag periods to reorder. Mark as "Break" to make a row non-editable.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Fill Subjects -->
+        <div id="tt-tab-slots" class="modal-tab-pane">
+          <div style="margin-bottom:.9rem;display:flex;align-items:center;gap:.75rem">
+            <div style="font-size:.82rem;font-weight:600;color:var(--t2)">Filling for:</div>
+            <select id="tt-fill-class" class="form-select" style="max-width:200px" onchange="SMS.renderTTFillGrid()">
+              <option value="">— Select Class —</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.ttClearSlots()" style="margin-left:auto">Clear All Slots</button>
+          </div>
+          <div id="tt-fill-grid" style="overflow-x:auto"></div>
+        </div>
+
+        <!-- TAB 3: Preview -->
+        <div id="tt-tab-preview" class="modal-tab-pane">
+          <div style="margin-bottom:.75rem;display:flex;align-items:center;gap:.75rem">
+            <div style="font-size:.82rem;font-weight:600;color:var(--t2)">Preview class:</div>
+            <select id="tt-preview-class" class="form-select" style="max-width:200px" onchange="SMS.renderTTPreview()">
+              <option value="">— Select Class —</option>
+            </select>
+          </div>
+          <div id="tt-preview-grid" style="overflow-x:auto"></div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-t

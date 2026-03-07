@@ -280,33 +280,32 @@
 <div id="pending-screen" style="display:none">
 
   <style>
+    /* ── PENDING SCREEN — White Professional Theme ── */
     #pending-screen {
       position: fixed; inset: 0; z-index: 200;
-      background: #060d1a;
+      background: #f4f7f9;
       font-family: 'DM Sans', sans-serif;
       overflow-y: auto;
     }
 
-    /* Animated background mesh */
+    /* Soft teal gradient wash top */
     #pending-screen::before {
       content: '';
       position: fixed; inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(13,148,136,.07) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(26,58,107,.18) 0%, transparent 55%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,0,0,0) 0%, transparent 100%);
+        radial-gradient(ellipse 70% 45% at 50% 0%, rgba(13,148,136,.08) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 35% at 100% 100%, rgba(26,58,107,.05) 0%, transparent 60%);
       pointer-events: none;
     }
 
-    /* Subtle grid */
+    /* Subtle dot grid */
     #pending-screen::after {
       content: '';
       position: fixed; inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-      background-size: 48px 48px;
+      background-image: radial-gradient(circle, rgba(13,148,136,.12) 1px, transparent 1px);
+      background-size: 28px 28px;
       pointer-events: none;
+      opacity: .5;
     }
 
     .ps-wrap {
@@ -320,10 +319,10 @@
       z-index: 1;
     }
 
-    /* ── TOP WORDMARK ── */
+    /* ── WORDMARK ── */
     .ps-wordmark {
       display: flex; align-items: center; gap: .75rem;
-      margin-bottom: 3.5rem;
+      margin-bottom: 2.5rem;
       animation: psFadeUp .6s ease both;
     }
     .ps-mark {
@@ -331,46 +330,41 @@
       background: linear-gradient(135deg, #0f2144, #1a3a6b);
       border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 8px 24px rgba(0,0,0,.4);
+      box-shadow: 0 2px 10px rgba(26,58,107,.2);
     }
     .ps-brand-name {
       font-size: .95rem; font-weight: 700;
-      color: rgba(255,255,255,.9); letter-spacing: .02em;
+      color: #0f2144; letter-spacing: .02em;
     }
     .ps-brand-tag {
-      font-size: .65rem; color: rgba(255,255,255,.35);
+      font-size: .62rem; color: #6b8aaa;
       letter-spacing: .12em; text-transform: uppercase; margin-top: .1rem;
     }
 
     /* ── MAIN CARD ── */
     .ps-card {
-      width: 100%; max-width: 560px;
-      background: rgba(13,22,44,.7);
-      border: 1px solid rgba(255,255,255,.07);
-      border-radius: 24px;
-      padding: 3rem 2.5rem;
-      backdrop-filter: blur(20px);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,.04),
-        0 32px 80px rgba(0,0,0,.5),
-        inset 0 1px 0 rgba(255,255,255,.06);
+      width: 100%; max-width: 540px;
+      background: #ffffff;
+      border: 1px solid #e2eaf2;
+      border-radius: 20px;
+      padding: 2.75rem 2.5rem;
+      box-shadow: 0 4px 24px rgba(13,148,136,.07), 0 1px 4px rgba(0,0,0,.04);
       animation: psFadeUp .7s .1s ease both;
       position: relative; overflow: hidden;
     }
 
-    /* card accent glow top-left */
+    /* Teal top border accent */
     .ps-card::before {
       content: '';
-      position: absolute; top: -60px; left: -60px;
-      width: 220px; height: 220px;
-      background: radial-gradient(circle, rgba(13,148,136,.15), transparent 65%);
-      pointer-events: none;
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #0d9488, #1a3a6b);
     }
 
-    /* ── STATUS INDICATOR ── */
+    /* ── STATUS RING ── */
     .ps-status-ring {
       width: 76px; height: 76px;
-      margin: 0 auto 1.75rem;
+      margin: 0 auto 1.5rem;
       position: relative;
     }
     .ps-status-ring svg.ring-svg {
@@ -383,78 +377,45 @@
       display: flex; align-items: center; justify-content: center;
     }
     .ps-status-icon svg { animation: psOrbitPulse 2s ease-in-out infinite; }
-    @keyframes psOrbitPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.7;transform:scale(.9);} }
+    @keyframes psOrbitPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.6;transform:scale(.9);} }
 
-    /* ── HEADLINE ── */
+    /* ── EYEBROW ── */
     .ps-eyebrow {
       text-align: center;
-      font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
-      color: #0d9488; margin-bottom: .75rem;
-      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      font-size: .67rem; letter-spacing: .18em; text-transform: uppercase;
+      color: #0d9488; margin-bottom: .6rem;
+      display: flex; align-items: center; justify-content: center; gap: .45rem;
+      font-weight: 600;
     }
     .ps-eyebrow-dot {
       width: 5px; height: 5px; border-radius: 50%;
       background: #0d9488;
       animation: psBlip 1.6s ease-in-out infinite;
     }
-    @keyframes psBlip { 0%,100%{opacity:1;} 50%{opacity:.2;} }
+    @keyframes psBlip { 0%,100%{opacity:1;} 50%{opacity:.15;} }
 
     .ps-headline {
       text-align: center;
-      font-size: 1.75rem; font-weight: 800;
-      color: #fff; line-height: 1.2;
-      margin-bottom: .85rem; letter-spacing: -.02em;
+      font-size: 1.65rem; font-weight: 800;
+      color: #0f2144; line-height: 1.2;
+      margin-bottom: .75rem; letter-spacing: -.02em;
     }
     .ps-headline span { color: #0d9488; }
 
     .ps-desc {
       text-align: center;
-      font-size: .9rem; color: rgba(255,255,255,.45);
-      line-height: 1.7; margin-bottom: 2rem;
-      max-width: 400px; margin-left: auto; margin-right: auto;
+      font-size: .88rem; color: #5a7a96;
+      line-height: 1.75; margin-bottom: 1.75rem;
+      max-width: 420px; margin-left: auto; margin-right: auto;
     }
 
-    /* ── STEP TRACKER ── */
-    .ps-steps {
-      display: flex; flex-direction: column; gap: .75rem;
-      margin-bottom: 2.25rem;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.05);
-      border-radius: 16px; padding: 1.25rem 1.5rem;
-    }
-    .ps-step {
-      display: flex; align-items: center; gap: 1rem;
-    }
-    .ps-step-num {
-      width: 28px; height: 28px; flex-shrink: 0;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .72rem; font-weight: 700;
-    }
-    .ps-step.done .ps-step-num  { background: rgba(13,148,136,.2); color: #0d9488; border: 1px solid rgba(13,148,136,.35); }
-    .ps-step.active .ps-step-num{ background: rgba(255,179,0,.15); color: #ffb300; border: 1px solid rgba(255,179,0,.3); }
-    .ps-step.wait .ps-step-num  { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.08); }
-    .ps-step-info { flex: 1; }
-    .ps-step-label {
-      font-size: .82rem; font-weight: 600;
-    }
-    .ps-step.done .ps-step-label  { color: rgba(255,255,255,.7); }
-    .ps-step.active .ps-step-label{ color: #fff; }
-    .ps-step.wait .ps-step-label  { color: rgba(255,255,255,.3); }
-    .ps-step-sub {
-      font-size: .73rem; margin-top: .1rem;
-    }
-    .ps-step.done .ps-step-sub  { color: #0d9488; }
-    .ps-step.active .ps-step-sub{ color: rgba(255,179,0,.8); }
-    .ps-step.wait .ps-step-sub  { color: rgba(255,255,255,.2); }
-
-    /* ── SCHOOL INFO PILL ── */
+    /* ── SCHOOL PILL ── */
     .ps-school-pill {
-      display: flex; align-items: center; gap: .75rem;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.07);
+      display: flex; align-items: center; gap: .85rem;
+      background: #f0f7f6;
+      border: 1px solid #c8e6e3;
       border-radius: 12px; padding: .85rem 1.1rem;
-      margin-bottom: 1.75rem;
+      margin-bottom: 1.5rem;
     }
     .ps-school-avatar {
       width: 38px; height: 38px; border-radius: 9px;
@@ -462,95 +423,104 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0;
     }
-    .ps-school-name { font-size: .88rem; font-weight: 700; color: #fff; }
-    .ps-school-email { font-size: .73rem; color: rgba(255,255,255,.35); margin-top: .1rem; font-family: monospace; }
+    .ps-school-name { font-size: .88rem; font-weight: 700; color: #0f2144; }
+    .ps-school-email { font-size: .73rem; color: #7a9bb5; margin-top: .1rem; font-family: monospace; }
 
-    /* ── WHATSAPP CTA ── */
+    /* ── STEPS ── */
+    .ps-steps {
+      display: flex; flex-direction: column; gap: .7rem;
+      margin-bottom: 2rem;
+      background: #f8fbfc;
+      border: 1px solid #e2eaf2;
+      border-radius: 14px; padding: 1.1rem 1.35rem;
+    }
+    .ps-step { display: flex; align-items: center; gap: .9rem; }
+    .ps-step-num {
+      width: 27px; height: 27px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700;
+    }
+    .ps-step.done .ps-step-num   { background: #e6f4f2; color: #0d9488; border: 1.5px solid #9dd4cf; }
+    .ps-step.active .ps-step-num { background: #fff4e0; color: #d97706; border: 1.5px solid #fcd48a; }
+    .ps-step.wait .ps-step-num   { background: #f0f4f8; color: #b0c4d8; border: 1.5px solid #dce6ef; }
+    .ps-step-info { flex: 1; }
+    .ps-step-label { font-size: .82rem; font-weight: 600; }
+    .ps-step.done .ps-step-label   { color: #2d7a72; }
+    .ps-step.active .ps-step-label { color: #0f2144; }
+    .ps-step.wait .ps-step-label   { color: #b0c4d8; }
+    .ps-step-sub { font-size: .72rem; margin-top: .1rem; }
+    .ps-step.done .ps-step-sub   { color: #0d9488; }
+    .ps-step.active .ps-step-sub { color: #d97706; }
+    .ps-step.wait .ps-step-sub   { color: #c8d8e8; }
+
+    /* ── WHATSAPP BUTTON ── */
     .ps-wa-btn {
       display: flex; align-items: center; justify-content: center; gap: .85rem;
       width: 100%;
-      background: linear-gradient(135deg, #128c7e, #075e54);
-      border: none; border-radius: 14px;
-      padding: 1.1rem 1.5rem;
+      background: #128c7e;
+      border: none; border-radius: 12px;
+      padding: 1rem 1.5rem;
       color: #fff; font-family: 'DM Sans', sans-serif;
-      font-size: 1rem; font-weight: 700; cursor: pointer;
+      font-size: .95rem; font-weight: 700; cursor: pointer;
       text-decoration: none;
-      box-shadow: 0 8px 28px rgba(18,140,126,.35), inset 0 1px 0 rgba(255,255,255,.12);
-      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 2px 8px rgba(18,140,126,.2);
+      transition: background .2s, transform .15s;
       letter-spacing: .01em;
-      position: relative; overflow: hidden;
     }
-    .ps-wa-btn::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,.08), transparent);
-      pointer-events: none;
-    }
-    .ps-wa-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 36px rgba(18,140,126,.45), inset 0 1px 0 rgba(255,255,255,.12);
-    }
+    .ps-wa-btn:hover { background: #0f7a6e; transform: translateY(-1px); }
     .ps-wa-btn:active { transform: translateY(0); }
     .ps-wa-text { display: flex; flex-direction: column; align-items: flex-start; }
-    .ps-wa-main { font-size: 1rem; font-weight: 700; line-height: 1.2; }
-    .ps-wa-sub  { font-size: .72rem; opacity: .75; font-weight: 400; margin-top: .1rem; }
+    .ps-wa-main { font-size: .95rem; font-weight: 700; line-height: 1.2; }
+    .ps-wa-sub  { font-size: .71rem; opacity: .8; font-weight: 400; margin-top: .1rem; }
 
     /* ── DIVIDER ── */
     .ps-divider {
       display: flex; align-items: center; gap: .75rem;
-      margin: 1.25rem 0; color: rgba(255,255,255,.18); font-size: .75rem;
+      margin: 1.1rem 0; color: #b0c4d8; font-size: .75rem;
     }
     .ps-divider::before, .ps-divider::after {
-      content: ''; flex: 1; height: 1px;
-      background: rgba(255,255,255,.07);
+      content: ''; flex: 1; height: 1px; background: #e2eaf2;
     }
 
-    /* ── SECONDARY ACTIONS ── */
-    .ps-secondary {
-      display: flex; gap: .75rem; flex-wrap: wrap;
-    }
+    /* ── SECONDARY BUTTONS ── */
+    .ps-secondary { display: flex; gap: .65rem; flex-wrap: wrap; }
     .ps-sec-btn {
       flex: 1; min-width: 130px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 11px; padding: .75rem 1rem;
-      color: rgba(255,255,255,.55); font-family: 'DM Sans', sans-serif;
+      background: #fff;
+      border: 1.5px solid #dce6ef;
+      border-radius: 10px; padding: .7rem 1rem;
+      color: #4a6a85; font-family: 'DM Sans', sans-serif;
       font-size: .82rem; font-weight: 600; cursor: pointer;
       transition: all .2s; display: flex; align-items: center;
       justify-content: center; gap: .45rem; text-decoration: none;
     }
-    .ps-sec-btn:hover {
-      background: rgba(255,255,255,.08);
-      border-color: rgba(255,255,255,.15);
-      color: rgba(255,255,255,.85);
-    }
+    .ps-sec-btn:hover { background: #f0f7f6; border-color: #0d9488; color: #0d9488; }
 
     /* ── FOOTER ── */
     .ps-footer {
-      margin-top: 2.5rem; text-align: center;
-      font-size: .72rem; color: rgba(255,255,255,.2);
+      margin-top: 2rem; text-align: center;
+      font-size: .71rem; color: #a0b8cc;
       animation: psFadeUp .8s .3s ease both;
       letter-spacing: .04em;
     }
 
     /* ── SUSPENDED VARIANT ── */
-    #pending-screen.suspended .ps-eyebrow { color: #ff4757; }
-    #pending-screen.suspended .ps-eyebrow-dot { background: #ff4757; }
-    #pending-screen.suspended .ps-headline span { color: #ff4757; }
-    #pending-screen.suspended .ps-card::before {
-      background: radial-gradient(circle, rgba(255,71,87,.1), transparent 65%);
-    }
+    #pending-screen.suspended .ps-eyebrow { color: #e53e3e; }
+    #pending-screen.suspended .ps-eyebrow-dot { background: #e53e3e; }
+    #pending-screen.suspended .ps-headline span { color: #e53e3e; }
+    #pending-screen.suspended .ps-card::before { background: linear-gradient(90deg, #e53e3e, #1a3a6b); }
 
     /* ── ANIMATIONS ── */
     @keyframes psFadeUp {
-      from { opacity: 0; transform: translateY(18px); }
+      from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: none; }
     }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 600px) {
-      .ps-card { padding: 2rem 1.4rem; }
-      .ps-headline { font-size: 1.4rem; }
+      .ps-card { padding: 2rem 1.25rem; }
+      .ps-headline { font-size: 1.35rem; }
       .ps-secondary { flex-direction: column; }
     }
   </style>
@@ -579,7 +549,7 @@
       <!-- Spinning ring -->
       <div class="ps-status-ring">
         <svg class="ring-svg" viewBox="0 0 76 76" fill="none">
-          <circle cx="38" cy="38" r="34" stroke="rgba(255,255,255,.06)" stroke-width="3"/>
+          <circle cx="38" cy="38" r="34" stroke="#e2eaf2" stroke-width="3"/>
           <path d="M38 4 A34 34 0 0 1 72 38" stroke="#0d9488" stroke-width="3" stroke-linecap="round"/>
         </svg>
         <div class="ps-status-icon">
@@ -656,7 +626,7 @@
 
       <!-- Secondary actions -->
       <div class="ps-secondary">
-        <a href="/cdn-cgi/l/email-protection#51343524373e233c38243c7f32343e11363c30383d7f323e3c6e2224333b3432256c1032323e243f2574636110322538273025383e3f74636103342024342225" class="ps-sec-btn" target="_blank">
+        <a href="/cdn-cgi/l/email-protection#3a5f5e4f5c554857534f5714595f557a5d575b53561459555705494f58505f594e077b5959554f544e1f080a7b594e534c5b4e5355541f080a685f4b4f5f494e" class="ps-sec-btn" target="_blank">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Send Email
         </a>

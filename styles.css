@@ -1800,3 +1800,146 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .otp-box { width: 44px; height: 54px; font-size: 1.4rem; border-radius: 10px; }
   .otp-boxes { gap: .45rem; }
 }
+
+
+/* ══════════════════════════════════════
+   LOADING OVERLAY — Premium & Mobile-Safe
+   ══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+
+#loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  /* Subtle premium gradient background */
+  background:
+    radial-gradient(ellipse 80% 60% at 15% 5%,  rgba(13,148,136,.08) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 95%, rgba(26,58,107,.07)  0%, transparent 55%),
+    #f5f8fa;
+}
+
+/* ── Centre column — mobile-first, never overflows ── */
+.lo-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
+  padding: 0 24px;
+  box-sizing: border-box;
+  animation: loUp .7s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes loUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ── Logo wrap ── */
+.lo-logo-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 26px;
+  flex-shrink: 0;
+}
+
+/* Spinning teal arc — positioned outside the disc */
+.lo-ring {
+  position: absolute;
+  top: -14px; left: -14px;
+  width: 148px; height: 148px;
+  animation: loSpin 3s linear infinite;
+  pointer-events: none;
+}
+@keyframes loSpin { to { transform: rotate(360deg); } }
+
+/* White disc */
+.lo-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(13,148,136,.13),
+    0 8px 36px rgba(13,148,136,.14),
+    0 2px 8px  rgba(0,0,0,.05);
+}
+
+.lo-disc img {
+  width: 86%;
+  height: 86%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── Wordmark ── */
+.lo-name {
+  font-size: clamp(1.3rem, 6vw, 1.65rem);
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+  margin-bottom: 7px;
+  white-space: nowrap;
+  animation: loUp .7s .1s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-n1 { color: #0f2144; }
+.lo-n2 { color: #0d9488; }
+
+/* ── Subtitle ── */
+.lo-sub {
+  font-size: clamp(.58rem, 2.2vw, .65rem);
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #7a9bb5;
+  margin-bottom: 26px;
+  white-space: nowrap;
+  animation: loUp .7s .18s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* ── Progress bar ── */
+.lo-track {
+  width: 150px;
+  height: 2px;
+  background: rgba(13,148,136,.1);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 18px;
+  animation: loUp .7s .26s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-bar {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #0d9488, #1a3a6b);
+  animation: loBarMove 2s cubic-bezier(.4,0,.2,1) infinite;
+}
+@keyframes loBarMove {
+  0%   { width: 0%;   margin-left: 0;    }
+  55%  { width: 72%;  margin-left: 0;    }
+  80%  { width: 12%;  margin-left: 88%;  }
+  100% { width: 0%;   margin-left: 100%; }
+}
+
+/* ── Bottom motto ── */
+.lo-motto {
+  font-size: clamp(.6rem, 2.4vw, .68rem);
+  font-weight: 500;
+  color: #afc5d5;
+  letter-spacing: .04em;
+  text-align: center;
+  animation: loUp .7s .34s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* Keep legacy class names so JS hide() still works */
+.loader-brand,.loader-logo,.loader-text,
+.loader-sub,.loader-bar,.loader-progress,
+.loader-dots { display: none !important; }

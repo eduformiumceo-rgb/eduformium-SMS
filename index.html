@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400;1,9..40,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <title>Eduformium School Management System</title>
-<meta name="description" content="Eduformium SMS — School management built for African institutions. Manage students, staff, fees, exams, attendance and more from one dashboard."/>
+<meta name="description" content="Eduformium SMS School management built for African institutions. Manage students, staff, fees, exams, attendance and more from one dashboard."/>
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#1a3a6b"/>
@@ -92,7 +92,7 @@
         <span class="l-hl-1">Manage Progress.</span>
         <span class="l-hl-2">Support <span style="color:#14b8a6">Success.</span></span>
       </div>
-      <p class="l-hero-desc">A modern school management platform built for Ghanaian and African institutions — streamline admissions, fees, exams, attendance, payroll and more from one clean dashboard.</p>
+      <p class="l-hero-desc">A modern school management platform built for Ghanaian and African institutions streamline admissions, fees, exams, attendance, payroll and more from one clean dashboard.</p>
 
       <div class="l-stats-row">
         <div class="l-stat"><span class="l-stat-n">18+</span><span class="l-stat-l">Modules</span></div>
@@ -177,7 +177,7 @@
       <div id="auth-register" style="display:none">
         <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>New School</div>
         <h2 class="l-title">Get started</h2>
-        <p class="l-subtitle">Set up your school account — takes under 2 minutes</p>
+        <p class="l-subtitle">Set up your school account takes under 2 minutes</p>
 
         <div class="form-field">
           <label class="form-label" for="r-school">School Name *</label>
@@ -233,7 +233,7 @@
           <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-0" autocomplete="off"/>
           <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-1" autocomplete="off"/>
           <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-2" autocomplete="off"/>
-          <div class="otp-sep">—</div>
+          <div class="otp-sep"> </div>
           <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-3" autocomplete="off"/>
           <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-4" autocomplete="off"/>
           <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-5" autocomplete="off"/>
@@ -280,32 +280,33 @@
 <div id="pending-screen" style="display:none">
 
   <style>
-    /* ── PENDING SCREEN — White Professional Theme ── */
     #pending-screen {
       position: fixed; inset: 0; z-index: 200;
-      background: #f4f7f9;
+      background: #060d1a;
       font-family: 'DM Sans', sans-serif;
       overflow-y: auto;
     }
 
-    /* Soft teal gradient wash top */
+    /* Animated background mesh */
     #pending-screen::before {
       content: '';
       position: fixed; inset: 0;
       background:
-        radial-gradient(ellipse 70% 45% at 50% 0%, rgba(13,148,136,.08) 0%, transparent 65%),
-        radial-gradient(ellipse 50% 35% at 100% 100%, rgba(26,58,107,.05) 0%, transparent 60%);
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(13,148,136,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 80%, rgba(26,58,107,.18) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,0,0,0) 0%, transparent 100%);
       pointer-events: none;
     }
 
-    /* Subtle dot grid */
+    /* Subtle grid */
     #pending-screen::after {
       content: '';
       position: fixed; inset: 0;
-      background-image: radial-gradient(circle, rgba(13,148,136,.12) 1px, transparent 1px);
-      background-size: 28px 28px;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 48px 48px;
       pointer-events: none;
-      opacity: .5;
     }
 
     .ps-wrap {
@@ -319,10 +320,10 @@
       z-index: 1;
     }
 
-    /* ── WORDMARK ── */
+    /* ── TOP WORDMARK ── */
     .ps-wordmark {
       display: flex; align-items: center; gap: .75rem;
-      margin-bottom: 2.5rem;
+      margin-bottom: 3.5rem;
       animation: psFadeUp .6s ease both;
     }
     .ps-mark {
@@ -330,41 +331,46 @@
       background: linear-gradient(135deg, #0f2144, #1a3a6b);
       border-radius: 12px;
       display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 10px rgba(26,58,107,.2);
+      box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 8px 24px rgba(0,0,0,.4);
     }
     .ps-brand-name {
       font-size: .95rem; font-weight: 700;
-      color: #0f2144; letter-spacing: .02em;
+      color: rgba(255,255,255,.9); letter-spacing: .02em;
     }
     .ps-brand-tag {
-      font-size: .62rem; color: #6b8aaa;
+      font-size: .65rem; color: rgba(255,255,255,.35);
       letter-spacing: .12em; text-transform: uppercase; margin-top: .1rem;
     }
 
     /* ── MAIN CARD ── */
     .ps-card {
-      width: 100%; max-width: 540px;
-      background: #ffffff;
-      border: 1px solid #e2eaf2;
-      border-radius: 20px;
-      padding: 2.75rem 2.5rem;
-      box-shadow: 0 4px 24px rgba(13,148,136,.07), 0 1px 4px rgba(0,0,0,.04);
+      width: 100%; max-width: 560px;
+      background: rgba(13,22,44,.7);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 24px;
+      padding: 3rem 2.5rem;
+      backdrop-filter: blur(20px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.04),
+        0 32px 80px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.06);
       animation: psFadeUp .7s .1s ease both;
       position: relative; overflow: hidden;
     }
 
-    /* Teal top border accent */
+    /* card accent glow top-left */
     .ps-card::before {
       content: '';
-      position: absolute; top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #0d9488, #1a3a6b);
+      position: absolute; top: -60px; left: -60px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(13,148,136,.15), transparent 65%);
+      pointer-events: none;
     }
 
-    /* ── STATUS RING ── */
+    /* ── STATUS INDICATOR ── */
     .ps-status-ring {
       width: 76px; height: 76px;
-      margin: 0 auto 1.5rem;
+      margin: 0 auto 1.75rem;
       position: relative;
     }
     .ps-status-ring svg.ring-svg {
@@ -377,45 +383,78 @@
       display: flex; align-items: center; justify-content: center;
     }
     .ps-status-icon svg { animation: psOrbitPulse 2s ease-in-out infinite; }
-    @keyframes psOrbitPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.6;transform:scale(.9);} }
+    @keyframes psOrbitPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.7;transform:scale(.9);} }
 
-    /* ── EYEBROW ── */
+    /* ── HEADLINE ── */
     .ps-eyebrow {
       text-align: center;
-      font-size: .67rem; letter-spacing: .18em; text-transform: uppercase;
-      color: #0d9488; margin-bottom: .6rem;
-      display: flex; align-items: center; justify-content: center; gap: .45rem;
-      font-weight: 600;
+      font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
+      color: #0d9488; margin-bottom: .75rem;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
     }
     .ps-eyebrow-dot {
       width: 5px; height: 5px; border-radius: 50%;
       background: #0d9488;
       animation: psBlip 1.6s ease-in-out infinite;
     }
-    @keyframes psBlip { 0%,100%{opacity:1;} 50%{opacity:.15;} }
+    @keyframes psBlip { 0%,100%{opacity:1;} 50%{opacity:.2;} }
 
     .ps-headline {
       text-align: center;
-      font-size: 1.65rem; font-weight: 800;
-      color: #0f2144; line-height: 1.2;
-      margin-bottom: .75rem; letter-spacing: -.02em;
+      font-size: 1.75rem; font-weight: 800;
+      color: #fff; line-height: 1.2;
+      margin-bottom: .85rem; letter-spacing: -.02em;
     }
     .ps-headline span { color: #0d9488; }
 
     .ps-desc {
       text-align: center;
-      font-size: .88rem; color: #5a7a96;
-      line-height: 1.75; margin-bottom: 1.75rem;
-      max-width: 420px; margin-left: auto; margin-right: auto;
+      font-size: .9rem; color: rgba(255,255,255,.45);
+      line-height: 1.7; margin-bottom: 2rem;
+      max-width: 400px; margin-left: auto; margin-right: auto;
     }
 
-    /* ── SCHOOL PILL ── */
+    /* ── STEP TRACKER ── */
+    .ps-steps {
+      display: flex; flex-direction: column; gap: .75rem;
+      margin-bottom: 2.25rem;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.05);
+      border-radius: 16px; padding: 1.25rem 1.5rem;
+    }
+    .ps-step {
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .ps-step-num {
+      width: 28px; height: 28px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .72rem; font-weight: 700;
+    }
+    .ps-step.done .ps-step-num  { background: rgba(13,148,136,.2); color: #0d9488; border: 1px solid rgba(13,148,136,.35); }
+    .ps-step.active .ps-step-num{ background: rgba(255,179,0,.15); color: #ffb300; border: 1px solid rgba(255,179,0,.3); }
+    .ps-step.wait .ps-step-num  { background: rgba(255,255,255,.05); color: rgba(255,255,255,.3); border: 1px solid rgba(255,255,255,.08); }
+    .ps-step-info { flex: 1; }
+    .ps-step-label {
+      font-size: .82rem; font-weight: 600;
+    }
+    .ps-step.done .ps-step-label  { color: rgba(255,255,255,.7); }
+    .ps-step.active .ps-step-label{ color: #fff; }
+    .ps-step.wait .ps-step-label  { color: rgba(255,255,255,.3); }
+    .ps-step-sub {
+      font-size: .73rem; margin-top: .1rem;
+    }
+    .ps-step.done .ps-step-sub  { color: #0d9488; }
+    .ps-step.active .ps-step-sub{ color: rgba(255,179,0,.8); }
+    .ps-step.wait .ps-step-sub  { color: rgba(255,255,255,.2); }
+
+    /* ── SCHOOL INFO PILL ── */
     .ps-school-pill {
-      display: flex; align-items: center; gap: .85rem;
-      background: #f0f7f6;
-      border: 1px solid #c8e6e3;
+      display: flex; align-items: center; gap: .75rem;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
       border-radius: 12px; padding: .85rem 1.1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.75rem;
     }
     .ps-school-avatar {
       width: 38px; height: 38px; border-radius: 9px;
@@ -423,104 +462,95 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0;
     }
-    .ps-school-name { font-size: .88rem; font-weight: 700; color: #0f2144; }
-    .ps-school-email { font-size: .73rem; color: #7a9bb5; margin-top: .1rem; font-family: monospace; }
+    .ps-school-name { font-size: .88rem; font-weight: 700; color: #fff; }
+    .ps-school-email { font-size: .73rem; color: rgba(255,255,255,.35); margin-top: .1rem; font-family: monospace; }
 
-    /* ── STEPS ── */
-    .ps-steps {
-      display: flex; flex-direction: column; gap: .7rem;
-      margin-bottom: 2rem;
-      background: #f8fbfc;
-      border: 1px solid #e2eaf2;
-      border-radius: 14px; padding: 1.1rem 1.35rem;
-    }
-    .ps-step { display: flex; align-items: center; gap: .9rem; }
-    .ps-step-num {
-      width: 27px; height: 27px; flex-shrink: 0;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .72rem; font-weight: 700;
-    }
-    .ps-step.done .ps-step-num   { background: #e6f4f2; color: #0d9488; border: 1.5px solid #9dd4cf; }
-    .ps-step.active .ps-step-num { background: #fff4e0; color: #d97706; border: 1.5px solid #fcd48a; }
-    .ps-step.wait .ps-step-num   { background: #f0f4f8; color: #b0c4d8; border: 1.5px solid #dce6ef; }
-    .ps-step-info { flex: 1; }
-    .ps-step-label { font-size: .82rem; font-weight: 600; }
-    .ps-step.done .ps-step-label   { color: #2d7a72; }
-    .ps-step.active .ps-step-label { color: #0f2144; }
-    .ps-step.wait .ps-step-label   { color: #b0c4d8; }
-    .ps-step-sub { font-size: .72rem; margin-top: .1rem; }
-    .ps-step.done .ps-step-sub   { color: #0d9488; }
-    .ps-step.active .ps-step-sub { color: #d97706; }
-    .ps-step.wait .ps-step-sub   { color: #c8d8e8; }
-
-    /* ── WHATSAPP BUTTON ── */
+    /* ── WHATSAPP CTA ── */
     .ps-wa-btn {
       display: flex; align-items: center; justify-content: center; gap: .85rem;
       width: 100%;
-      background: #128c7e;
-      border: none; border-radius: 12px;
-      padding: 1rem 1.5rem;
+      background: linear-gradient(135deg, #128c7e, #075e54);
+      border: none; border-radius: 14px;
+      padding: 1.1rem 1.5rem;
       color: #fff; font-family: 'DM Sans', sans-serif;
-      font-size: .95rem; font-weight: 700; cursor: pointer;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
       text-decoration: none;
-      box-shadow: 0 2px 8px rgba(18,140,126,.2);
-      transition: background .2s, transform .15s;
+      box-shadow: 0 8px 28px rgba(18,140,126,.35), inset 0 1px 0 rgba(255,255,255,.12);
+      transition: transform .15s, box-shadow .15s;
       letter-spacing: .01em;
+      position: relative; overflow: hidden;
     }
-    .ps-wa-btn:hover { background: #0f7a6e; transform: translateY(-1px); }
+    .ps-wa-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.08), transparent);
+      pointer-events: none;
+    }
+    .ps-wa-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 36px rgba(18,140,126,.45), inset 0 1px 0 rgba(255,255,255,.12);
+    }
     .ps-wa-btn:active { transform: translateY(0); }
     .ps-wa-text { display: flex; flex-direction: column; align-items: flex-start; }
-    .ps-wa-main { font-size: .95rem; font-weight: 700; line-height: 1.2; }
-    .ps-wa-sub  { font-size: .71rem; opacity: .8; font-weight: 400; margin-top: .1rem; }
+    .ps-wa-main { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+    .ps-wa-sub  { font-size: .72rem; opacity: .75; font-weight: 400; margin-top: .1rem; }
 
     /* ── DIVIDER ── */
     .ps-divider {
       display: flex; align-items: center; gap: .75rem;
-      margin: 1.1rem 0; color: #b0c4d8; font-size: .75rem;
+      margin: 1.25rem 0; color: rgba(255,255,255,.18); font-size: .75rem;
     }
     .ps-divider::before, .ps-divider::after {
-      content: ''; flex: 1; height: 1px; background: #e2eaf2;
+      content: ''; flex: 1; height: 1px;
+      background: rgba(255,255,255,.07);
     }
 
-    /* ── SECONDARY BUTTONS ── */
-    .ps-secondary { display: flex; gap: .65rem; flex-wrap: wrap; }
+    /* ── SECONDARY ACTIONS ── */
+    .ps-secondary {
+      display: flex; gap: .75rem; flex-wrap: wrap;
+    }
     .ps-sec-btn {
       flex: 1; min-width: 130px;
-      background: #fff;
-      border: 1.5px solid #dce6ef;
-      border-radius: 10px; padding: .7rem 1rem;
-      color: #4a6a85; font-family: 'DM Sans', sans-serif;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 11px; padding: .75rem 1rem;
+      color: rgba(255,255,255,.55); font-family: 'DM Sans', sans-serif;
       font-size: .82rem; font-weight: 600; cursor: pointer;
       transition: all .2s; display: flex; align-items: center;
       justify-content: center; gap: .45rem; text-decoration: none;
     }
-    .ps-sec-btn:hover { background: #f0f7f6; border-color: #0d9488; color: #0d9488; }
+    .ps-sec-btn:hover {
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.15);
+      color: rgba(255,255,255,.85);
+    }
 
     /* ── FOOTER ── */
     .ps-footer {
-      margin-top: 2rem; text-align: center;
-      font-size: .71rem; color: #a0b8cc;
+      margin-top: 2.5rem; text-align: center;
+      font-size: .72rem; color: rgba(255,255,255,.2);
       animation: psFadeUp .8s .3s ease both;
       letter-spacing: .04em;
     }
 
     /* ── SUSPENDED VARIANT ── */
-    #pending-screen.suspended .ps-eyebrow { color: #e53e3e; }
-    #pending-screen.suspended .ps-eyebrow-dot { background: #e53e3e; }
-    #pending-screen.suspended .ps-headline span { color: #e53e3e; }
-    #pending-screen.suspended .ps-card::before { background: linear-gradient(90deg, #e53e3e, #1a3a6b); }
+    #pending-screen.suspended .ps-eyebrow { color: #ff4757; }
+    #pending-screen.suspended .ps-eyebrow-dot { background: #ff4757; }
+    #pending-screen.suspended .ps-headline span { color: #ff4757; }
+    #pending-screen.suspended .ps-card::before {
+      background: radial-gradient(circle, rgba(255,71,87,.1), transparent 65%);
+    }
 
     /* ── ANIMATIONS ── */
     @keyframes psFadeUp {
-      from { opacity: 0; transform: translateY(16px); }
+      from { opacity: 0; transform: translateY(18px); }
       to   { opacity: 1; transform: none; }
     }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 600px) {
-      .ps-card { padding: 2rem 1.25rem; }
-      .ps-headline { font-size: 1.35rem; }
+      .ps-card { padding: 2rem 1.4rem; }
+      .ps-headline { font-size: 1.4rem; }
       .ps-secondary { flex-direction: column; }
     }
   </style>
@@ -549,7 +579,7 @@
       <!-- Spinning ring -->
       <div class="ps-status-ring">
         <svg class="ring-svg" viewBox="0 0 76 76" fill="none">
-          <circle cx="38" cy="38" r="34" stroke="#e2eaf2" stroke-width="3"/>
+          <circle cx="38" cy="38" r="34" stroke="rgba(255,255,255,.06)" stroke-width="3"/>
           <path d="M38 4 A34 34 0 0 1 72 38" stroke="#0d9488" stroke-width="3" stroke-linecap="round"/>
         </svg>
         <div class="ps-status-icon">
@@ -579,7 +609,7 @@
         <div class="ps-school-avatar" id="ps-school-avatar">B</div>
         <div>
           <div class="ps-school-name" id="ps-school-name-display">Your School</div>
-          <div class="ps-school-email" id="ps-school-email-display">—</div>
+          <div class="ps-school-email" id="ps-school-email-display"> </div>
         </div>
       </div>
 
@@ -626,7 +656,7 @@
 
       <!-- Secondary actions -->
       <div class="ps-secondary">
-        <a href="/cdn-cgi/l/email-protection#3a5f5e4f5c554857534f5714595f557a5d575b53561459555705494f58505f594e077b5959554f544e1f080a7b594e534c5b4e5355541f080a685f4b4f5f494e" class="ps-sec-btn" target="_blank">
+        <a href="/cdn-cgi/l/email-protection#adc8c9d8cbc2dfc0c4d8c083cec8c2edcac0ccc4c183cec2c092ded8cfc7c8ced990eccecec2d8c3d9889f9decced9c4dbccd9c4c2c3889f9dffc8dcd8c8ded9" class="ps-sec-btn" target="_blank">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Send Email
         </a>
@@ -997,7 +1027,7 @@
             <span class="card-title">Attendance Records</span>
             <div class="ph-right">
               <input type="date" id="att-from" class="form-input" style="width:130px"/>
-              <span>—</span>
+              <span> </span>
               <input type="date" id="att-to" class="form-input" style="width:130px"/>
               <button class="btn btn-ghost btn-sm" id="att-filter-btn">Filter</button>
             </div>
@@ -1040,8 +1070,8 @@
             <div class="card-hd"><span class="card-title">Enter Grades</span></div>
             <div class="card-body">
               <div class="form-grid-3">
-                <div class="form-field"><label class="form-label">Select Exam</label><select class="form-input" id="grade-exam-sel"><option value="">— Select —</option></select></div>
-                <div class="form-field"><label class="form-label">Class</label><select class="form-input" id="grade-class-sel"><option value="">— Select —</option></select></div>
+                <div class="form-field"><label class="form-label">Select Exam</label><select class="form-input" id="grade-exam-sel"><option value="">  Select  </option></select></div>
+                <div class="form-field"><label class="form-label">Class</label><select class="form-input" id="grade-class-sel"><option value="">  Select  </option></select></div>
                 <div><button class="btn btn-primary" id="load-grade-btn" style="margin-top:1.6rem">Load Students</button></div>
               </div>
               <div id="grade-entry-list" style="margin-top:1rem"></div>
@@ -1614,12 +1644,12 @@
                 <div class="form-field"><label class="form-label">Pass Mark (%)</label><input class="form-input" type="number" id="ac-pass" value="50" min="0" max="100"/></div>
                 <div class="form-field"><label class="form-label">Currency</label>
                   <select class="form-input" id="ac-currency">
-                    <option value="GHS">GHS — Ghana Cedi (₵)</option>
-                    <option value="NGN">NGN — Nigerian Naira (₦)</option>
-                    <option value="KES">KES — Kenyan Shilling (KSh)</option>
-                    <option value="USD">USD — US Dollar ($)</option>
-                    <option value="GBP">GBP — British Pound (£)</option>
-                    <option value="ZAR">ZAR — South African Rand (R)</option>
+                    <option value="GHS">GHS Ghana Cedi (₵)</option>
+                    <option value="NGN">NGN Nigerian Naira (₦)</option>
+                    <option value="KES">KES Kenyan Shilling (KSh)</option>
+                    <option value="USD">USD US Dollar ($)</option>
+                    <option value="GBP">GBP British Pound (£)</option>
+                    <option value="ZAR">ZAR South African Rand (R)</option>
                   </select>
                 </div>
                 <div class="form-field"><label class="form-label">School Type</label>
@@ -1743,12 +1773,12 @@
           <div class="form-field"><label class="form-label">Last Name *</label><input class="form-input" id="sf-lname" placeholder="Last name"/></div>
           <div class="form-field"><label class="form-label">Date of Birth *</label><input class="form-input" type="date" id="sf-dob"/></div>
           <div class="form-field"><label class="form-label">Gender *</label>
-            <select class="form-input" id="sf-gender"><option value="">— Select —</option><option>Male</option><option>Female</option></select>
+            <select class="form-input" id="sf-gender"><option value="">  Select  </option><option>Male</option><option>Female</option></select>
           </div>
           <div class="form-field"><label class="form-label">Nationality</label><input class="form-input" id="sf-nation" placeholder="e.g. Ghanaian"/></div>
           <div class="form-field"><label class="form-label">Religion</label><input class="form-input" id="sf-religion" placeholder="Optional"/></div>
           <div class="form-field"><label class="form-label">Blood Group</label>
-            <select class="form-input" id="sf-blood"><option value="">— Select —</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+            <select class="form-input" id="sf-blood"><option value="">  Select  </option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
           </div>
           <div class="form-field"><label class="form-label">Admission Date *</label><input class="form-input" type="date" id="sf-admit-date"/></div>
         </div>
@@ -1758,7 +1788,7 @@
         <div class="form-grid-3">
           <div class="form-field"><label class="form-label">Student ID</label><input class="form-input" id="sf-sid" placeholder="Auto-generated if blank"/></div>
           <div class="form-field"><label class="form-label">Class *</label>
-            <select class="form-input" id="sf-class"><option value="">— Select —</option></select>
+            <select class="form-input" id="sf-class"><option value="">  Select  </option></select>
           </div>
           <div class="form-field"><label class="form-label">Roll Number</label><input class="form-input" id="sf-roll" placeholder="Class roll number"/></div>
           <div class="form-field"><label class="form-label">Previous School</label><input class="form-input" id="sf-prev-school" placeholder="Previous school name"/></div>
@@ -1823,12 +1853,12 @@
         <div class="form-field"><label class="form-label">Last Name *</label><input class="form-input" id="stf-lname" placeholder="Last name"/></div>
         <div class="form-field"><label class="form-label">Staff ID</label><input class="form-input" id="stf-id-no" placeholder="Auto-generated if blank"/></div>
         <div class="form-field"><label class="form-label">Role *</label>
-          <select class="form-input" id="stf-role"><option value="">— Select —</option><option value="teacher">Teacher</option><option value="admin">Admin Staff</option><option value="support">Support Staff</option><option value="principal">Principal/Head</option></select>
+          <select class="form-input" id="stf-role"><option value="">  Select  </option><option value="teacher">Teacher</option><option value="admin">Admin Staff</option><option value="support">Support Staff</option><option value="principal">Principal/Head</option></select>
         </div>
         <div class="form-field"><label class="form-label">Department</label><input class="form-input" id="stf-dept" placeholder="e.g. Sciences, Mathematics"/></div>
         <div class="form-field"><label class="form-label">Subjects Taught</label><input class="form-input" id="stf-subjects" placeholder="e.g. Maths, Science"/></div>
         <div class="form-field"><label class="form-label">Gender</label>
-          <select class="form-input" id="stf-gender"><option value="">— Select —</option><option>Male</option><option>Female</option></select>
+          <select class="form-input" id="stf-gender"><option value="">  Select  </option><option>Male</option><option>Female</option></select>
         </div>
         <div class="form-field"><label class="form-label">Date of Birth</label><input class="form-input" type="date" id="stf-dob"/></div>
         <div class="form-field"><label class="form-label">Join Date *</label><input class="form-input" type="date" id="stf-join"/></div>
@@ -1858,7 +1888,7 @@
     <div class="modal-body">
       <input type="hidden" id="fee-id"/>
       <div class="form-grid-2">
-        <div class="form-field"><label class="form-label">Student *</label><select class="form-input" id="fee-student"><option value="">— Select Student —</option></select></div>
+        <div class="form-field"><label class="form-label">Student *</label><select class="form-input" id="fee-student"><option value="">  Select Student  </option></select></div>
         <div class="form-field"><label class="form-label">Term *</label>
           <select class="form-input" id="fee-term"><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select>
         </div>
@@ -1896,7 +1926,7 @@
       <div class="form-grid-2">
         <div class="form-field"><label class="form-label">Class Name *</label><input class="form-input" id="clf-name" placeholder="e.g. Grade 7A, JSS 2B"/></div>
         <div class="form-field"><label class="form-label">Level</label><input class="form-input" id="clf-level" placeholder="e.g. Grade 7"/></div>
-        <div class="form-field"><label class="form-label">Class Teacher</label><select class="form-input" id="clf-teacher"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Class Teacher</label><select class="form-input" id="clf-teacher"><option value="">  Select  </option></select></div>
         <div class="form-field"><label class="form-label">Capacity</label><input class="form-input" type="number" id="clf-capacity" placeholder="Max students" value="40"/></div>
         <div class="form-field"><label class="form-label">Room Number</label><input class="form-input" id="clf-room" placeholder="e.g. Room 12"/></div>
       </div>
@@ -1919,8 +1949,8 @@
       <div class="form-grid-2">
         <div class="form-field"><label class="form-label">Subject Name *</label><input class="form-input" id="subj-name" placeholder="e.g. Mathematics"/></div>
         <div class="form-field"><label class="form-label">Subject Code</label><input class="form-input" id="subj-code" placeholder="e.g. MATH101"/></div>
-        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="subj-class"><option value="">— Select —</option></select></div>
-        <div class="form-field"><label class="form-label">Teacher</label><select class="form-input" id="subj-teacher"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="subj-class"><option value="">  Select  </option></select></div>
+        <div class="form-field"><label class="form-label">Teacher</label><select class="form-input" id="subj-teacher"><option value="">  Select  </option></select></div>
         <div class="form-field"><label class="form-label">Periods/Week</label><input class="form-input" type="number" id="subj-periods" value="5" min="1"/></div>
       </div>
     </div>
@@ -1944,8 +1974,8 @@
         <div class="form-field"><label class="form-label">Type</label>
           <select class="form-input" id="ex-type"><option value="midterm">Mid-Term</option><option value="endterm">End-Term</option><option value="quiz">Quiz</option><option value="assignment">Assignment</option><option value="mock">Mock Exam</option></select>
         </div>
-        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="ex-class"><option value="">— Select —</option></select></div>
-        <div class="form-field"><label class="form-label">Subject *</label><select class="form-input" id="ex-subject"><option value="">— Select —</option></select></div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="ex-class"><option value="">  Select  </option></select></div>
+        <div class="form-field"><label class="form-label">Subject *</label><select class="form-input" id="ex-subject"><option value="">  Select  </option></select></div>
         <div class="form-field"><label class="form-label">Date *</label><input class="form-input" type="date" id="ex-date"/></div>
         <div class="form-field"><label class="form-label">Max Score</label><input class="form-input" type="number" id="ex-max" value="100" min="1"/></div>
         <div class="form-field"><label class="form-label">Term</label>
@@ -2044,7 +2074,7 @@
     <div class="modal-body">
       <div class="form-field"><label class="form-label">To *</label>
         <select class="form-input" id="msg-to">
-          <option value="">— Select Recipients —</option>
+          <option value="">  Select Recipients  </option>
           <option value="all-parents">All Parents</option>
           <option value="all-staff">All Staff</option>
           <option value="all-students">All Students</option>
@@ -2053,7 +2083,7 @@
       </div>
       <div class="form-field" id="msg-class-field" style="display:none">
         <label class="form-label">Select Class</label>
-        <select class="form-input" id="msg-class"><option value="">— Select Class —</option></select>
+        <select class="form-input" id="msg-class"><option value="">  Select Class  </option></select>
       </div>
       <div class="form-field"><label class="form-label">Subject *</label><input class="form-input" id="msg-subject" placeholder="Message subject"/></div>
       <div class="form-field"><label class="form-label">Message *</label><textarea class="form-input" id="msg-body" rows="6" placeholder="Type your message here…"></textarea></div>
@@ -2129,7 +2159,7 @@
         <div class="form-field"><label class="form-label">Date *</label><input class="form-input" type="date" id="exp-date"/></div>
         <div class="form-field"><label class="form-label">Category *</label>
           <select class="form-input" id="exp-category">
-            <option value="">— Select —</option>
+            <option value="">  Select  </option>
             <option value="Salaries">Salaries</option>
             <option value="Utilities">Utilities</option>
             <option value="Supplies">Supplies</option>
@@ -2167,9 +2197,9 @@
     <div class="modal-body">
       <input type="hidden" id="hw-id"/>
       <div class="form-grid-2">
-        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Title *</label><input class="form-input" id="hw-title" placeholder="e.g. Chapter 5 Essay — My Future Career"/></div>
-        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="hw-class-sel"><option value="">— Select Class —</option></select></div>
-        <div class="form-field"><label class="form-label">Subject</label><select class="form-input" id="hw-subject-sel"><option value="">— Select Subject —</option></select></div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Title *</label><input class="form-input" id="hw-title" placeholder="e.g. Chapter 5 Essay My Future Career"/></div>
+        <div class="form-field"><label class="form-label">Class *</label><select class="form-input" id="hw-class-sel"><option value="">  Select Class  </option></select></div>
+        <div class="form-field"><label class="form-label">Subject</label><select class="form-input" id="hw-subject-sel"><option value="">  Select Subject  </option></select></div>
         <div class="form-field"><label class="form-label">Due Date *</label><input class="form-input" type="date" id="hw-due"/></div>
         <div class="form-field"><label class="form-label">Status</label>
           <select class="form-input" id="hw-status-sel">
@@ -2199,7 +2229,7 @@
     <div class="modal-body">
       <input type="hidden" id="lv-id"/>
       <div class="form-grid-2">
-        <div class="form-field"><label class="form-label">Staff Member *</label><select class="form-input" id="lv-staff"><option value="">— Select Staff —</option></select></div>
+        <div class="form-field"><label class="form-label">Staff Member *</label><select class="form-input" id="lv-staff"><option value="">  Select Staff  </option></select></div>
         <div class="form-field"><label class="form-label">Leave Type *</label>
           <select class="form-input" id="lv-type">
             <option value="Annual">Annual Leave</option>
@@ -2238,7 +2268,7 @@
         <div class="form-field"><label class="form-label">ISBN</label><input class="form-input" id="bk-isbn" placeholder="e.g. 978-0-06-112008-4"/></div>
         <div class="form-field"><label class="form-label">Category *</label>
           <select class="form-input" id="bk-cat">
-            <option value="">— Select —</option>
+            <option value="">  Select  </option>
             <option value="Textbook">Textbook</option>
             <option value="Literature">Literature</option>
             <option value="Fiction">Fiction</option>
@@ -2278,15 +2308,15 @@
       </div>
       <div id="issue-tab" class="tab-pane active">
         <div class="form-grid-2">
-          <div class="form-field"><label class="form-label">Book *</label><select class="form-input" id="issue-book"><option value="">— Select Book —</option></select></div>
+          <div class="form-field"><label class="form-label">Book *</label><select class="form-input" id="issue-book"><option value="">  Select Book  </option></select></div>
           <div class="form-field"><label class="form-label">Borrower *</label>
             <select class="form-input" id="issue-borrower-type" onchange="SMS.toggleBorrowerType()">
               <option value="student">Student</option>
               <option value="staff">Staff</option>
             </select>
           </div>
-          <div class="form-field" id="issue-student-wrap"><label class="form-label">Student *</label><select class="form-input" id="issue-student"><option value="">— Select Student —</option></select></div>
-          <div class="form-field" id="issue-staff-wrap" style="display:none"><label class="form-label">Staff *</label><select class="form-input" id="issue-staff-mem"><option value="">— Select Staff —</option></select></div>
+          <div class="form-field" id="issue-student-wrap"><label class="form-label">Student *</label><select class="form-input" id="issue-student"><option value="">  Select Student  </option></select></div>
+          <div class="form-field" id="issue-staff-wrap" style="display:none"><label class="form-label">Staff *</label><select class="form-input" id="issue-staff-mem"><option value="">  Select Staff  </option></select></div>
           <div class="form-field"><label class="form-label">Issue Date *</label><input class="form-input" type="date" id="issue-date"/></div>
           <div class="form-field"><label class="form-label">Due Date *</label><input class="form-input" type="date" id="issue-due"/></div>
         </div>
@@ -2295,7 +2325,7 @@
       </div>
       <div id="return-tab" class="tab-pane">
         <div class="form-field"><label class="form-label">Select Active Borrowing</label>
-          <select class="form-input" id="return-issue-sel"><option value="">— Select Record —</option></select>
+          <select class="form-input" id="return-issue-sel"><option value="">  Select Record  </option></select>
         </div>
         <div id="return-preview" style="display:none;background:var(--surface-2);border-radius:8px;padding:.85rem;font-size:.82rem;margin-top:.75rem"></div>
         <div style="margin-top:.85rem"><button class="btn btn-primary" id="confirm-return-btn">Return Book</button></div>
@@ -2379,7 +2409,7 @@
           <div style="margin-bottom:.9rem;display:flex;align-items:center;gap:.75rem">
             <div style="font-size:.82rem;font-weight:600;color:var(--t2)">Filling for:</div>
             <select id="tt-fill-class" class="form-select" style="max-width:200px" onchange="SMS.renderTTFillGrid()">
-              <option value="">— Select Class —</option>
+              <option value="">  Select Class  </option>
             </select>
             <button class="btn btn-secondary btn-sm" onclick="SMS.ttClearSlots()" style="margin-left:auto">Clear All Slots</button>
           </div>
@@ -2391,7 +2421,7 @@
           <div style="margin-bottom:.75rem;display:flex;align-items:center;gap:.75rem">
             <div style="font-size:.82rem;font-weight:600;color:var(--t2)">Preview class:</div>
             <select id="tt-preview-class" class="form-select" style="max-width:200px" onchange="SMS.renderTTPreview()">
-              <option value="">— Select Class —</option>
+              <option value="">  Select Class  </option>
             </select>
           </div>
           <div id="tt-preview-grid" style="overflow-x:auto"></div>

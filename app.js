@@ -341,6 +341,7 @@ const SMS = {
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('pending-screen').style.display='none';
     this.bindForms(); // bind login/register buttons
+    PWABanner.tryShow();
   },
 
   showPendingScreen(profile, email){
@@ -3436,3 +3437,84 @@ const SMS = {
 // ── BOOT ──
 document.addEventListener('DOMContentLoaded',()=>SMS.init());
 window.SMS=SMS;
+
+// ── PWA INSTALL BANNER ──
+const PWABanner = (() => {
+  const DISMISSED_KEY = 'sms_pwa_banner_dismissed';
+  let _prompt = null;
+  let _ready  = false;
+  let _login  = false;
+
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+  }
+
+  function isDismissed() {
+    // If currently running as installed PWA, don't show the banner
+    if (isStandalone()) return true;
+    return localStorage.getItem(DISMISSED_KEY) === 'session';
+  }
+
+  function show() {
+    if (isDismissed()) return;
+    const el = document.getElementById('pwa-banner');
+    if (!el) return;
+    el.style.transition = 'none';
+    el.style.transform  = 'translateY(100%)';
+    el.style.display    = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.style.transition = 'transform .38s cubic-bezier(.34,1.4,.64,1)';
+      el.style.transform  = 'translateY(0)';
+    }));
+  }
+
+  function hide(permanent) {
+    const el = document.getElementById('pwa-banner');
+    if (el) {
+      el.style.transition = 'transform .28s ease-in';
+      el.style.transform  = 'translateY(100%)';
+      setTimeout(() => { el.style.display = 'none'; }, 290);
+    }
+    // 'session' = hide for this tab only; clears on next page load
+    // We never permanently block — uninstalling should restore the banner
+    if (permanent) localStorage.setItem(DISMISSED_KEY, 'session');
+  }
+
+  function tryShow() {
+    _login = true;
+    if (_ready) show();
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    // Clear any leftover session dismiss so the banner can show again
+    localStorage.removeItem(DISMISSED_KEY);
+    _prompt = e;
+    _ready  = true;
+    if (_login) show();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#pwa-install-btn')) {
+      if (!_prompt) return;
+      _prompt.prompt();
+      _prompt.userChoice.then(({ outcome }) => {
+        hide(outcome === 'accepted');
+        _prompt = null;
+      });
+    }
+    if (e.target.closest('#pwa-close-btn')) {
+      hide(true); // session-dismiss on X
+    }
+  });
+
+  // Once installed, the browser stops firing beforeinstallprompt
+  // so no need to do anything special here
+  window.addEventListener('appinstalled', () => {
+    const el = document.getElementById('pwa-banner');
+    if (el) el.style.display = 'none';
+  });
+
+  return { tryShow };
+})();

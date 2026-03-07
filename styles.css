@@ -254,6 +254,10 @@ img { max-width: 100%; }
     transparent 100%);
 }
 
+@media (max-width: 768px) {
+  .l-hero-glow-b { display: none; }
+}
+
 .l-hero-grid { display: none; }
 
 /* Large 'E' watermark */

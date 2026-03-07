@@ -318,7 +318,11 @@ const SMS = {
       } else {
         this.schoolId=null; this.currentUser=null;
         // Do NOT call seedData() here - demo data must never bleed into real accounts
-        this.showLogin();
+        // Do NOT call showLogin if the pending screen is already showing
+        const ps = document.getElementById('pending-screen');
+        if(!ps || ps.style.display === 'none' || ps.style.display === '') {
+          this.showLogin();
+        }
       }
     });
   },
@@ -929,16 +933,15 @@ const SMS = {
 
     this._registering = true;
     const result = await FAuth.register(school, name, email, pwd);
+    this._registering = false;
     if (result.success) {
       this.clearOTPState();
-      // Sign out immediately — keep _registering=true so onAuthChange doesn't interfere
-      if(window.FAuth) await FAuth.logout();
-      this._registering = false;
-      // Show the pending activation screen
+      // Show pending screen FIRST — before logout triggers onAuthStateChanged null event
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
+      // Logout silently in background — the else-branch guard will ignore it
+      if(window.FAuth) FAuth.logout().catch(()=>{});
     } else {
-      this._registering = false;
       errEl.textContent = result.error;
       errEl.style.display = 'flex';
       btn.disabled = false;

@@ -929,15 +929,16 @@ const SMS = {
 
     this._registering = true;
     const result = await FAuth.register(school, name, email, pwd);
-    this._registering = false;
     if (result.success) {
       this.clearOTPState();
-      // Sign out immediately — school must wait for approval before accessing dashboard
+      // Sign out immediately — keep _registering=true so onAuthChange doesn't interfere
       if(window.FAuth) await FAuth.logout();
+      this._registering = false;
       // Show the pending activation screen
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
     } else {
+      this._registering = false;
       errEl.textContent = result.error;
       errEl.style.display = 'flex';
       btn.disabled = false;

@@ -460,12 +460,28 @@ img { max-width: 100%; }
 }
 @keyframes lPanelIn { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: translateX(0); } }
 
-/* Desktop teal bar — direct border on panel, removed on mobile */
-.l-panel-bar--desktop { display: none; }
-.l-panel-bar--mobile { display: none; }
-.l-panel {
-  border-top: 4px solid transparent;
-  border-image: linear-gradient(90deg, #071830 0%, #0d9488 40%, #14b8a6 75%, #0a7a70 100%) 1;
+
+@media (min-width: 769px) {
+    content: '';
+    display: block;
+    height: 4px;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, #071830 0%, #0d9488 40%, #14b8a6 75%, #0a7a70 100%);
+  }
+}
+
+@media (max-width: 768px) {
+    display: flex;
+    justify-content: center;
+    padding: .85rem 0 0;
+    background: transparent;
+  }
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: #d1d5db;
+    border-radius: 99px;
+  }
 }
 .l-panel-inner {
   flex: 1; display: flex; flex-direction: column;
@@ -655,17 +671,7 @@ img { max-width: 100%; }
     animation: lCardUp .48s .1s cubic-bezier(.22,1,.36,1) both;
   }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
-  /* Remove teal border, show grey handle */
-  .l-panel { border-top: none; border-image: none; }
-  .l-panel-bar--mobile {
-    display: flex; justify-content: center;
-    padding: .85rem 0 0; background: transparent;
-  }
-  .l-panel-bar--mobile::after {
-    content: ''; display: block;
-    width: 36px; height: 4px;
-    background: #d1d5db; border-radius: 99px;
-  }
+  /* panel bar handled globally above */
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
   .l-title { font-size: 2.1rem; }
   .l-subtitle { margin-bottom: 1.5rem; }

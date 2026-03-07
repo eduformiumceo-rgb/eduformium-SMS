@@ -279,7 +279,7 @@ const SMS = {
 
   init() {
     if(!window.FAuth){ // fallback if Firebase didn't load
-      // Do NOT seed demo data here — only seed in demo mode
+      // Do NOT seed demo data here - only seed in demo mode
       const school=DB.get('school',{});
       _currency=school.currency||'GHS';
       const session=DB.get('session');
@@ -294,17 +294,20 @@ const SMS = {
       if(this._demoMode) return;
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
-        // Clear any demo/seeded data from localStorage before loading real account
-        // This prevents demo data from being migrated into a real Firestore account
-        if(!this._demoMode){
-          const demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
-            'exams','grades','attendance','events','messages','leaves','homework','books',
-            'expenses','payroll','auditLog','timetable','school','users'];
-          demoCols.forEach(c=>{ try{ localStorage.removeItem('sms_'+c); }catch{} });
-          DB.del('seeded');
-        }
+        // Clear leftover demo data before loading real account
+        const _demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
+          'exams','grades','attendance','events','messages','leaves','homework','books',
+          'expenses','payroll','auditLog','timetable','school','users'];
+        _demoCols.forEach(c=>{try{localStorage.removeItem('sms_'+c);}catch{}});
+        DB.del('seeded');
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
         try{ await Migration.run(this.schoolId); }catch(e){}
+        // Approval gate - show pending/suspended screen instead of dashboard
+        const _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
+        if(_sp && (_sp.status==='pending'||_sp.status==='suspended')){
+          this.showPendingScreen(_sp, firebaseUser.email);
+          return;
+        }
         const school=DB.get('school',{});
         _currency=school.currency||'GHS';
         const users=DB.get('users',[]);
@@ -312,7 +315,7 @@ const SMS = {
         this.boot();
       } else {
         this.schoolId=null; this.currentUser=null;
-        // Do NOT call seedData() here — demo data must never bleed into real accounts
+        // Do NOT call seedData() here - demo data must never bleed into real accounts
         this.showLogin();
       }
     });
@@ -321,7 +324,63 @@ const SMS = {
   showLogin(){
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('login-screen').style.display='flex';
+    document.getElementById('pending-screen').style.display='none';
     this.bindForms(); // bind login/register buttons
+  },
+
+  showPendingScreen(profile, email){
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='none';
+    const ps = document.getElementById('pending-screen');
+    ps.style.display='block';
+
+    const isSuspended = profile.status === 'suspended';
+    ps.className = isSuspended ? 'suspended' : '';
+
+    // Update headline & description
+    if(isSuspended){
+      document.getElementById('ps-eyebrow-text').textContent = 'Account Suspended';
+      document.getElementById('ps-headline').innerHTML = 'Your account has been <span style="color:#ff4757">suspended</span>';
+      document.getElementById('ps-desc').textContent = 'Your school account has been suspended by Eduformium. Please contact us directly on WhatsApp to resolve this and restore access to your dashboard.';
+      document.getElementById('ps-step-review').className='ps-step active';
+      document.getElementById('ps-step-review').querySelector('.ps-step-label').textContent='Account Suspended';
+      document.getElementById('ps-step-review').querySelector('.ps-step-sub').textContent='Contact Eduformium to resolve';
+      document.getElementById('ps-step-review').querySelector('.ps-step-num').textContent='!';
+      // Ring color
+      const ringPath = ps.querySelector('.ring-svg path');
+      if(ringPath) ringPath.setAttribute('stroke','#ff4757');
+      const ringIcon = ps.querySelector('.ps-status-icon svg');
+      if(ringIcon){ ringIcon.setAttribute('stroke','#ff4757'); ringIcon.innerHTML='<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'; }
+    }
+
+    // Populate school info
+    const schoolName = profile.name || 'Your School';
+    const adminEmail = profile.adminEmail || profile.email || email || '';
+    document.getElementById('ps-school-name-display').textContent = schoolName;
+    document.getElementById('ps-school-email-display').textContent = adminEmail;
+    const initial = schoolName.charAt(0).toUpperCase();
+    document.getElementById('ps-school-avatar').textContent = initial;
+
+    // Pre-fill WhatsApp message with school name
+    const waBtn = document.getElementById('ps-wa-btn');
+    if(waBtn){
+      const msg = isSuspended
+        ? encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.')
+        : encodeURIComponent('Hello Eduformium, I just registered my school on Eduformium SMS and I am requesting account activation. School: ' + schoolName + '. Email: ' + adminEmail);
+      waBtn.href = 'https://wa.me/233553774541?text=' + msg;
+    }
+
+    // Email link
+    const emailLinks = ps.querySelectorAll('a[href^="mailto"]');
+    emailLinks.forEach(a => {
+      const subj = isSuspended ? 'Account Suspension - ' + schoolName : 'Account Activation Request - ' + schoolName;
+      a.href = 'mailto:eduformium.ceo@gmail.com?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent((isSuspended ? 'Hello,\n\nMy school account has been suspended.\nSchool: ' : 'Hello,\n\nI would like to request activation for my school account.\nSchool: ') + schoolName + '\nEmail: ' + adminEmail);
+    });
+
+    // Sign out button
+    const soBtn = document.getElementById('ps-signout-btn');
+    if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
   },
 
   boot(){
@@ -432,15 +491,14 @@ const SMS = {
     this.audit('Logout','login',`${this.currentUser.name} signed out`);
     if(window.FAuth) await FAuth.logout();
     DB.del('session'); this.currentUser=null; this.schoolId=null;
-    // If logging out of demo, clear all seeded data from localStorage
     if(this._demoMode){
-      const demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
+      const _dc=['students','staff','classes','subjects','feePayments','feeStructure',
         'exams','grades','attendance','events','messages','leaves','homework','books',
         'expenses','payroll','auditLog','timetable','school','users'];
-      demoCols.forEach(c=>{ try{ localStorage.removeItem('sms_'+c); }catch{} });
+      _dc.forEach(c=>{try{localStorage.removeItem('sms_'+c);}catch{}});
       DB.del('seeded');
     }
-    this._demoMode = false;
+    this._demoMode=false;
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     const lu=document.getElementById('l-user'); if(lu) lu.value='';
@@ -610,7 +668,15 @@ const SMS = {
     // Try Firebase if available
     if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
     const result=await FAuth.login(email,pass);
-    if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; }
+    if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
+    // Check school approval status before granting access
+    const _profile = await FDB.getSchoolProfile(result.uid).catch(()=>null);
+    if(_profile && (_profile.status==='pending'||_profile.status==='suspended')){
+      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+      document.getElementById('login-screen').style.display='none';
+      this.showPendingScreen(_profile, email);
+      return;
+    }
   },
 
   // ══ OTP FLOW ══

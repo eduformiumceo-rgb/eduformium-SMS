@@ -295,7 +295,7 @@ img { max-width: 100%; }
 }
 .l-mark-box {
   width: 58px; height: 58px; border-radius: 50%; flex-shrink: 0;
-  background: #0d1b2e;
+  background: #0d3330;
   border: none;
   display: flex; align-items: center; justify-content: center;
   box-shadow:

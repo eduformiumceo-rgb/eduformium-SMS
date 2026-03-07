@@ -3,12 +3,31 @@
 //  Plain script — no ES modules
 //  Uses Firebase compat SDK from CDN
 //
-//  SECURITY NOTE: This key is restricted to authorised HTTP referrers
-//  in the Firebase Console (API & Services → Credentials).
-//  Never commit an unrestricted key to a public repository.
+//  AUTO-SWITCHES between DEV and PRODUCTION Firebase
+//  based on the current URL:
+//  - dev-eduformium.school-management.workers.dev → DEV Firebase
+//  - eduformium.school-management.workers.dev     → PRODUCTION Firebase
 // ══════════════════════════════════════════
 
-const firebaseConfig = {
+// ── Detect Environment ──
+const _isDev = window.location.hostname.startsWith('dev-') ||
+               window.location.hostname.includes('localhost') ||
+               window.location.hostname.includes('127.0.0.1');
+
+console.log(_isDev ? '🧪 Running on DEV Firebase (eduformium-dev)' : '🚀 Running on PRODUCTION Firebase (eduformium-sms)');
+
+// ── Firebase Configs ──
+const _devConfig = {
+  apiKey: "AIzaSyCq1PER4bH5-ZaWP6Y880s6a2hZ5wyAnBc",
+  authDomain: "eduformium-dev.firebaseapp.com",
+  projectId: "eduformium-dev",
+  storageBucket: "eduformium-dev.firebasestorage.app",
+  messagingSenderId: "63037088188",
+  appId: "1:63037088188:web:b4dc3436aa28d875e50bb9",
+  measurementId: "G-EDZ96VXP8D"
+};
+
+const _prodConfig = {
   apiKey: "AIzaSyC6FBmwn6gSUeb4151QujCn7cuEAk9HR-w",
   authDomain: "eduformium-sms.firebaseapp.com",
   projectId: "eduformium-sms",
@@ -17,6 +36,9 @@ const firebaseConfig = {
   appId: "1:190139114687:web:8f9e343847d367e175520a",
   measurementId: "G-Y68W16CCRH"
 };
+
+// ── Use the right config automatically ──
+const firebaseConfig = _isDev ? _devConfig : _prodConfig;
 
 firebase.initializeApp(firebaseConfig);
 

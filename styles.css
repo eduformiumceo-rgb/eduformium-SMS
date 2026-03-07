@@ -1504,7 +1504,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ══════════════════════════════════════
-   LOADING OVERLAY
+   LOADING OVERLAY — 10/10
    ══════════════════════════════════════ */
 
 #loading-overlay {
@@ -1516,26 +1516,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   justify-content: center;
   overflow: hidden;
   font-family: 'DM Sans', sans-serif;
-  background: #f5f8fb;
+  /* Warm white base + very subtle mesh */
+  background:
+    radial-gradient(ellipse 70% 55% at 18%  8%,  rgba(13,148,136,.08) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 82% 92%,  rgba(26,58,107,.07)  0%, transparent 55%),
+    radial-gradient(ellipse 40% 35% at 50% 50%,  rgba(255,255,255,.9) 0%, transparent 70%),
+    #eef3f7;
 }
 
-/* Two very soft colour washes — no ovals, just gentle radials */
-#loading-overlay::before,
-#loading-overlay::after {
+/* Fine dot-grid texture */
+#loading-overlay::before {
   content: '';
   position: absolute;
-  border-radius: 50%;
+  inset: 0;
   pointer-events: none;
-}
-#loading-overlay::before {
-  width: 500px; height: 500px;
-  top: -200px; left: -160px;
-  background: radial-gradient(circle, rgba(13,148,136,.07) 0%, transparent 65%);
-}
-#loading-overlay::after {
-  width: 420px; height: 420px;
-  bottom: -160px; right: -120px;
-  background: radial-gradient(circle, rgba(26,58,107,.06) 0%, transparent 65%);
+  background-image: radial-gradient(circle, rgba(13,148,136,.1) 1px, transparent 1px);
+  background-size: 30px 30px;
+  opacity: .55;
 }
 
 /* Centre stack */
@@ -1584,9 +1581,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   justify-content: center;
   overflow: hidden;
   box-shadow:
-    0 0 0 1px rgba(13,148,136,.12),
-    0 6px 28px rgba(13,148,136,.12),
-    0 1px 4px rgba(0,0,0,.04);
+    0 0 0 1.5px rgba(13,148,136,.15),
+    0 10px 40px rgba(13,148,136,.16),
+    0 3px 10px  rgba(0,0,0,.07);
 }
 
 .lo-disc img {
@@ -1612,10 +1609,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* ── Subtitle ── */
 .lo-sub {
   font-size: clamp(.58rem, 2vw, .64rem);
-  font-weight: 600;
-  letter-spacing: .15em;
+  font-weight: 700;
+  letter-spacing: .16em;
   text-transform: uppercase;
-  color: #8aaabb;
+  color: #5a7fa0;
   margin-bottom: 30px;
   white-space: nowrap;
   animation: loUp .7s .17s cubic-bezier(.22,1,.36,1) both;
@@ -1625,7 +1622,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .lo-track {
   width: 140px;
   height: 2px;
-  background: rgba(13,148,136,.1);
+  background: rgba(13,148,136,.12);
   border-radius: 99px;
   overflow: hidden;
   margin-bottom: 20px;
@@ -1647,9 +1644,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* ── Motto ── */
 .lo-motto {
   font-size: clamp(.59rem, 2.2vw, .66rem);
-  font-weight: 400;
-  color: #b0c8d6;
-  letter-spacing: .03em;
+  font-weight: 500;
+  color: #8aaec4;
+  letter-spacing: .05em;
   text-align: center;
   animation: loUp .7s .31s cubic-bezier(.22,1,.36,1) both;
 }

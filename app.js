@@ -464,7 +464,12 @@ const SMS = {
     });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; });
     document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; });
-    document.getElementById('register-btn')?.addEventListener('click',()=>this.register());
+    document.getElementById('register-btn')?.addEventListener('click',()=>this.startOTPFlow());
+    // OTP screen listeners
+    document.getElementById('otp-verify-btn')?.addEventListener('click',()=>this.verifyOTP());
+    document.getElementById('otp-resend-btn')?.addEventListener('click',()=>this.resendOTP());
+    document.getElementById('otp-back-btn')?.addEventListener('click',()=>{ document.getElementById('auth-otp').style.display='none'; document.getElementById('auth-register').style.display='block'; this.clearOTPState(); });
+    this.initOTPBoxes();
     document.getElementById('add-student-btn')?.addEventListener('click',()=>this.openStudentModal());
     document.getElementById('save-student-btn')?.addEventListener('click',()=>this.saveStudent());
     ['s-search','s-class-f','s-status-f','s-gender-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderStudents()));
@@ -590,29 +595,260 @@ const SMS = {
     if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; }
   },
 
-  async register(){
-    const school=document.getElementById('r-school').value.trim();
-    const motto=document.getElementById('r-motto')?.value.trim()||'';
-    const name=document.getElementById('r-name').value.trim();
-    const email=document.getElementById('r-email').value.trim();
-    const pwd=document.getElementById('r-pwd').value;
-    const cpwd=document.getElementById('r-cpwd').value;
-    const errEl=document.getElementById('r-err');
-    const btn=document.getElementById('register-btn');
-    if(!school||!name||!email||!pwd){ errEl.textContent='Please fill in all required fields.'; errEl.style.display='flex'; return; }
-    if(pwd!==cpwd){ errEl.textContent='Passwords do not match.'; errEl.style.display='flex'; return; }
-    if(pwd.length<6){ errEl.textContent='Password must be at least 6 characters.'; errEl.style.display='flex'; return; }
-    btn.disabled=true; btn.querySelector('span').textContent='Creating account…'; errEl.style.display='none';
-    if(!window.FAuth){
-      const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.textContent='Email already registered.'; errEl.style.display='flex'; btn.disabled=false; btn.querySelector('span').textContent='Create School Account'; return; }
-      const sc=DB.get('school',{}); sc.name=school; sc.motto=motto||sc.motto; DB.set('school',sc);
-      const newUser={id:uid('u'),email,password:pwd,name,role:'admin',phone:'',createdAt:new Date().toISOString(),lastLogin:null};
-      users.push(newUser); DB.set('users',users); DB.set('session',{userId:newUser.id}); this.currentUser=newUser;
-      this.toast(`Welcome, ${name.split(' ')[0]}!`,'success'); this.boot(); return;
+  // ══ OTP FLOW ══
+  _otpState: {},
+
+  initOTPBoxes() {
+    const boxes = document.querySelectorAll('.otp-box');
+    boxes.forEach((box, i) => {
+      box.addEventListener('input', (e) => {
+        const val = e.target.value.replace(/\D/g, '');
+        box.value = val ? val[0] : '';
+        box.classList.toggle('otp-filled', !!box.value);
+        if (val && i < boxes.length - 1) boxes[i + 1].focus();
+        this._checkOTPComplete();
+      });
+      box.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
+        if (e.key === 'ArrowLeft' && i > 0) boxes[i - 1].focus();
+        if (e.key === 'ArrowRight' && i < boxes.length - 1) boxes[i + 1].focus();
+      });
+      box.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+        boxes.forEach((b, j) => { b.value = paste[j] || ''; b.classList.toggle('otp-filled', !!b.value); });
+        if (paste.length >= 6) boxes[5].focus();
+        else if (paste.length > 0) boxes[Math.min(paste.length, 5)].focus();
+        this._checkOTPComplete();
+      });
+      box.addEventListener('focus', () => { box.select(); });
+    });
+  },
+
+  _checkOTPComplete() {
+    const boxes = document.querySelectorAll('.otp-box');
+    const complete = [...boxes].every(b => b.value.length === 1);
+    const btn = document.getElementById('otp-verify-btn');
+    if (btn) btn.disabled = !complete;
+  },
+
+  _getOTPValue() {
+    return [...document.querySelectorAll('.otp-box')].map(b => b.value).join('');
+  },
+
+  _clearOTPBoxes(error = false) {
+    const boxes = document.querySelectorAll('.otp-box');
+    boxes.forEach(b => {
+      b.value = '';
+      b.classList.remove('otp-filled');
+      b.classList.toggle('otp-error', error);
+    });
+    if (error) setTimeout(() => boxes.forEach(b => b.classList.remove('otp-error')), 600);
+    const btn = document.getElementById('otp-verify-btn');
+    if (btn) btn.disabled = true;
+  },
+
+  clearOTPState() {
+    this._otpState = {};
+    this._clearOTPBoxes();
+    clearInterval(this._otpCountdownTimer);
+    clearInterval(this._otpResendTimer);
+    const errEl = document.getElementById('otp-err');
+    const successEl = document.getElementById('otp-success');
+    if (errEl) errEl.style.display = 'none';
+    if (successEl) successEl.style.display = 'none';
+  },
+
+  async startOTPFlow() {
+    const school = document.getElementById('r-school').value.trim();
+    const motto  = document.getElementById('r-motto').value.trim();
+    const name   = document.getElementById('r-name').value.trim();
+    const email  = document.getElementById('r-email').value.trim();
+    const pwd    = document.getElementById('r-pwd').value;
+    const cpwd   = document.getElementById('r-cpwd').value;
+    const errEl  = document.getElementById('r-err');
+    const btn    = document.getElementById('register-btn');
+
+    if (!school || !name || !email || !pwd) { errEl.textContent = 'Please fill in all required fields.'; errEl.style.display = 'flex'; return; }
+    if (pwd !== cpwd) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'flex'; return; }
+    if (pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'flex'; return; }
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Sending code…';
+    errEl.style.display = 'none';
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Store state
+    this._otpState = { otp, expiresAt, school, motto, name, email, pwd };
+
+    // Send via EmailJS
+    const sent = await this._sendOTPEmail(email, name, otp);
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Create School Account';
+
+    if (!sent) { errEl.textContent = 'Could not send verification email. Check your email and try again.'; errEl.style.display = 'flex'; return; }
+
+    // Show OTP screen
+    document.getElementById('auth-register').style.display = 'none';
+    document.getElementById('auth-otp').style.display = 'block';
+    document.getElementById('otp-email-display').textContent = email;
+    this._clearOTPBoxes();
+    this._startOTPCountdown();
+    this._startResendCooldown();
+    setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
+  },
+
+  async _sendOTPEmail(email, name, otp) {
+    try {
+      // ── REPLACE THESE WITH YOUR EMAILJS CREDENTIALS ──
+      const SERVICE_ID  = 'service_o5op7ns';
+      const TEMPLATE_ID = 'template_x25lxlc';
+      const PUBLIC_KEY  = 'qTSA91Nl3gMRAyLat';
+      // ─────────────────────────────────────────────────
+
+      emailjs.init(PUBLIC_KEY);
+      await emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+        to_name:  name.split(' ')[0],
+        to_email: email,
+        otp_code: otp,
+      });
+      return true;
+    } catch (e) {
+      console.error('EmailJS error:', e);
+      return false;
     }
-    const result=await FAuth.register(school,name,email,pwd);
-    if(result.success){ this.toast(`Welcome, ${name.split(' ')[0]}!`,'success'); }
-    else{ errEl.textContent=result.error; errEl.style.display='flex'; btn.disabled=false; btn.querySelector('span').textContent='Create School Account'; }
+  },
+
+  _startOTPCountdown() {
+    clearInterval(this._otpCountdownTimer);
+    const el = document.getElementById('otp-countdown');
+    const row = document.querySelector('.otp-timer-row');
+    const tick = () => {
+      const remaining = this._otpState.expiresAt - Date.now();
+      if (remaining <= 0) {
+        if (el) el.textContent = '0:00';
+        if (row) row.classList.add('expired');
+        const btn = document.getElementById('otp-verify-btn');
+        if (btn) { btn.disabled = true; }
+        clearInterval(this._otpCountdownTimer);
+        return;
+      }
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      if (el) el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      if (row) row.classList.remove('expired');
+    };
+    tick();
+    this._otpCountdownTimer = setInterval(tick, 1000);
+  },
+
+  _startResendCooldown(seconds = 60) {
+    const btn = document.getElementById('otp-resend-btn');
+    const timerEl = document.getElementById('otp-resend-timer');
+    if (!btn || !timerEl) return;
+    btn.disabled = true;
+    let remaining = seconds;
+    timerEl.textContent = `(${remaining}s)`;
+    clearInterval(this._otpResendTimer);
+    this._otpResendTimer = setInterval(() => {
+      remaining--;
+      timerEl.textContent = `(${remaining}s)`;
+      if (remaining <= 0) {
+        clearInterval(this._otpResendTimer);
+        btn.disabled = false;
+        timerEl.textContent = '';
+      }
+    }, 1000);
+  },
+
+  async resendOTP() {
+    const { email, name } = this._otpState;
+    if (!email) return;
+    const btn = document.getElementById('otp-resend-btn');
+    const successEl = document.getElementById('otp-success');
+    const errEl = document.getElementById('otp-err');
+    btn.disabled = true;
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    this._otpState.otp = otp;
+    this._otpState.expiresAt = Date.now() + 10 * 60 * 1000;
+
+    const sent = await this._sendOTPEmail(email, name, otp);
+    if (sent) {
+      errEl.style.display = 'none';
+      successEl.style.display = 'flex';
+      setTimeout(() => { if (successEl) successEl.style.display = 'none'; }, 4000);
+      this._clearOTPBoxes();
+      this._startOTPCountdown();
+      this._startResendCooldown();
+      setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
+    } else {
+      errEl.textContent = 'Failed to resend. Please try again.';
+      errEl.style.display = 'flex';
+      btn.disabled = false;
+    }
+  },
+
+  async verifyOTP() {
+    const entered = this._getOTPValue();
+    const { otp, expiresAt, school, motto, name, email, pwd } = this._otpState;
+    const errEl = document.getElementById('otp-err');
+    const btn = document.getElementById('otp-verify-btn');
+
+    // Check expiry
+    if (Date.now() > expiresAt) {
+      errEl.textContent = 'This code has expired. Please request a new one.';
+      errEl.style.display = 'flex';
+      this._clearOTPBoxes(true);
+      return;
+    }
+
+    // Check code
+    if (entered !== otp) {
+      errEl.textContent = 'Incorrect code. Please try again.';
+      errEl.style.display = 'flex';
+      this._clearOTPBoxes(true);
+      setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
+      return;
+    }
+
+    // Code correct — create account
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Creating account…';
+
+    if (!window.FAuth) {
+      const users = DB.get('users', []);
+      if (users.find(u => u.email === email)) { errEl.textContent = 'Email already registered.'; errEl.style.display = 'flex'; btn.disabled = false; btn.querySelector('span').textContent = 'Verify & Create Account'; return; }
+      const sc = DB.get('school', {}); sc.name = school; sc.motto = motto || sc.motto; DB.set('school', sc);
+      const newUser = { id: uid('u'), email, password: pwd, name, role: 'admin', phone: '', createdAt: new Date().toISOString(), lastLogin: null };
+      users.push(newUser); DB.set('users', users); DB.set('session', { userId: newUser.id }); this.currentUser = newUser;
+      this.toast(`Welcome, ${name.split(' ')[0]}!`, 'success');
+      this.clearOTPState();
+      this.boot(); return;
+    }
+
+    const result = await FAuth.register(school, name, email, pwd);
+    if (result.success) {
+      this.toast(`Welcome, ${name.split(' ')[0]}! Your school is ready.`, 'success');
+      this.clearOTPState();
+      // Redirect to sign in
+      document.getElementById('auth-otp').style.display = 'none';
+      document.getElementById('auth-signin').style.display = 'block';
+    } else {
+      errEl.textContent = result.error;
+      errEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Verify & Create Account';
+    }
+  },
+
+  async register() {
+    // Legacy — now handled by startOTPFlow
+    await this.startOTPFlow();
   },
 
   // ══ DASHBOARD ══

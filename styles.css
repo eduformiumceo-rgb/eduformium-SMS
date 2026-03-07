@@ -111,26 +111,156 @@ a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font-family: inherit; }
 img { max-width: 100%; }
 
-/* ── Loading Overlay ── */
+/* ══════════════════════════════════════
+   LOADING OVERLAY — Premium White
+   ══════════════════════════════════════ */
 #loading-overlay {
   position: fixed; inset: 0; z-index: 9999;
-  background: #f4f7f9;
+  background: #f5f8fa;
   display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
 }
-.loader-brand { text-align: center; }
-.loader-logo { width: 72px; height: 72px; margin: 0 auto 1rem; }
-.loader-logo svg { width: 100%; height: 100%; }
-.loader-text { font-size: 1.1rem; font-weight: 800; color: #0f2144; letter-spacing: -.025em; margin-bottom: .4rem; }
-.loader-sub { font-size: .72rem; color: #7a9bb5; letter-spacing: .04em; margin-top: .5rem; }
-.loader-bar { display:none; }
-.loader-progress { display:none; }
-@keyframes loaderSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
-.loader-dots { display:flex; gap:7px; justify-content:center; margin:.9rem auto 0; }
-.loader-dots span { display:inline-block; width:9px; height:9px; border-radius:50%; background:#0d9488; animation:loaderDot 1.2s ease-in-out infinite; }
-.loader-dots span:nth-child(1) { animation-delay:0s; }
-.loader-dots span:nth-child(2) { animation-delay:.2s; background:#1a3a6b; }
-.loader-dots span:nth-child(3) { animation-delay:.4s; background:#14b8a6; }
-@keyframes loaderDot { 0%,80%,100% { transform:scale(.6); opacity:.4; } 40% { transform:scale(1); opacity:1; } }
+
+/* Ambient orbs */
+.lo-orb {
+  position: absolute; border-radius: 50%;
+  pointer-events: none; filter: blur(80px);
+}
+.lo-orb-a {
+  width: 520px; height: 520px;
+  background: radial-gradient(circle, rgba(13,148,136,.09) 0%, transparent 70%);
+  top: -140px; left: -100px;
+  animation: loOrbDrift 8s ease-in-out infinite alternate;
+}
+.lo-orb-b {
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(26,58,107,.07) 0%, transparent 70%);
+  bottom: -100px; right: -80px;
+  animation: loOrbDrift 10s ease-in-out infinite alternate-reverse;
+}
+.lo-orb-c {
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(20,184,166,.06) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  animation: loOrbPulse 4s ease-in-out infinite;
+}
+@keyframes loOrbDrift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(30px, 20px) scale(1.08); }
+}
+@keyframes loOrbPulse {
+  0%,100% { opacity: .6; transform: translate(-50%,-50%) scale(1); }
+  50%     { opacity: 1;  transform: translate(-50%,-50%) scale(1.15); }
+}
+
+/* Dot grid */
+.lo-grid {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(circle, rgba(13,148,136,.1) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: .6;
+  animation: loGridFade 1.5s ease both;
+}
+@keyframes loGridFade { from { opacity: 0; } to { opacity: .6; } }
+
+/* Centre content */
+.lo-center {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0;
+  animation: loCenterUp .7s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes loCenterUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Logo mark + orbital ring */
+.lo-mark-wrap {
+  position: relative;
+  width: 140px; height: 140px;
+  margin-bottom: 1.75rem;
+}
+.lo-ring {
+  position: absolute; inset: 0;
+  width: 140px; height: 140px;
+  animation: loSpin 3s linear infinite;
+}
+@keyframes loSpin { to { transform: rotate(360deg); } }
+.lo-mark-box {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border-radius: 50%;
+  margin: 12px;
+  overflow: hidden;
+}
+.lo-real-logo {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  box-shadow: 0 4px 24px rgba(26,58,107,.18), 0 1px 6px rgba(0,0,0,.07);
+}
+
+/* Wordmark */
+.lo-wordmark {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.lo-name {
+  font-size: 1.45rem; font-weight: 800;
+  color: #0f2144; letter-spacing: -.03em;
+  line-height: 1;
+  animation: loCenterUp .7s .1s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-tag {
+  font-size: .68rem; font-weight: 600;
+  color: #7a9bb5; letter-spacing: .16em;
+  text-transform: uppercase; margin-top: .4rem;
+  animation: loCenterUp .7s .2s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* Progress bar */
+.lo-bar-wrap {
+  width: 180px; margin-bottom: 1.4rem;
+  animation: loCenterUp .7s .3s cubic-bezier(.22,1,.36,1) both;
+}
+.lo-bar-track {
+  height: 3px; background: #e2eaf2;
+  border-radius: 99px; overflow: hidden;
+}
+.lo-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0d9488, #1a3a6b);
+  border-radius: 99px;
+  animation: loBarFill 2.2s cubic-bezier(.4,0,.2,1) infinite;
+}
+@keyframes loBarFill {
+  0%   { width: 0%;   margin-left: 0; }
+  50%  { width: 75%;  margin-left: 0; }
+  80%  { width: 20%;  margin-left: 80%; }
+  100% { width: 0%;   margin-left: 100%; }
+}
+
+/* Tagline */
+.lo-tagline {
+  font-size: .72rem; color: #a0b8cc;
+  letter-spacing: .06em; font-weight: 500;
+  animation: loCenterUp .7s .4s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* Version */
+.lo-version {
+  position: absolute; bottom: 1.5rem; right: 1.75rem;
+  font-size: .65rem; color: #c8d8e8; letter-spacing: .08em;
+  font-weight: 600; font-family: 'DM Sans', sans-serif;
+}
+
+/* Keep old class names alive so JS hide still works */
+.loader-brand, .loader-logo, .loader-text,
+.loader-sub, .loader-bar, .loader-progress,
+.loader-dots { display: none !important; }
 
 /* ── PWA Banner ── */
 #pwa-banner {

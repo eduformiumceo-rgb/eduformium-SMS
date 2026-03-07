@@ -279,7 +279,7 @@ const SMS = {
 
   init() {
     if(!window.FAuth){ // fallback if Firebase didn't load
-      seedData();
+      // Do NOT seed demo data here — only seed in demo mode
       const school=DB.get('school',{});
       _currency=school.currency||'GHS';
       const session=DB.get('session');
@@ -294,6 +294,15 @@ const SMS = {
       if(this._demoMode) return;
       if(firebaseUser){
         this.schoolId=firebaseUser.uid;
+        // Clear any demo/seeded data from localStorage before loading real account
+        // This prevents demo data from being migrated into a real Firestore account
+        if(!this._demoMode){
+          const demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
+            'exams','grades','attendance','events','messages','leaves','homework','books',
+            'expenses','payroll','auditLog','timetable','school','users'];
+          demoCols.forEach(c=>{ try{ localStorage.removeItem('sms_'+c); }catch{} });
+          DB.del('seeded');
+        }
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
         try{ await Migration.run(this.schoolId); }catch(e){}
         const school=DB.get('school',{});
@@ -303,7 +312,7 @@ const SMS = {
         this.boot();
       } else {
         this.schoolId=null; this.currentUser=null;
-        seedData();
+        // Do NOT call seedData() here — demo data must never bleed into real accounts
         this.showLogin();
       }
     });
@@ -423,6 +432,15 @@ const SMS = {
     this.audit('Logout','login',`${this.currentUser.name} signed out`);
     if(window.FAuth) await FAuth.logout();
     DB.del('session'); this.currentUser=null; this.schoolId=null;
+    // If logging out of demo, clear all seeded data from localStorage
+    if(this._demoMode){
+      const demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
+        'exams','grades','attendance','events','messages','leaves','homework','books',
+        'expenses','payroll','auditLog','timetable','school','users'];
+      demoCols.forEach(c=>{ try{ localStorage.removeItem('sms_'+c); }catch{} });
+      DB.del('seeded');
+    }
+    this._demoMode = false;
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     const lu=document.getElementById('l-user'); if(lu) lu.value='';

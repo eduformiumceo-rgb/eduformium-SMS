@@ -98,31 +98,8 @@ const FAuth = {
   },
 
   async login(email, password) {
-    try {
-      const c   = await _auth.signInWithEmailAndPassword(email, password);
-      const uid = c.user.uid;
-
-      // ── Check school status before granting access ──
-      const schoolDoc = await _db.collection('schools').doc(uid).get();
-      const profile   = schoolDoc.exists ? schoolDoc.data() : null;
-
-      if (!profile) {
-        await _auth.signOut();
-        return { success: false, error: 'School account not found. Please contact support.' };
-      }
-
-      if (profile.status === 'suspended') {
-        await _auth.signOut();
-        return { success: false, error: 'Your account has been suspended. Please contact Eduformium support.' };
-      }
-
-      if (profile.status === 'pending') {
-        await _auth.signOut();
-        return { success: false, error: 'Your account is pending approval. You will be notified once approved.' };
-      }
-
-      return { success: true, uid, user: c.user };
-    } catch(e) { return { success: false, error: this._err(e.code) }; }
+    try { const c = await _auth.signInWithEmailAndPassword(email,password); return {success:true,uid:c.user.uid,user:c.user}; }
+    catch(e){ return {success:false,error:this._err(e.code)}; }
   },
 
   async logout() {
@@ -130,25 +107,7 @@ const FAuth = {
     catch(e){ return {success:false}; }
   },
 
-  onAuthChange(cb) {
-    return _auth.onAuthStateChanged(async user => {
-      if (user) {
-        // Re-verify status on every page load / session restore
-        try {
-          const doc     = await _db.collection('schools').doc(user.uid).get();
-          const profile = doc.exists ? doc.data() : null;
-          if (!profile || profile.status === 'suspended' || profile.status === 'pending') {
-            await _auth.signOut();
-            cb(null); // treat as logged-out
-            return;
-          }
-        } catch(e) {
-          // Network error — allow cached session to continue rather than locking out
-        }
-      }
-      cb(user);
-    });
-  },
+  onAuthChange(cb) { return _auth.onAuthStateChanged(cb); },
 
   _err(code) {
     const m = {

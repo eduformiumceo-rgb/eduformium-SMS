@@ -1606,7 +1606,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   white-space: nowrap;
   animation: loUp .7s .1s cubic-bezier(.22,1,.36,1) both;
 }
-.lo-n1 { color: #0f2144; }
+.lo-n1 { color: #1a3a6b; }
 .lo-n2 { color: #0d9488; }
 
 /* ── Subtitle ── */

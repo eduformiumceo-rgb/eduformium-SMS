@@ -302,10 +302,11 @@ const SMS = {
         DB.del('seeded');
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
         try{ await Migration.run(this.schoolId); }catch(e){}
-        // Approval gate - show pending/suspended screen instead of dashboard
+        // Approval gate — block anyone who is not explicitly 'active'
         const _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
-        if(_sp && (_sp.status==='pending'||_sp.status==='suspended')){
-          this.showPendingScreen(_sp, firebaseUser.email);
+        const _spStatus = _sp?.status || 'pending';
+        if(_spStatus !== 'active'){
+          this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email);
           return;
         }
         const school=DB.get('school',{});
@@ -669,12 +670,13 @@ const SMS = {
     if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
     const result=await FAuth.login(email,pass);
     if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
-    // Check school approval status before granting access
+    // Check school approval status — block anyone who is not explicitly 'active'
     const _profile = await FDB.getSchoolProfile(result.uid).catch(()=>null);
-    if(_profile && (_profile.status==='pending'||_profile.status==='suspended')){
+    const _status = _profile?.status || 'pending';
+    if(_status !== 'active'){
       btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
       document.getElementById('login-screen').style.display='none';
-      this.showPendingScreen(_profile, email);
+      this.showPendingScreen(_profile || {status:'pending', name:'', adminEmail:email}, email);
       return;
     }
   },

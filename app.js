@@ -277,14 +277,24 @@ const SMS = {
   _staffPage: 1,
   _auditPage: 1,
 
+  // Minimum ms the loading screen stays visible — ensures it's seen on fast/cached loads
+  _loadStart: 0,
+  _MIN_LOAD_MS: 1800,
+  _afterLoad(fn) {
+    const elapsed = Date.now() - this._loadStart;
+    const remaining = Math.max(0, this._MIN_LOAD_MS - elapsed);
+    if (remaining > 0) setTimeout(fn, remaining); else fn();
+  },
+
   init() {
+    this._loadStart = Date.now();
     if(!window.FAuth){ // fallback if Firebase didn't load
       // Do NOT seed demo data here - only seed in demo mode
       const school=DB.get('school',{});
       _currency=school.currency||'GHS';
       const session=DB.get('session');
-      if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this.boot(); return; } }
-      this.showLogin(); return;
+      if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
+      this._afterLoad(()=>this.showLogin()); return;
     }
     // Keep loading overlay visible until Firebase confirms auth state
     document.getElementById('loading-overlay').style.display='flex';
@@ -307,20 +317,20 @@ const SMS = {
         const _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
         const _spStatus = _sp?.status || 'pending';
         if(_spStatus !== 'active'){
-          this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email);
+          this._afterLoad(()=>this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email));
           return;
         }
         const school=DB.get('school',{});
         _currency=school.currency||'GHS';
         const users=DB.get('users',[]);
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
-        this.boot();
+        this._afterLoad(()=>this.boot());
       } else {
         this.schoolId=null; this.currentUser=null;
         // Only show login if pending screen is not already visible
         const _ps = document.getElementById('pending-screen');
         if(!_ps || _ps.style.display === 'none' || _ps.style.display === '') {
-          this.showLogin();
+          this._afterLoad(()=>this.showLogin());
         }
       }
     });
@@ -331,7 +341,6 @@ const SMS = {
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('pending-screen').style.display='none';
     this.bindForms(); // bind login/register buttons
-    PWABanner.tryShow();
   },
 
   showPendingScreen(profile, email){
@@ -3427,64 +3436,3 @@ const SMS = {
 // ── BOOT ──
 document.addEventListener('DOMContentLoaded',()=>SMS.init());
 window.SMS=SMS;
-
-// ── PWA INSTALL BANNER ──
-const PWABanner = (() => {
-  const DISMISSED_KEY = 'sms_pwa_banner_dismissed';
-  let _prompt = null;
-  let _ready  = false;
-  let _login  = false;
-
-  function show() {
-    if (localStorage.getItem(DISMISSED_KEY)) return;
-    const el = document.getElementById('pwa-banner');
-    if (!el) return;
-    el.style.transition = 'none';
-    el.style.transform  = 'translateY(100%)';
-    el.style.display    = 'flex';
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      el.style.transition = 'transform .38s cubic-bezier(.34,1.4,.64,1)';
-      el.style.transform  = 'translateY(0)';
-    }));
-  }
-
-  function hide(permanent) {
-    const el = document.getElementById('pwa-banner');
-    if (el) {
-      el.style.transition = 'transform .28s ease-in';
-      el.style.transform  = 'translateY(100%)';
-      setTimeout(() => { el.style.display = 'none'; }, 290);
-    }
-    if (permanent) localStorage.setItem(DISMISSED_KEY, '1');
-  }
-
-  function tryShow() {
-    _login = true;
-    if (_ready) show();
-  }
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    _prompt = e;
-    _ready  = true;
-    if (_login) show();
-  });
-
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('#pwa-install-btn')) {
-      if (!_prompt) return;
-      _prompt.prompt();
-      _prompt.userChoice.then(({ outcome }) => {
-        hide(outcome === 'accepted');
-        _prompt = null;
-      });
-    }
-    if (e.target.closest('#pwa-close-btn')) {
-      hide(false);
-    }
-  });
-
-  window.addEventListener('appinstalled', () => hide(true));
-
-  return { tryShow };
-})();

@@ -1950,29 +1950,31 @@ const SMS = {
 
   renderFeesKpis(){
     const payments=DB.get('feePayments',[]);
-    const students=DB.get('students',[]);
+    const students=DB.get('students',[]).filter(s=>s.status==='active');
     const feeStructure=DB.get('feeStructure',[]);
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    const defaulters=students.filter(s=>{
+    // Correct outstanding: all 3 terms, no hardcoded fallbacks, active students only
+    let outstanding=0, defaulterCount=0;
+    students.forEach(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
-      const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
-      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2;
+      if(!fs) return;
+      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
+      const owed=Math.max(0,t1-(+(s.feesPaid?.term1||0)))
+               +Math.max(0,t2-(+(s.feesPaid?.term2||0)))
+               +Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      if(owed>0){ outstanding+=owed; defaulterCount++; }
     });
-    const outstanding=defaulters.reduce((s,st)=>{
-      const fs=feeStructure.find(f=>f.classId===st.classId);
-      const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
-      return s+Math.max(0,t1-(+(st.feesPaid?.term1||0)))+Math.max(0,t2-(+(st.feesPaid?.term2||0)));
-    },0);
     document.getElementById('fees-kpis').innerHTML=[
       {icon:'fees',val:fmt(totalCollected),lbl:'Total Collected',color:'teal'},
       {icon:'transactions',val:payments.length,lbl:'Transactions',color:'blue'},
-      {icon:'warning',val:defaulters.length,lbl:'Defaulters',color:'amber'},
-      {icon:'outstanding',val:fmt(Math.max(0,outstanding)),lbl:'Outstanding Balance',color:'red'},
+      {icon:'warning',val:defaulterCount,lbl:'Defaulters',color:'amber'},
+      {icon:'outstanding',val:fmt(outstanding),lbl:'Outstanding Balance',color:'red'},
     ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
   },
 
   renderFees(){
     const payments=DB.get('feePayments',[]); const students=DB.get('students',[]);
+    const feeStructure=DB.get('feeStructure',[]);
     const q=(document.getElementById('fee-search')?.value||'').toLowerCase();
     const cf=document.getElementById('fee-class-f')?.value||'';
     const tf=document.getElementById('fee-term-f')?.value||'';
@@ -1983,16 +1985,30 @@ const SMS = {
     }).sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('fees-tbody').innerHTML=filtered.map(p=>{
       const s=students.find(x=>x.id===p.studentId);
+      // Work out if this term is fully paid for the student
+      const fs=s?feeStructure.find(f=>f.classId===s.classId):null;
+      const termDue=fs?+(fs['term'+p.term]||0):0;
+      const termPaid=s?+(s.feesPaid?.['term'+p.term]||0):0;
+      const termOwed=Math.max(0,termDue-termPaid);
+      const termStatus=termDue===0
+        ? `<span class="badge badge-neutral">No structure</span>`
+        : termOwed===0
+          ? `<span class="badge badge-success">✓ Term ${p.term} Fully Paid</span>`
+          : `<span class="badge badge-warn">Balance: ${fmt(termOwed)}</span>`;
+      // Overall balance across all terms
+      const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
+      const totalOwed=s&&fs?Math.max(0,t1-(+(s.feesPaid?.term1||0)))+Math.max(0,t2-(+(s.feesPaid?.term2||0)))+Math.max(0,t3-(+(s.feesPaid?.term3||0))):0;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${p.receiptNo||'—'}</td>
-        <td style="font-weight:600">${s?s.fname+' '+s.lname:'Unknown'}</td>
-        <td>${this.className(s?.classId)}</td>
-        <td>Term ${p.term}</td>
+        <td><div style="font-weight:600;color:var(--t1)">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
+        <td><span class="badge badge-info">Term ${p.term}</span></td>
         <td style="font-weight:800;color:var(--success)">${fmt(p.amount)}</td>
+        <td>${termStatus}</td>
+        <td style="font-weight:700;color:${totalOwed>0?'var(--danger)':'var(--success)'}">${totalOwed>0?fmt(totalOwed)+' owed':'✓ All Clear'}</td>
         <td><span class="badge badge-neutral">${p.method}</span></td>
         <td>${fmtDate(p.date)}</td>
         <td>${p.by||'—'}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="SMS.showReceipt('${p.id}')" style="padding:.3rem .5rem" title="Receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="SMS.showReceipt('${p.id}')" style="padding:.3rem .5rem" title="View Receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button></td>
       </tr>`;
     }).join('')||SMS._emptyState('fees','No Payments Found','Record your first fee payment or adjust the filters above.','+ Record Payment',"SMS.openFeeModal()");
   },
@@ -2319,7 +2335,16 @@ const SMS = {
     if(si>-1){ if(!students[si].feesPaid) students[si].feesPaid={}; students[si].feesPaid['term'+term]=(+(students[si].feesPaid['term'+term]||0))+amount; DB.set('students',students); }
     const s=DB.get('students',[]).find(x=>x.id===studentId);
     this.audit('Fee Payment','create',`Payment recorded: ${s?.fname} ${s?.lname} — ${fmt(amount)} Term ${term} (${receiptNo})`);
-    this.toast(`Payment of ${fmt(amount)} recorded! Receipt: ${receiptNo}`,'success');
+    // Refresh student to get updated feesPaid
+    const updatedSt=DB.get('students',[]).find(x=>x.id===studentId);
+    const fs2=DB.get('feeStructure',[]).find(f=>f.classId===updatedSt?.classId);
+    const termDue2=fs2?+(fs2['term'+term]||0):0;
+    const termPaid2=updatedSt?+(updatedSt.feesPaid?.['term'+term]||0):0;
+    const termFullyPaid=termDue2>0&&termPaid2>=termDue2;
+    const toastMsg=termFullyPaid
+      ? `✅ Term ${term} fully paid! Receipt: ${receiptNo}`
+      : `Payment of ${fmt(amount)} recorded. Receipt: ${receiptNo}${termDue2>0?' · Balance: '+fmt(Math.max(0,termDue2-termPaid2)):''}`;
+    this.toast(toastMsg,'success');
     this.closeModal('m-fee'); this.renderFees(); this.renderFeesKpis(); this.renderDefaulters();
   },
 

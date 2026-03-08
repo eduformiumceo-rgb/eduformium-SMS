@@ -1033,7 +1033,7 @@ const SMS = {
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
     // Defaulters
     const feeStr=DB.get('feeStructure',[]);
-    const defaulters=students.filter(s=>{ const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; }).slice(0,4);
+    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; }).slice(0,4);
     document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
@@ -1139,7 +1139,7 @@ const SMS = {
   viewStudent(id){
     const s=DB.get('students',[]).find(x=>x.id===id); if(!s) return;
     document.getElementById('sp-modal-title').textContent=`${sanitize(s.fname)} ${sanitize(s.lname)}`;
-    const payments=DB.get('feePayments',[]).filter(p=>p.studentId===id);
+    const payments=DB.get('feePayments',[]).filter(p=>p.studentId===id).sort((a,b)=>b.date.localeCompare(a.date));
     const grades=DB.get('grades',[]).filter(g=>g.studentId===id);
     const exams=DB.get('exams',[]);
     const feeStructure=DB.get('feeStructure',[]);
@@ -1183,7 +1183,9 @@ const SMS = {
         <div class="pinfo-item"><div class="pinfo-label">Admission Date</div><div class="pinfo-val">${fmtDate(s.admitDate)}</div></div>
         <div class="pinfo-item"><div class="pinfo-label">Address</div><div class="pinfo-val">${s.address||'—'}</div></div>
         <div class="pinfo-item"><div class="pinfo-label">Nationality</div><div class="pinfo-val">${s.nationality||'Ghanaian'}</div></div>
+        <div class="pinfo-item"><div class="pinfo-label">Religion</div><div class="pinfo-val">${s.religion||'—'}</div></div>
         <div class="pinfo-item"><div class="pinfo-label">Blood Group</div><div class="pinfo-val">${s.blood||'—'}</div></div>
+        <div class="pinfo-item"><div class="pinfo-label">Previous School</div><div class="pinfo-val">${s.prevSchool||'—'}</div></div>
       </div>
       <div class="profile-section-title">Parent / Guardian</div>
       <div class="profile-info-grid">
@@ -2084,6 +2086,7 @@ const SMS = {
   renderDefaulters(){
     const students=DB.get('students',[]); const classes=DB.get('classes',[]); const feeStructure=DB.get('feeStructure',[]);
     const defaulters=students.filter(s=>{
+      if(s.status!=='active') return false;
       const fs=feeStructure.find(f=>f.classId===s.classId);
       if(!fs) return false;
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
@@ -2135,7 +2138,7 @@ const SMS = {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">AMOUNT OWED</div><div style="font-weight:700;color:var(--danger)">${fmt(total)}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||'Not on record'}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||s.momPhone||'Not on record'}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
       </div>
       <div style="margin-top:1rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
@@ -2204,11 +2207,15 @@ const SMS = {
     const toId=document.getElementById('promo-to')?.value;
     if(!fromId||!toId||fromId===toId){ this.toast('Select two different classes','warn'); return; }
     const students=DB.get('students',[]);
-    const promotedIds=[];
+    const promotedIds=[]; let count=0;
     students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; promotedIds.push(s.id); count++; } });
     DB.set('students',students);
     // Clear old fee payment records for promoted students so feesPaid stays in sync
+    const orphanPromo=DB.get('feePayments',[]).filter(p=>promotedIds.includes(p.studentId));
     DB.set('feePayments',DB.get('feePayments',[]).filter(p=>!promotedIds.includes(p.studentId)));
+    // Also delete from Firestore so they don't return on refresh
+    const _sid=window.SMS&&window.SMS.schoolId;
+    if(_sid&&window.FDB) orphanPromo.forEach(p=>FDB.delete(_sid,'feePayments',p.id).catch(()=>{}));
     this.audit('Student Promotion','edit',`Promoted ${count} students from ${this.className(fromId)} to ${this.className(toId)}`);
     this.toast(`${count} students successfully promoted to ${this.className(toId)}!`,'success');
     this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
@@ -2420,6 +2427,7 @@ const SMS = {
     const date=document.getElementById('fee-date').value;
     const errEl=document.getElementById('fee-err');
     if(!studentId||!amount||!date){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields.'; return; }
+    if(amount<=0){ errEl.style.display='block'; errEl.textContent='Amount must be greater than zero.'; return; }
     // Hard block — prevent overpayment if term is already fully paid
     const stCheck=DB.get('students',[]).find(x=>x.id===studentId);
     const fsCheck=DB.get('feeStructure',[]).find(f=>f.classId===stCheck?.classId);

@@ -2077,7 +2077,7 @@ const SMS = {
         <td style="font-weight:600">${cls?.name||'—'}</td>
         <td>${fmt(f.term1)}</td><td>${fmt(f.term2)}</td><td>${fmt(f.term3)}</td>
         <td class="fee-struct-total">${fmt(total)}</td>
-        <td style="font-size:.75rem;color:var(--t3)">Tuition, Books, Activities</td>
+        <td style="font-size:.75rem;color:var(--t3)">${f.includes||'Tuition, Books, Activities'}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="SMS.openFeeStructModal('${f.classId}')" style="padding:.3rem .5rem;color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button></td>
       </tr>`;
     }).join('')||SMS._emptyState('fees','No Fee Structure Set','Define term fees for each class so the system can track balances.','');
@@ -2151,6 +2151,7 @@ const SMS = {
   sendBulkReminders(){
     const students=DB.get('students',[]); const feeStructure=DB.get('feeStructure',[]);
     const defaulters=students.filter(s=>{
+      if(s.status!=='active') return false;
       const fs=feeStructure.find(f=>f.classId===s.classId);
       if(!fs) return false;
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
@@ -2298,6 +2299,8 @@ const SMS = {
     const students=DB.get('students',[]); students.push(...toImport); DB.set('students',students);
     this.audit('Bulk Import','create',`Imported ${toImport.length} students via file upload`);
     this.toast(`${toImport.length} students imported successfully!`,'success');
+    // Refresh fee modal student dropdown so imported students appear
+    const fstu=document.getElementById('fee-student'); if(fstu){ const sts=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+sts.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)})</option>`).join(''); }
     this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
   },
 
@@ -2380,6 +2383,8 @@ const SMS = {
     document.getElementById('fee-method').value='cash';
     document.getElementById('fee-err').style.display='none';
     const fstu=document.getElementById('fee-student'); if(fstu) fstu.value=preStudentId||'';
+    // Always re-enable save button in case it was disabled by a previous "fully paid" check
+    const saveBtnEl=document.getElementById('save-fee-btn'); if(saveBtnEl) saveBtnEl.disabled=false;
     this.openModal('m-fee');
     // Live term status — runs when student or term changes
     const checkTermStatus=()=>{
@@ -2414,8 +2419,12 @@ const SMS = {
       }
     };
     setTimeout(()=>{
-      document.getElementById('fee-student')?.addEventListener('change', checkTermStatus);
-      document.getElementById('fee-term')?.addEventListener('change', checkTermStatus);
+      // Replace elements with clones to remove any previously stacked listeners
+      ['fee-student','fee-term'].forEach(eid=>{
+        const el=document.getElementById(eid); if(!el) return;
+        const clone=el.cloneNode(true); el.parentNode.replaceChild(clone,el);
+        clone.addEventListener('change', checkTermStatus);
+      });
       if(preStudentId) checkTermStatus();
     }, 80);
   },
@@ -2569,7 +2578,7 @@ const SMS = {
   exportFees(){
     if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
     const payments=DB.get('feePayments',[]); const students=DB.get('students',[]);
-    const data=payments.map(p=>{ const s=students.find(x=>x.id===p.studentId); return {'Receipt No':p.receiptNo,'Student':s?s.fname+' '+s.lname:'Unknown','Class':this.className(s?.classId),'Term':'Term '+p.term,'Amount':p.amount,'Method':p.method,'Date':p.date,'Received By':p.by}; });
+    const data=payments.map(p=>{ const s=students.find(x=>x.id===p.studentId); return {'Receipt No':p.receiptNo,'Student':s?s.fname+' '+s.lname:'Unknown','Class':this.className(s?.classId),'Term':'Term '+p.term,'Amount':p.amount,'Method':p.method,'Date':p.date,'Reference':p.ref||'','Notes':p.notes||'','Received By':p.by}; });
     const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Fee Payments');
     XLSX.writeFile(wb,`FeePayments_${new Date().toISOString().split('T')[0]}.xlsx`);
     this.toast('Fees exported','success');

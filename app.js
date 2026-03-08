@@ -1111,7 +1111,8 @@ const SMS = {
       const termFee1=+(fs?.term1||0), termFee2=+(fs?.term2||0), termFee3=+(fs?.term3||0);
       const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0), p3=+(s.feesPaid?.term3||0);
       const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
-      const feeStatus=owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
+      const noStructure=!fs||(termFee1===0&&termFee2===0&&termFee3===0);
+      const feeStatus=noStructure?`<span style="color:var(--t4);font-size:.76rem;font-weight:600">—</span>`:owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.studentId}</td>
         <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600;color:var(--t1)">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div style="font-size:.73rem;color:var(--t4)">${fmtDate(s.dob)}</div></div></div></td>
@@ -1148,7 +1149,10 @@ const SMS = {
     const fp1=+(s.feesPaid?.term1||0),fp2=+(s.feesPaid?.term2||0),fp3=+(s.feesPaid?.term3||0);
     const fb1=Math.max(0,ft1-fp1),fb2=Math.max(0,ft2-fp2),fb3=Math.max(0,ft3-fp3);
     const totalDue=ft1+ft2+ft3, totalPaid=fp1+fp2+fp3, totalOwed=fb1+fb2+fb3;
-    const feeSummaryHtml=`
+    const noFeeStruct=!fs||(ft1===0&&ft2===0&&ft3===0);
+    const feeSummaryHtml=noFeeStruct
+      ? `<div style="color:var(--t4);font-size:.82rem;padding:.5rem 0;font-style:italic">No fee structure set for this student's class. Go to Fees → Fee Structure to configure.</div>`
+      : `
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.75rem">
         ${[['Term 1',ft1,fp1,fb1],['Term 2',ft2,fp2,fb2],['Term 3',ft3,fp3,fb3]].map(([lbl,due,paid,bal])=>`
         <div style="background:var(--bg2);border-radius:.6rem;padding:.6rem .75rem;border:1px solid var(--border)">
@@ -1281,6 +1285,8 @@ const SMS = {
     const students=DB.get('students',[]);
     const s=students.find(x=>x.id===id);
     DB.set('students',students.filter(x=>x.id!==id));
+    // Also remove orphan fee payment records for this student
+    DB.set('feePayments',DB.get('feePayments',[]).filter(p=>p.studentId!==id));
     this.audit('Delete Student','delete',`Removed student: ${s?.fname} ${s?.lname}`);
     this.toast('Student removed','warn'); this.renderStudents(); this.renderStudentStats();
   },
@@ -2341,7 +2347,7 @@ const SMS = {
     document.getElementById('fee-term').value=DB.get('school',{}).currentTerm||'2';
     document.getElementById('fee-method').value='cash';
     document.getElementById('fee-err').style.display='none';
-    if(preStudentId) document.getElementById('fee-student').value=preStudentId;
+    const fstu=document.getElementById('fee-student'); if(fstu) fstu.value=preStudentId||'';
     this.openModal('m-fee');
     // Live term status — runs when student or term changes
     const checkTermStatus=()=>{
@@ -2414,7 +2420,8 @@ const SMS = {
     }
     errEl.style.display='none';
     const payments=DB.get('feePayments',[]);
-    const receiptNo='REC-'+String(payments.length+1).padStart(4,'0');
+    const maxRec=payments.reduce((mx,p)=>{ const n=parseInt((p.receiptNo||'').replace('REC-','')||0); return n>mx?n:mx; },0);
+    const receiptNo='REC-'+String(maxRec+1).padStart(4,'0');
     const payment={id:uid('fp'),studentId,term,amount,method:document.getElementById('fee-method').value,date,by:this.currentUser.name,receiptNo,ref:document.getElementById('fee-ref').value,notes:document.getElementById('fee-notes').value};
     payments.push(payment); DB.set('feePayments',payments);
     // Update student feesPaid
@@ -2432,7 +2439,7 @@ const SMS = {
       ? `✅ Term ${term} fully paid! Receipt: ${receiptNo}`
       : `Payment of ${fmt(amount)} recorded. Receipt: ${receiptNo}${termDue2>0?' · Balance: '+fmt(Math.max(0,termDue2-termPaid2)):''}`;
     this.toast(toastMsg,'success');
-    this.closeModal('m-fee'); this.renderFees(); this.renderFeesKpis(); this.renderDefaulters();
+    this.closeModal('m-fee'); this.renderFees(); this.renderFeesKpis(); this.renderDefaulters(); this.renderStudents();
   },
 
   showReceipt(paymentId){

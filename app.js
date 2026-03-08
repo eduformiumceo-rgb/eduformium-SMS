@@ -1162,7 +1162,7 @@ const SMS = {
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:${totalOwed>0?'rgba(239,68,68,.07)':'rgba(34,197,94,.07)'};border:1px solid ${totalOwed>0?'rgba(239,68,68,.2)':'rgba(34,197,94,.2)'};border-radius:.6rem;padding:.6rem .85rem;margin-bottom:.75rem">
         <div style="font-size:.82rem;color:var(--t2)">Total: <strong>${fmt(totalPaid)}</strong> paid of <strong>${fmt(totalDue)}</strong></div>
-        ${totalOwed>0?`<span style="font-size:.82rem;font-weight:700;color:var(--danger)">Balance: ${fmt(totalOwed)}</span><button class="btn btn-sm" style="background:var(--brand-blue);color:#fff;padding:.3rem .75rem;font-size:.78rem" onclick="SMS.closeModal('m-student-profile');SMS.nav('fees');SMS.openFeeModal('${s.id}')">Pay Now</button>`:`<span style="font-size:.82rem;font-weight:700;color:var(--success)">Fully Paid ✓</span>`}
+        ${totalOwed>0?`<span style="font-size:.82rem;font-weight:700;color:var(--danger)">Balance: ${fmt(totalOwed)}</span><button class="btn btn-sm" style="background:#1d4ed8;color:#fff;padding:.35rem .9rem;font-size:.8rem;font-weight:700;border:2px solid #1e40af;border-radius:.45rem;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)" onclick="SMS.closeModal('m-student-profile');SMS.nav('fees');SMS.openFeeModal('${s.id}')">Pay Now</button>`:`<span style="font-size:.82rem;font-weight:700;color:var(--success)">Fully Paid ✓</span>`}
       </div>`;
     document.getElementById('student-profile-body').innerHTML=`
       <div style="display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem">

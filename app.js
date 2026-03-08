@@ -2668,7 +2668,10 @@ const SMS = {
         ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
       }catch(e){
         errEl.style.display='block';
-        errEl.textContent=e.code==='auth/wrong-password'?'Current password is incorrect.':'Error updating password. Please try again.';
+        if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') errEl.textContent='Current password is incorrect.';
+        else if(e.code==='auth/requires-recent-login') errEl.textContent='Session expired — please log out and log back in first.';
+        else if(e.code==='auth/weak-password') errEl.textContent='New password too weak — use at least 8 characters.';
+        else errEl.textContent=`Error: ${e.code||e.message}`;
       }
       return;
     }

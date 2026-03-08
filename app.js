@@ -2316,6 +2316,43 @@ const SMS = {
     document.getElementById('fee-err').style.display='none';
     if(preStudentId) document.getElementById('fee-student').value=preStudentId;
     this.openModal('m-fee');
+    // Live term status — runs when student or term changes
+    const checkTermStatus=()=>{
+      const sId=document.getElementById('fee-student')?.value;
+      const tm=document.getElementById('fee-term')?.value;
+      const errEl=document.getElementById('fee-err');
+      const amtEl=document.getElementById('fee-amount');
+      const saveBtn=document.getElementById('save-fee-btn');
+      if(!sId||!tm){ errEl.style.display='none'; return; }
+      const st=DB.get('students',[]).find(x=>x.id===sId);
+      const fs=DB.get('feeStructure',[]).find(f=>f.classId===st?.classId);
+      if(!st||!fs){ errEl.style.display='none'; return; }
+      const due=+(fs['term'+tm]||0);
+      const paid=+(st.feesPaid?.['term'+tm]||0);
+      const owed=Math.max(0,due-paid);
+      if(due===0){ errEl.style.display='none'; return; }
+      if(owed===0){
+        errEl.style.display='block';
+        errEl.style.background='var(--success-bg)';
+        errEl.style.color='var(--success)';
+        errEl.style.borderColor='var(--success)';
+        errEl.textContent=`✅ Term ${tm} is already fully paid (${fmt(paid)} of ${fmt(due)}). No payment needed.`;
+        if(amtEl) amtEl.value='';
+        if(saveBtn) saveBtn.disabled=true;
+      } else {
+        errEl.style.display='block';
+        errEl.style.background='var(--surface-2)';
+        errEl.style.color='var(--t2)';
+        errEl.style.borderColor='var(--border)';
+        errEl.textContent=`Term ${tm}: ${fmt(paid)} paid of ${fmt(due)} — Balance remaining: ${fmt(owed)}`;
+        if(saveBtn) saveBtn.disabled=false;
+      }
+    };
+    setTimeout(()=>{
+      document.getElementById('fee-student')?.addEventListener('change', checkTermStatus);
+      document.getElementById('fee-term')?.addEventListener('change', checkTermStatus);
+      if(preStudentId) checkTermStatus();
+    }, 80);
   },
 
   saveFee(){
@@ -2325,6 +2362,29 @@ const SMS = {
     const date=document.getElementById('fee-date').value;
     const errEl=document.getElementById('fee-err');
     if(!studentId||!amount||!date){ errEl.style.display='block'; errEl.textContent='Please fill in all required fields.'; return; }
+    // Hard block — prevent overpayment if term is already fully paid
+    const stCheck=DB.get('students',[]).find(x=>x.id===studentId);
+    const fsCheck=DB.get('feeStructure',[]).find(f=>f.classId===stCheck?.classId);
+    if(stCheck&&fsCheck){
+      const due=+(fsCheck['term'+term]||0);
+      const paid=+(stCheck.feesPaid?.['term'+term]||0);
+      if(due>0&&paid>=due){
+        errEl.style.display='block';
+        errEl.style.background='var(--danger-bg)';
+        errEl.style.color='var(--danger)';
+        errEl.textContent=`Term ${term} is already fully paid. No further payment can be recorded for this term.`;
+        return;
+      }
+      // Also cap: don't allow amount that exceeds remaining balance
+      const owed=due-paid;
+      if(due>0&&amount>owed){
+        errEl.style.display='block';
+        errEl.style.background='var(--danger-bg)';
+        errEl.style.color='var(--danger)';
+        errEl.textContent=`Amount exceeds remaining balance of ${fmt(owed)} for Term ${term}. Please enter the correct amount.`;
+        return;
+      }
+    }
     errEl.style.display='none';
     const payments=DB.get('feePayments',[]);
     const receiptNo='REC-'+String(payments.length+1).padStart(4,'0');

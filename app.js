@@ -1235,6 +1235,8 @@ const SMS = {
       document.getElementById('sf-transport').value=s.transport||'none';
       document.getElementById('sf-notes').value=s.notes||'';
       document.getElementById('sf-prev-school').value=s.prevSchool||'';
+      if(document.getElementById('sf-nation')) document.getElementById('sf-nation').value=s.nationality||'';
+      if(document.getElementById('sf-religion')) document.getElementById('sf-religion').value=s.religion||'';
       document.getElementById('sf-dad').value=s.dadName||'';
       document.getElementById('sf-dad-phone').value=s.dadPhone||'';
       document.getElementById('sf-dad-email').value=s.dadEmail||'';
@@ -1279,7 +1281,7 @@ const SMS = {
     const students=DB.get('students',[]);
     const existingId=document.getElementById('sf-id').value;
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(students.length+101).padStart(4,'0');
-    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{term1:0,term2:0,term3:0}};
+    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{term1:0,term2:0,term3:0}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
       if(i>-1){ const old=students[i]; students[i]={...old,...data,id:existingId,studentId:old.studentId,feesPaid:old.feesPaid}; DB.set('students',students); this.audit('Edit Student','edit',`Updated student: ${fname} ${lname}`); this.toast('Student updated','success'); }
@@ -1289,6 +1291,8 @@ const SMS = {
       this.toast(`${fname} ${lname} enrolled successfully!`,'success');
     }
     this.closeModal('m-student'); this.renderStudents(); this.renderStudentStats();
+    // Keep fee modal student dropdown in sync
+    const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)})</option>`).join(''); }
   },
 
   deleteStudent(id){
@@ -1298,13 +1302,14 @@ const SMS = {
     // Also remove orphan fee payment records for this student
     DB.set('feePayments',DB.get('feePayments',[]).filter(p=>p.studentId!==id));
     this.audit('Delete Student','delete',`Removed student: ${s?.fname} ${s?.lname}`);
-    this.toast('Student removed','warn'); this.renderStudents(); this.renderStudentStats();
+    this.toast('Student removed','warn'); this.renderStudents(); this.renderStudentStats(); this.renderFeesKpis(); this.renderDefaulters();
+    const fstu=document.getElementById('fee-student'); if(fstu){ const sts=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+sts.map(st=>`<option value="${st.id}">${sanitize(st.fname)} ${sanitize(st.lname)} (${this.className(st.classId)})</option>`).join(''); }
   },
 
   exportStudents(){
     if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
     const students=DB.get('students',[]);
-    const data=students.map(s=>({'Student ID':s.studentId,'First Name':s.fname,'Last Name':s.lname,'Class':this.className(s.classId),'Gender':s.gender,'DOB':s.dob,'Father/Guardian':s.dadName,'Phone':s.dadPhone,'Status':s.status,'Admission Date':s.admitDate}));
+    const data=students.map(s=>({'Student ID':s.studentId,'First Name':s.fname,'Middle Name':s.mname||'','Last Name':s.lname,'Class':this.className(s.classId),'Gender':s.gender,'DOB':s.dob,'Address':s.address||'','Blood Group':s.blood||'','Nationality':s.nationality||'','Roll No':s.roll||'','Status':s.status,'Transport':s.transport||'none','Admission Date':s.admitDate,'Father/Guardian':s.dadName||'','Father Phone':s.dadPhone||'','Father Email':s.dadEmail||'','Mother':s.momName||'','Mother Phone':s.momPhone||'','Emergency Contact':s.emerName||'','Emergency Phone':s.emerPhone||'','Notes':s.notes||''}));
     const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Students');
     XLSX.writeFile(wb,`Students_${new Date().toISOString().split('T')[0]}.xlsx`);
     this.toast('Students exported','success');
@@ -2674,10 +2679,13 @@ const SMS = {
     } else if(type==='finance'){
       title.textContent='Financial Report';
       const totalFees=payments.reduce((s,p)=>s+(+p.amount||0),0); const totalExp=expenses.reduce((s,e)=>s+(+e.amount||0),0);
-      content.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+      const feeStructure=DB.get('feeStructure',[]);
+      let totalOutstanding=0; students.filter(s=>s.status==='active').forEach(s=>{ const fs=feeStructure.find(f=>f.classId===s.classId); if(!fs) return; totalOutstanding+=Math.max(0,+(fs.term1||0)-(+(s.feesPaid?.term1||0)))+Math.max(0,+(fs.term2||0)-(+(s.feesPaid?.term2||0)))+Math.max(0,+(fs.term3||0)-(+(s.feesPaid?.term3||0))); });
+      content.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem">
         <div class="kpi-card"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="kpi-val">${fmt(totalFees)}</div><div class="kpi-label">Total Fee Revenue</div></div>
         <div class="kpi-card"><div class="kpi-icon red">${SMS._kpiSvg('expenses')}</div><div class="kpi-val">${fmt(totalExp)}</div><div class="kpi-label">Total Expenses</div></div>
-        <div class="kpi-card"><div class="kpi-icon ${totalFees-totalExp>0?'green':'amber'}">${SMS._kpiSvg('trending')}</div><div class="kpi-val" style="color:${totalFees-totalExp>0?'var(--success)':'var(--danger)'}">${fmt(totalFees-totalExp)}</div><div class="kpi-label">Net Balance</div></div>
+                <div class="kpi-card"><div class="kpi-icon amber">${SMS._kpiSvg('warning')}</div><div class="kpi-val" style="color:var(--danger)">${fmt(totalOutstanding)}</div><div class="kpi-label">Outstanding Balance</div></div>
+<div class="kpi-card"><div class="kpi-icon ${totalFees-totalExp>0?'green':'amber'}">${SMS._kpiSvg('trending')}</div><div class="kpi-val" style="color:${totalFees-totalExp>0?'var(--success)':'var(--danger)'}">${fmt(totalFees-totalExp)}</div><div class="kpi-label">Net Balance</div></div>
       </div>`;
     } else if(type==='enrollment'){
       title.textContent='Enrollment Report';

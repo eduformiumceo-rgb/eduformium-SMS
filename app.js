@@ -611,7 +611,6 @@ const SMS = {
     document.getElementById('fee-search')?.addEventListener('input',()=>this.renderFees());
     ['fee-class-f','fee-term-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderFees()));
     document.getElementById('exp-fees-btn')?.addEventListener('click',()=>this.exportFees());
-    document.getElementById('send-reminder-btn')?.addEventListener('click',()=>this.toast('Fee reminders sent via SMS!','success'));
     document.getElementById('add-fee-struct-btn')?.addEventListener('click',()=>this.openFeeStructModal());
     document.getElementById('add-expense-btn')?.addEventListener('click',()=>this.openExpenseModal());
     document.getElementById('add-event-btn')?.addEventListener('click',()=>this.openEventModal());
@@ -1233,12 +1232,23 @@ const SMS = {
       document.getElementById('sf-sid').value=s.studentId||'';
       document.getElementById('sf-roll').value=s.roll||'';
       document.getElementById('sf-status').value=s.status||'active';
+      document.getElementById('sf-transport').value=s.transport||'none';
+      document.getElementById('sf-notes').value=s.notes||'';
+      document.getElementById('sf-prev-school').value=s.prevSchool||'';
       document.getElementById('sf-dad').value=s.dadName||'';
       document.getElementById('sf-dad-phone').value=s.dadPhone||'';
       document.getElementById('sf-dad-email').value=s.dadEmail||'';
       document.getElementById('sf-dad-job').value=s.dadJob||'';
       document.getElementById('sf-mom').value=s.momName||'';
       document.getElementById('sf-mom-phone').value=s.momPhone||'';
+      document.getElementById('sf-mom-job').value=s.momJob||'';
+      document.getElementById('sf-emer').value=s.emerName||'';
+      document.getElementById('sf-emer-phone').value=s.emerPhone||'';
+      document.getElementById('sf-emer-rel').value=s.emerRel||'';
+      document.getElementById('sf-allergies').value=s.allergies||'';
+      document.getElementById('sf-medical').value=s.medical||'';
+      document.getElementById('sf-doctor').value=s.doctorName||'';
+      document.getElementById('sf-doc-phone').value=s.docPhone||'';
       document.getElementById('student-modal-title').textContent='Edit Student';
       document.getElementById('save-student-btn').textContent='Save Changes';
     }
@@ -2181,9 +2191,11 @@ const SMS = {
     const toId=document.getElementById('promo-to')?.value;
     if(!fromId||!toId||fromId===toId){ this.toast('Select two different classes','warn'); return; }
     const students=DB.get('students',[]);
-    let count=0;
-    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; count++; } });
+    const promotedIds=[];
+    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; promotedIds.push(s.id); count++; } });
     DB.set('students',students);
+    // Clear old fee payment records for promoted students so feesPaid stays in sync
+    DB.set('feePayments',DB.get('feePayments',[]).filter(p=>!promotedIds.includes(p.studentId)));
     this.audit('Student Promotion','edit',`Promoted ${count} students from ${this.className(fromId)} to ${this.className(toId)}`);
     this.toast(`${count} students successfully promoted to ${this.className(toId)}!`,'success');
     this.closeModal('m-receipt'); this.renderStudents(); this.renderStudentStats();
@@ -3320,7 +3332,7 @@ const SMS = {
     if(i>-1) feeStr[i]={...feeStr[i],...data}; else feeStr.push({id:uid('fs'),...data}); DB.set('feeStructure',feeStr);
     this.audit('Fee Structure','edit',`Updated fees for ${this.className(classId)}: T1=${fmt(t1)}, T2=${fmt(t2)}, T3=${fmt(t3)}`);
     this.toast(`Fee structure saved for ${this.className(classId)}!`,'success');
-    this.closeModal('m-fee-struct'); this.renderFeeStructure(); this.renderFeesKpis();
+    this.closeModal('m-fee-struct'); this.renderFeeStructure(); this.renderFeesKpis(); this.renderDefaulters(); this.renderStudents();
   },
 
   // ══════════════════════════════════════════

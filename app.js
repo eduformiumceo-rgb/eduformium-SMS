@@ -1096,7 +1096,7 @@ const SMS = {
       if(cf&&s.classId!==cf) return false;
       if(sf&&s.status!==sf) return false;
       if(gf&&s.gender!==gf) return false;
-      if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.studentId} ${s.dadPhone||''}`.toLowerCase().includes(q)) return false;
+      if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.studentId} ${s.dadPhone||''} ${s.momPhone||''} ${s.momName||''} ${s.roll||''}`.toLowerCase().includes(q)) return false;
       return true;
     });
     const perPage=15, total=filtered.length, pages=Math.ceil(total/perPage);
@@ -1282,7 +1282,8 @@ const SMS = {
     fields.forEach(([id])=>{ const el=document.getElementById(id); if(el) el.style.borderColor=''; });
     const students=DB.get('students',[]);
     const existingId=document.getElementById('sf-id').value;
-    const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(students.length+101).padStart(4,'0');
+    const _maxId=students.reduce((mx,st)=>{ const n=parseInt((st.studentId||'').split('-').pop()||0); return n>mx?n:mx; },100);
+    const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(_maxId+1).padStart(4,'0');
     const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{term1:0,term2:0,term3:0}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
@@ -2033,7 +2034,7 @@ const SMS = {
     let filtered=payments.filter(p=>{
       const s=students.find(x=>x.id===p.studentId);
       if(!s) return false; if(cf&&s.classId!==cf) return false; if(tf&&p.term!==tf) return false;
-      if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)}`.toLowerCase().includes(q)) return false; return true;
+      if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${p.receiptNo||''}`.toLowerCase().includes(q)) return false; return true;
     }).sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('fees-tbody').innerHTML=filtered.map(p=>{
       const s=students.find(x=>x.id===p.studentId);
@@ -2506,6 +2507,8 @@ const SMS = {
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">DATE</div><div style="font-weight:600">${fmtDate(p.date)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PAYMENT METHOD</div><div style="font-weight:600">${p.method}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">RECEIVED BY</div><div style="font-weight:600">${p.by||'—'}</div></div>
+        ${p.ref?`<div><div style="font-size:.7rem;color:var(--t4);font-weight:700">REFERENCE</div><div style="font-weight:600">${p.ref}</div></div>`:''}
+        ${p.notes?`<div style="grid-column:1/-1"><div style="font-size:.7rem;color:var(--t4);font-weight:700">NOTES</div><div style="font-weight:600">${p.notes}</div></div>`:''}
       </div>
       <div style="background:var(--brand);color:white;padding:1rem;border-radius:var(--radius);text-align:center;margin-bottom:1rem">
         <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;opacity:.7">Amount Paid</div>

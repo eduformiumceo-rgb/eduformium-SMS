@@ -1999,15 +1999,15 @@ const SMS = {
       const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
       const totalOwed=s&&fs?Math.max(0,t1-(+(s.feesPaid?.term1||0)))+Math.max(0,t2-(+(s.feesPaid?.term2||0)))+Math.max(0,t3-(+(s.feesPaid?.term3||0))):0;
       return `<tr>
-        <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${p.receiptNo||'—'}</td>
-        <td><div style="font-weight:600;color:var(--t1)">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
-        <td><span class="badge badge-info">Term ${p.term}</span></td>
-        <td style="font-weight:800;color:var(--success)">${fmt(p.amount)}</td>
-        <td>${termStatus}</td>
-        <td style="font-weight:700;color:${totalOwed>0?'var(--danger)':'var(--success)'}">${totalOwed>0?fmt(totalOwed)+' owed':'✓ All Clear'}</td>
-        <td><span class="badge badge-neutral">${p.method}</span></td>
-        <td>${fmtDate(p.date)}</td>
-        <td>${p.by||'—'}</td>
+        <td style="font-family:monospace;font-size:.75rem;color:var(--t3);white-space:nowrap">${p.receiptNo||'—'}</td>
+        <td><div style="font-weight:600;color:var(--t1);white-space:nowrap">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
+        <td style="white-space:nowrap"><span class="badge badge-info">Term ${p.term}</span></td>
+        <td style="font-weight:800;color:var(--success);white-space:nowrap">${fmt(p.amount)}</td>
+        <td style="white-space:nowrap">${termStatus}</td>
+        <td style="font-weight:700;white-space:nowrap;color:${totalOwed>0?'var(--danger)':'var(--success)'}">${totalOwed>0?fmt(totalOwed)+' owed':'✓ All Clear'}</td>
+        <td style="white-space:nowrap"><span class="badge badge-neutral">${p.method}</span></td>
+        <td style="white-space:nowrap;font-size:.82rem;color:var(--t3)">${fmtDate(p.date)}</td>
+        <td style="font-size:.82rem;color:var(--t3)">${p.by||'—'}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="SMS.showReceipt('${p.id}')" style="padding:.3rem .5rem" title="View Receipt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></button></td>
       </tr>`;
     }).join('')||SMS._emptyState('fees','No Payments Found','Record your first fee payment or adjust the filters above.','+ Record Payment',"SMS.openFeeModal()");

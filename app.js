@@ -1034,7 +1034,7 @@ const SMS = {
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
     // Defaulters
     const feeStr=DB.get('feeStructure',[]);
-    const defaulters=students.filter(s=>{ const fs=feeStr.find(f=>f.classId===s.classId); const t1=+(fs?.term1||850); const p1=+(s.feesPaid?.term1||0); return p1<t1; }).slice(0,4);
+    const defaulters=students.filter(s=>{ const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; }).slice(0,4);
     document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
@@ -1108,7 +1108,7 @@ const SMS = {
     const feeStructure=DB.get('feeStructure',[]);
     tbody.innerHTML=slice.map(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
-      const termFee1=+(fs?.term1||850), termFee2=+(fs?.term2||850), termFee3=+(fs?.term3||850);
+      const termFee1=+(fs?.term1||0), termFee2=+(fs?.term2||0), termFee3=+(fs?.term3||0);
       const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0), p3=+(s.feesPaid?.term3||0);
       const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
       const feeStatus=owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
@@ -1144,7 +1144,7 @@ const SMS = {
     const exams=DB.get('exams',[]);
     const feeStructure=DB.get('feeStructure',[]);
     const fs=feeStructure.find(f=>f.classId===s.classId);
-    const ft1=+(fs?.term1||850),ft2=+(fs?.term2||850),ft3=+(fs?.term3||850);
+    const ft1=+(fs?.term1||0),ft2=+(fs?.term2||0),ft3=+(fs?.term3||0);
     const fp1=+(s.feesPaid?.term1||0),fp2=+(s.feesPaid?.term2||0),fp3=+(s.feesPaid?.term3||0);
     const fb1=Math.max(0,ft1-fp1),fb2=Math.max(0,ft2-fp2),fb3=Math.max(0,ft3-fp3);
     const totalDue=ft1+ft2+ft3, totalPaid=fp1+fp2+fp3, totalOwed=fb1+fb2+fb3;
@@ -2056,12 +2056,13 @@ const SMS = {
     const students=DB.get('students',[]); const classes=DB.get('classes',[]); const feeStructure=DB.get('feeStructure',[]);
     const defaulters=students.filter(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
-      const t1=+(fs?.term1||850), t2=+(fs?.term2||850), t3=+(fs?.term3||850);
+      if(!fs) return false;
+      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
       return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
     });
     document.getElementById('defaulters-tbody').innerHTML=defaulters.map(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
-      const t1=+(fs?.term1||850), t2=+(fs?.term2||850), t3=+(fs?.term3||850);
+      const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
       const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
       const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
       const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
@@ -2088,10 +2089,11 @@ const SMS = {
     const s=DB.get('students',[]).find(x=>x.id===studentId); if(!s) return;
     const feeStructure=DB.get('feeStructure',[]);
     const fs=feeStructure.find(f=>f.classId===s.classId);
-    const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
+    const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
     const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
     const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
-    const total=owed1+owed2;
+    const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+    const total=owed1+owed2+owed3;
     const school=DB.get('school',{});
     const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
     // Show simulated reminder modal
@@ -2118,8 +2120,9 @@ const SMS = {
     const students=DB.get('students',[]); const feeStructure=DB.get('feeStructure',[]);
     const defaulters=students.filter(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
-      const t1=+(fs?.term1||850), t2=+(fs?.term2||850);
-      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2;
+      if(!fs) return false;
+      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
+      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
     });
     if(defaulters.length===0){ this.toast('No defaulters — all fees are paid!','success'); return; }
     this.audit('Fee Reminder','create',`Bulk reminders queued for ${defaulters.length} defaulters`);

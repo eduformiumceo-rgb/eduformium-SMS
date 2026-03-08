@@ -1159,13 +1159,13 @@ const SMS = {
           <div style="font-size:.78rem;color:var(--t3)">Due: <span style="color:var(--t1);font-weight:600">${fmt(due)}</span></div>
           <div style="font-size:.78rem;color:var(--t3)">Paid: <span style="color:var(--success);font-weight:600">${fmt(paid)}</span></div>
           <div style="font-size:.78rem;font-weight:700;margin-top:.2rem;color:${bal>0?'var(--danger)':'var(--success)'}">
-            ${bal>0?'Owes '+fmt(bal):'✓ Cleared'}
+            ${bal>0?'Owes '+fmt(bal):'Cleared'}
           </div>
         </div>`).join('')}
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;background:${totalOwed>0?'rgba(239,68,68,.07)':'rgba(34,197,94,.07)'};border:1px solid ${totalOwed>0?'rgba(239,68,68,.2)':'rgba(34,197,94,.2)'};border-radius:.6rem;padding:.6rem .85rem;margin-bottom:.75rem">
         <div style="font-size:.82rem;color:var(--t2)">Total: <strong>${fmt(totalPaid)}</strong> paid of <strong>${fmt(totalDue)}</strong></div>
-        ${totalOwed>0?`<span style="font-size:.82rem;font-weight:700;color:var(--danger)">Balance: ${fmt(totalOwed)}</span><button class="btn btn-sm" style="background:#1d4ed8;color:#fff;padding:.35rem .9rem;font-size:.8rem;font-weight:700;border:2px solid #1e40af;border-radius:.45rem;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)" onclick="SMS.closeModal('m-student-profile');SMS.nav('fees');SMS.openFeeModal('${s.id}')">Pay Now</button>`:`<span style="font-size:.82rem;font-weight:700;color:var(--success)">Fully Paid ✓</span>`}
+        ${totalOwed>0?`<span style="font-size:.82rem;font-weight:700;color:var(--danger)">Balance: ${fmt(totalOwed)}</span><button class="btn btn-sm" style="background:#1d4ed8;color:#fff;padding:.35rem .9rem;font-size:.8rem;font-weight:700;border:2px solid #1e40af;border-radius:.45rem;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)" onclick="SMS.closeModal('m-student-profile');SMS.nav('fees');SMS.openFeeModal('${s.id}')">Pay Now</button>`:`<span style="font-size:.82rem;font-weight:700;color:var(--success)">Fully Paid</span>`}
       </div>`;
     document.getElementById('student-profile-body').innerHTML=`
       <div style="display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem">
@@ -1935,7 +1935,7 @@ const SMS = {
         <td style="color:var(--danger)">${fmt(deduct)}</td>
         <td style="font-weight:800;color:var(--brand)">${fmt(net)}</td>
         <td>${p?statusBadge('active'):`<span class="badge badge-warn">Pending</span>`}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="SMS.payStaff('${s.id}',${net},'${month}','${year}')" style="padding:.3rem .6rem">${p?'✓ Paid':'Pay'}</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="SMS.payStaff('${s.id}',${net},'${month}','${year}')" style="padding:.3rem .6rem">${p?'Paid':'Pay'}</button></td>
       </tr>`;
     }).join('')||SMS._emptyState('staff','No Staff Found','Add staff members to run payroll.','');
   },
@@ -2043,7 +2043,7 @@ const SMS = {
       const termStatus=termDue===0
         ? `<span class="badge badge-neutral">No structure</span>`
         : termOwed===0
-          ? `<span class="badge badge-success">✓ Term ${p.term} Fully Paid</span>`
+          ? `<span class="badge badge-success">Term ${p.term} Fully Paid</span>`
           : `<span class="badge badge-warn">Balance: ${fmt(termOwed)}</span>`;
       // Overall balance across all terms
       const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
@@ -2054,7 +2054,7 @@ const SMS = {
         <td style="white-space:nowrap;text-align:center"><span class="badge badge-info">Term ${p.term}</span></td>
         <td style="font-weight:800;color:var(--success);white-space:nowrap;text-align:center">${fmt(p.amount)}</td>
         <td style="white-space:nowrap;text-align:center">${termStatus}</td>
-        <td style="font-weight:700;white-space:nowrap;text-align:center;color:${totalOwed>0?'var(--danger)':'var(--success)'}">${totalOwed>0?fmt(totalOwed)+' owed':'✓ All Clear'}</td>
+        <td style="font-weight:700;white-space:nowrap;text-align:center;color:${totalOwed>0?'var(--danger)':'var(--success)'}">${totalOwed>0?fmt(totalOwed)+' owed':'All Clear'}</td>
         <td style="white-space:nowrap;text-align:center"><span class="badge badge-neutral">${p.method}</span></td>
         <td style="white-space:nowrap;font-size:.82rem;color:var(--t3)">${fmtDate(p.date)}</td>
         <td style="font-size:.82rem;color:var(--t3)">${p.by||'—'}</td>
@@ -2099,18 +2099,18 @@ const SMS = {
         <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
         <td>${s.dadPhone||'—'}</td>
-        <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'✓ Paid'}</td>
-        <td style="color:${owed2>0?'var(--danger)':'var(--success)'};font-weight:600">${owed2>0?fmt(owed2):'✓ Paid'}</td>
-        <td style="color:${owed3>0?'var(--danger)':'var(--success)'};font-weight:600">${owed3>0?fmt(owed3):'✓ Paid'}</td>
+        <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'Paid'}</td>
+        <td style="color:${owed2>0?'var(--danger)':'var(--success)'};font-weight:600">${owed2>0?fmt(owed2):'Paid'}</td>
+        <td style="color:${owed3>0?'var(--danger)':'var(--success)'};font-weight:600">${owed3>0?fmt(owed3):'Paid'}</td>
         <td style="font-weight:800;color:var(--danger)">${fmt(owed1+owed2+owed3)}</td>
         <td>
           <div style="display:flex;gap:.3rem">
             <button class="btn btn-primary btn-sm" onclick="SMS.openFeeModal('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem">Pay Now</button>
-            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder">📩</button>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
           </div>
         </td>
       </tr>`;
-    }).join('')||'<tr><td colspan="8" class="tbl-empty">🎉 No defaulters — all fees paid!</td></tr>';
+    }).join('')||'<tr><td colspan="8" class="tbl-empty">All fees paid — no defaulters</td></tr>';
   },
 
   // ══ FEE REMINDER (Alert/Simulate SMS) ══
@@ -2126,7 +2126,7 @@ const SMS = {
     const school=DB.get('school',{});
     const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
     // Show simulated reminder modal
-    document.getElementById('receipt-title').textContent='📩 Fee Reminder Preview';
+    document.getElementById('receipt-title').textContent='Fee Reminder Preview';
     document.getElementById('receipt-body').innerHTML=`
       <div style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:10px;padding:1rem;margin-bottom:1rem">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem">SMS Message to ${s.dadPhone||'No phone on record'}</div>
@@ -2139,7 +2139,7 @@ const SMS = {
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
       </div>
       <div style="margin-top:1rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
-        ⚠️ Configure your SMS gateway in Settings → SMS Notifications to send real messages. This preview shows what will be sent.
+        <svg style="width:13px;height:13px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Configure your SMS gateway in Settings → SMS Notifications to send real messages. This preview shows what will be sent.
       </div>`;
     this.audit('Fee Reminder','create',`Fee reminder sent to parent of ${sanitize(s.fname)} ${sanitize(s.lname)}`);
     this.openModal('m-receipt');
@@ -2155,7 +2155,7 @@ const SMS = {
     });
     if(defaulters.length===0){ this.toast('No defaulters — all fees are paid!','success'); return; }
     this.audit('Fee Reminder','create',`Bulk reminders queued for ${defaulters.length} defaulters`);
-    this.toast(`📩 ${defaulters.length} reminders queued! Configure SMS gateway in Settings to send.`,'success');
+    this.toast(`${defaulters.length} reminders queued! Configure SMS gateway in Settings to send.`,'success');
   },
 
   // ══ STUDENT PROMOTION ══
@@ -2175,7 +2175,7 @@ const SMS = {
         </div>
       </div>
       <div style="background:var(--warn-bg);border:1px solid var(--warn);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--t2);margin-bottom:1rem">
-        ⚠️ This will move all <strong>active</strong> students from the selected class to the target class. This action can be undone by promoting them back.
+        <svg style="width:13px;height:13px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>This will move all <strong>active</strong> students from the selected class to the target class. This action can be undone by promoting them back.
       </div>
       <div id="promo-preview" style="font-size:.82rem;color:var(--t3)"></div>
       <div style="margin-top:1rem;display:flex;gap:.75rem">
@@ -2216,18 +2216,18 @@ const SMS = {
 
   // ══ BULK IMPORT STUDENTS via CSV/XLSX ══
   openImportModal(){
-    document.getElementById('receipt-title').textContent='📥 Bulk Import Students';
+    document.getElementById('receipt-title').textContent='Import Students';
     document.getElementById('receipt-body').innerHTML=`
       <div style="margin-bottom:.75rem;font-size:.85rem;color:var(--t3)">Upload a CSV or Excel file to import multiple students at once.</div>
       <div style="background:var(--surface-2);border:2px dashed var(--border);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1rem">
-        <div style="font-size:1.5rem;margin-bottom:.5rem">📄</div>
+        <div style="margin-bottom:.5rem;display:flex;justify-content:center"><svg style="width:28px;height:28px;color:var(--t3)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         <div style="font-size:.85rem;font-weight:600;margin-bottom:.25rem">Drop CSV / Excel file here</div>
         <div style="font-size:.75rem;color:var(--t4);margin-bottom:.75rem">Required columns: First Name, Last Name, Class, Gender, DOB, Parent Name, Parent Phone</div>
         <input type="file" id="import-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="SMS.handleImportFile(event)"/>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file').click()">Choose File</button>
       </div>
       <div style="margin-bottom:1rem">
-        <a href="#" onclick="SMS.downloadImportTemplate();return false;" style="font-size:.82rem;color:var(--brand-teal);text-decoration:underline">📥 Download Template CSV</a>
+        <a href="#" onclick="SMS.downloadImportTemplate();return false;" style="font-size:.82rem;color:var(--brand-teal);text-decoration:underline"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Template CSV</a>
       </div>
       <div id="import-preview" style="font-size:.82rem"></div>`;
     this.openModal('m-receipt');
@@ -2394,7 +2394,7 @@ const SMS = {
         errEl.style.background='var(--success-bg)';
         errEl.style.color='var(--success)';
         errEl.style.borderColor='var(--success)';
-        errEl.textContent=`✅ Term ${tm} is already fully paid (${fmt(paid)} of ${fmt(due)}). No payment needed.`;
+        errEl.textContent=`Term ${tm} is already fully paid (${fmt(paid)} of ${fmt(due)}). No payment needed.`;
         if(amtEl) amtEl.value='';
         if(saveBtn) saveBtn.disabled=true;
       } else {
@@ -2461,7 +2461,7 @@ const SMS = {
     const termPaid2=updatedSt?+(updatedSt.feesPaid?.['term'+term]||0):0;
     const termFullyPaid=termDue2>0&&termPaid2>=termDue2;
     const toastMsg=termFullyPaid
-      ? `✅ Term ${term} fully paid! Receipt: ${receiptNo}`
+      ? `Term ${term} fully paid! Receipt: ${receiptNo}`
       : `Payment of ${fmt(amount)} recorded. Receipt: ${receiptNo}${termDue2>0?' · Balance: '+fmt(Math.max(0,termDue2-termPaid2)):''}`;
     this.toast(toastMsg,'success');
     this.closeModal('m-fee'); this.renderFees(); this.renderFeesKpis(); this.renderDefaulters(); this.renderStudents();
@@ -2503,10 +2503,10 @@ const SMS = {
     if(this.currentUser?.role!=='admin'){ this.toast('Only admins can reverse payments','error'); return; }
     const p=DB.get('feePayments',[]).find(x=>x.id===paymentId); if(!p) return;
     const s=DB.get('students',[]).find(x=>x.id===p.studentId);
-    document.getElementById('receipt-title').textContent='⚠️ Reverse Payment';
+    document.getElementById('receipt-title').textContent='Reverse Payment';
     document.getElementById('receipt-body').innerHTML=`
       <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:.6rem;padding:.85rem 1rem;margin-bottom:1rem">
-        <div style="font-size:.78rem;font-weight:700;color:var(--danger);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em">⚠️ This action cannot be undone</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--danger);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em"><svg style="width:15px;height:15px;vertical-align:middle;margin-right:5px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>This action cannot be undone</div>
         <div style="font-size:.83rem;color:var(--t2)">You are about to permanently reverse the following payment:</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;font-size:.82rem;margin-bottom:1rem">
@@ -2998,7 +2998,7 @@ const SMS = {
     const recent=[...log].reverse().slice(0,15);
     const list=document.getElementById('notif-list');
     const badge=document.getElementById('notif-badge');
-    const icons={create:'✅',edit:'✏️',delete:'🗑️',login:'🔐',default:'🔔'};
+    const icons={create:'create',edit:'edit',delete:'delete',login:'login',default:'info'};
     const colors={create:'#16a34a',edit:'#2563eb',delete:'#dc2626',login:'#0d9488',default:'#6b7280'};
     const pageMap={
       'Enroll Student':'students','Edit Student':'students','Delete Student':'students',

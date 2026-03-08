@@ -2199,7 +2199,7 @@ const SMS = {
             ${toImport.length>10?`<tr><td colspan="4" style="text-align:center;color:var(--t4)">+${toImport.length-10} more...</td></tr>`:''}
             </tbody></table>
           </div>
-          <button class="btn btn-primary" style="margin-top:.75rem" id="do-import-btn">Import ${valid} Students</button>\`;
+          <button class="btn btn-primary" style="margin-top:.75rem" id="do-import-btn">Import ${valid} Students</button>`;
         // Store safely in memory — never pass via onclick attribute
         SMS._pendingImport = toImport;
         setTimeout(()=>{

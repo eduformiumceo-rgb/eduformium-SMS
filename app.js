@@ -3092,7 +3092,7 @@ const SMS = {
   },
 
   audit(action,type,details){
-    const log=DB.get('auditLog',[]); log.push({id:uid('al'),action,type,user:this.currentUser?.name||'System',details,time:new Date().toISOString()});
+    const log=DB.get('auditLog',[]); log.push({id:uid('al'),action,type,user:this.currentUser?.name||'System',userId:this.currentUser?.id||'system',details,time:new Date().toISOString()});
     if(log.length>500) log.splice(0,log.length-500);
     DB.set('auditLog',log);
   },

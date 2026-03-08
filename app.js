@@ -1299,8 +1299,13 @@ const SMS = {
     const students=DB.get('students',[]);
     const s=students.find(x=>x.id===id);
     DB.set('students',students.filter(x=>x.id!==id));
+    // Explicitly delete from Firestore so it doesn't return on refresh
+    const sid=window.SMS&&window.SMS.schoolId;
+    if(sid&&window.FDB) FDB.delete(sid,'students',id).catch(()=>{});
     // Also remove orphan fee payment records for this student
+    const orphanPayments=DB.get('feePayments',[]).filter(p=>p.studentId===id);
     DB.set('feePayments',DB.get('feePayments',[]).filter(p=>p.studentId!==id));
+    if(sid&&window.FDB) orphanPayments.forEach(p=>FDB.delete(sid,'feePayments',p.id).catch(()=>{}));
     this.audit('Delete Student','delete',`Removed student: ${s?.fname} ${s?.lname}`);
     this.toast('Student removed','warn'); this.renderStudents(); this.renderStudentStats(); this.renderFeesKpis(); this.renderDefaulters();
     const fstu=document.getElementById('fee-student'); if(fstu){ const sts=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+sts.map(st=>`<option value="${st.id}">${sanitize(st.fname)} ${sanitize(st.lname)} (${this.className(st.classId)})</option>`).join(''); }
@@ -1387,7 +1392,7 @@ const SMS = {
     this.closeModal('m-staff'); this.renderStaff(); this.renderStaffStats();
   },
 
-  deleteStaff(id){ const staff=DB.get('staff',[]); const s=staff.find(x=>x.id===id); DB.set('staff',staff.filter(x=>x.id!==id)); this.audit('Delete Staff','delete',`Removed: ${s?.fname} ${s?.lname}`); this.toast('Staff removed','warn'); this.renderStaff(); },
+  deleteStaff(id){ const staff=DB.get('staff',[]); const s=staff.find(x=>x.id===id); DB.set('staff',staff.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'staff',id).catch(()=>{}); this.audit('Delete Staff','delete',`Removed: ${s?.fname} ${s?.lname}`); this.toast('Staff removed','warn'); this.renderStaff(); },
 
   exportStaff(){
     if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
@@ -1491,7 +1496,7 @@ const SMS = {
     this.closeModal('m-subject'); this.renderSubjectsTable();
   },
 
-  deleteSubject(id){ const s=DB.get('subjects',[]); DB.set('subjects',s.filter(x=>x.id!==id)); this.toast('Subject removed','warn'); this.renderSubjectsTable(); },
+  deleteSubject(id){ const s=DB.get('subjects',[]); DB.set('subjects',s.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'subjects',id).catch(()=>{}); this.toast('Subject removed','warn'); this.renderSubjectsTable(); },
 
   // ══ ATTENDANCE ══
   loadAttendance(){
@@ -1576,7 +1581,7 @@ const SMS = {
     </tr>`).join('')||SMS._emptyState('attendance','No Attendance Records','No records match your date range. Take attendance for today using the form above.','');
   },
 
-  deleteAtt(id){ const a=DB.get('attendance',[]); DB.set('attendance',a.filter(x=>x.id!==id)); this.renderAttSummary(); this.renderAttendanceRecords(); this.toast('Record deleted','warn'); },
+  deleteAtt(id){ const a=DB.get('attendance',[]); DB.set('attendance',a.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'attendance',id).catch(()=>{}); this.renderAttSummary(); this.renderAttendanceRecords(); this.toast('Record deleted','warn'); },
 
   // ══ EXAMS ══
   loadExams(){
@@ -1626,7 +1631,7 @@ const SMS = {
     DB.set('exams',exams); this.audit('Create Exam','create',`New exam: ${name}`); this.toast('Exam created','success'); this.closeModal('m-exam'); this.renderExams();
   },
 
-  deleteExam(id){ DB.set('exams',DB.get('exams',[]).filter(x=>x.id!==id)); this.toast('Exam deleted','warn'); this.renderExams(); },
+  deleteExam(id){ DB.set('exams',DB.get('exams',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'exams',id).catch(()=>{}); this.toast('Exam deleted','warn'); this.renderExams(); },
 
   loadGradeEntry(){
     const examId=document.getElementById('grade-exam-sel').value;
@@ -2524,7 +2529,7 @@ const SMS = {
     this.renderExpenseCharts(bycat,expenses);
   },
 
-  deleteExpense(id){ DB.set('expenses',DB.get('expenses',[]).filter(x=>x.id!==id)); this.toast('Expense deleted','warn'); this.renderExpenses(); },
+  deleteExpense(id){ DB.set('expenses',DB.get('expenses',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'expenses',id).catch(()=>{}); this.toast('Expense deleted','warn'); this.renderExpenses(); },
 
   renderExpenseCharts(bycat,expenses){
     const ctx1=document.getElementById('chart-expenses'); if(ctx1){ if(this._charts.exp) this._charts.exp.destroy(); const labels=Object.keys(bycat); const data=labels.map(k=>bycat[k]); const colors=['#1a3a6b','#0d9488','#d97706','#dc2626','#7c3aed','#16a34a']; this._charts.exp=new Chart(ctx1,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}}); }
@@ -2663,7 +2668,7 @@ const SMS = {
     DB.set('events',events); this.audit('Add Event','create',`New event: ${title}`); this.toast('Event added','success'); this.closeModal('m-event'); this.renderCalendar(); this.renderEventsList();
   },
 
-  deleteEvent(id){ DB.set('events',DB.get('events',[]).filter(x=>x.id!==id)); this.toast('Event deleted','warn'); this.renderCalendar(); this.renderEventsList(); },
+  deleteEvent(id){ DB.set('events',DB.get('events',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'events',id).catch(()=>{}); this.toast('Event deleted','warn'); this.renderCalendar(); this.renderEventsList(); },
 
   // ══ REPORTS ══
   openReport(type){
@@ -2887,7 +2892,7 @@ const SMS = {
     DB.set('users',users); this.audit('Add User','create',`New user: ${name} (${role})`); this.toast('User created!','success'); this.closeModal('m-user'); this.renderUsers();
   },
 
-  deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },
+  deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'users',id).catch(()=>{}); this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },
 
   renderBackupStats(){
     const s=DB.get('students',[]); const st=DB.get('staff',[]); const fp=DB.get('feePayments',[]); const al=DB.get('auditLog',[]);
@@ -3082,6 +3087,7 @@ const SMS = {
     const issues=DB.get('bookIssues',[]).filter(i=>!i.returnedDate&&i.bookId===id);
     if(issues.length>0){ this.toast('Cannot delete: book has active borrowings','error'); return; }
     DB.set('books',DB.get('books',[]).filter(b=>b.id!==id));
+    const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'books',id).catch(()=>{});
     this.toast('Book deleted','warn'); this.loadLibrary();
   },
 
@@ -3221,7 +3227,7 @@ const SMS = {
     this.closeModal('m-homework'); this.renderHomework();
   },
 
-  deleteHomework(id){ DB.set('homework',DB.get('homework',[]).filter(x=>x.id!==id)); this.toast('Homework deleted','warn'); this.renderHomework(); },
+  deleteHomework(id){ DB.set('homework',DB.get('homework',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'homework',id).catch(()=>{}); this.toast('Homework deleted','warn'); this.renderHomework(); },
 
   // ══ LEAVE FORM ══
   openLeaveModal(){

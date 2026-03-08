@@ -1108,9 +1108,9 @@ const SMS = {
     const feeStructure=DB.get('feeStructure',[]);
     tbody.innerHTML=slice.map(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
-      const termFee1=+(fs?.term1||850), termFee2=+(fs?.term2||850);
-      const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0);
-      const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2);
+      const termFee1=+(fs?.term1||850), termFee2=+(fs?.term2||850), termFee3=+(fs?.term3||850);
+      const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0), p3=+(s.feesPaid?.term3||0);
+      const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
       const feeStatus=owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.studentId}</td>
@@ -1142,6 +1142,28 @@ const SMS = {
     const payments=DB.get('feePayments',[]).filter(p=>p.studentId===id);
     const grades=DB.get('grades',[]).filter(g=>g.studentId===id);
     const exams=DB.get('exams',[]);
+    const feeStructure=DB.get('feeStructure',[]);
+    const fs=feeStructure.find(f=>f.classId===s.classId);
+    const ft1=+(fs?.term1||850),ft2=+(fs?.term2||850),ft3=+(fs?.term3||850);
+    const fp1=+(s.feesPaid?.term1||0),fp2=+(s.feesPaid?.term2||0),fp3=+(s.feesPaid?.term3||0);
+    const fb1=Math.max(0,ft1-fp1),fb2=Math.max(0,ft2-fp2),fb3=Math.max(0,ft3-fp3);
+    const totalDue=ft1+ft2+ft3, totalPaid=fp1+fp2+fp3, totalOwed=fb1+fb2+fb3;
+    const feeSummaryHtml=`
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.75rem">
+        ${[['Term 1',ft1,fp1,fb1],['Term 2',ft2,fp2,fb2],['Term 3',ft3,fp3,fb3]].map(([lbl,due,paid,bal])=>`
+        <div style="background:var(--bg2);border-radius:.6rem;padding:.6rem .75rem;border:1px solid var(--border)">
+          <div style="font-size:.72rem;color:var(--t4);font-weight:600;margin-bottom:.3rem">${lbl}</div>
+          <div style="font-size:.78rem;color:var(--t3)">Due: <span style="color:var(--t1);font-weight:600">${fmt(due)}</span></div>
+          <div style="font-size:.78rem;color:var(--t3)">Paid: <span style="color:var(--success);font-weight:600">${fmt(paid)}</span></div>
+          <div style="font-size:.78rem;font-weight:700;margin-top:.2rem;color:${bal>0?'var(--danger)':'var(--success)'}">
+            ${bal>0?'Owes '+fmt(bal):'✓ Cleared'}
+          </div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:${totalOwed>0?'rgba(239,68,68,.07)':'rgba(34,197,94,.07)'};border:1px solid ${totalOwed>0?'rgba(239,68,68,.2)':'rgba(34,197,94,.2)'};border-radius:.6rem;padding:.6rem .85rem;margin-bottom:.75rem">
+        <div style="font-size:.82rem;color:var(--t2)">Total: <strong>${fmt(totalPaid)}</strong> paid of <strong>${fmt(totalDue)}</strong></div>
+        ${totalOwed>0?`<span style="font-size:.82rem;font-weight:700;color:var(--danger)">Balance: ${fmt(totalOwed)}</span><button class="btn btn-sm" style="background:var(--brand-blue);color:#fff;padding:.3rem .75rem;font-size:.78rem" onclick="SMS.closeModal('m-student-profile');SMS.nav('fees');SMS.openFeeModal('${s.id}')">Pay Now</button>`:`<span style="font-size:.82rem;font-weight:700;color:var(--success)">Fully Paid ✓</span>`}
+      </div>`;
     document.getElementById('student-profile-body').innerHTML=`
       <div style="display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem">
         <div class="profile-av-lg">${s.fname[0]}${s.lname[0]}</div>
@@ -1169,8 +1191,10 @@ const SMS = {
         <div class="pinfo-item"><div class="pinfo-label">Mother Phone</div><div class="pinfo-val">${s.momPhone||'—'}</div></div>
         <div class="pinfo-item"><div class="pinfo-label">Emergency</div><div class="pinfo-val">${s.emerName||'—'} ${s.emerPhone?'· '+s.emerPhone:''}</div></div>
       </div>
-      <div class="profile-section-title">Fee Payments (${payments.length} records)</div>
-      ${payments.length>0?`<table class="tbl"><thead><tr><th>Receipt</th><th>Term</th><th>Amount</th><th>Method</th><th>Date</th></tr></thead><tbody>${payments.map(p=>`<tr><td style="font-family:monospace;font-size:.75rem">${p.receiptNo||'—'}</td><td>Term ${p.term}</td><td style="font-weight:700;color:var(--success)">${fmt(p.amount)}</td><td>${p.method}</td><td>${fmtDate(p.date)}</td></tr>`).join('')}</tbody></table>`:'<div style="color:var(--t4);font-size:.82rem;padding:.5rem 0">No payments recorded</div>'}
+      <div class="profile-section-title">Fee Summary</div>
+      ${feeSummaryHtml}
+      <div class="profile-section-title">Payment History (${payments.length} records)</div>
+      ${payments.length>0?`<table class="tbl"><thead><tr><th>Receipt</th><th>Term</th><th>Amount</th><th>Method</th><th>Date</th><th>Ref</th></tr></thead><tbody>${payments.map(p=>`<tr><td style="font-family:monospace;font-size:.75rem">${p.receiptNo||'—'}</td><td>Term ${p.term}</td><td style="font-weight:700;color:var(--success)">${fmt(p.amount)}</td><td>${p.method}</td><td>${fmtDate(p.date)}</td><td style="font-size:.75rem;color:var(--t4)">${p.ref||'—'}</td></tr>`).join('')}</tbody></table>`:'<div style="color:var(--t4);font-size:.82rem;padding:.5rem 0">No payment records yet.</div>'}
       <div class="profile-section-title">Academic Results (${grades.length} entries)</div>
       ${grades.length>0?`<table class="tbl"><thead><tr><th>Exam</th><th>Score</th><th>Max</th><th>Grade</th></tr></thead><tbody>${grades.map(g=>{ const ex=exams.find(e=>e.id===g.examId); return `<tr><td>${ex?.name||'—'}</td><td style="font-weight:700">${g.score}</td><td>${ex?.maxScore||100}</td><td><span class="badge ${gradeFromScore(g.score,ex?.maxScore||100)==='F'?'badge-danger':gradeFromScore(g.score,ex?.maxScore||100)<='C'?'badge-warn':'badge-success'}">${gradeFromScore(g.score,ex?.maxScore||100)}</span></td></tr>`; }).join('')}</tbody></table>`:'<div style="color:var(--t4);font-size:.82rem;padding:.5rem 0">No grades recorded</div>'}
     `;

@@ -1187,7 +1187,7 @@ const SMS = {
           color:pendingLeaves>0?'#d97706':'#16a34a',page:'leave'},
       ];
       stripEl.innerHTML=tiles.map(t=>`
-        <div class="dash-today-tile" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
+        <div class="dash-today-tile" style="border-left-color:${t.color};color:${t.color}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
           <div class="dash-today-icon" style="color:${t.color};background:${t.color}18">${t.icon}</div>
           <div class="dash-today-body">
             <div class="dash-today-val" style="color:${t.color}">${t.val}</div>

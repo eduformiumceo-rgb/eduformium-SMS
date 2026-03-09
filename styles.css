@@ -1850,8 +1850,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
    KPI METRIC CARDS
 ───────────────────────────────────────────── */
 #page-dashboard .kpi-grid {
-  /* 6 equal cols on wide screen — auto-fill means no awkward 2-row height mismatch */
-  grid-template-columns: repeat(auto-fill, minmax(min(155px, 100%), 1fr));
+  /* 6 equal cols — always fills full width edge-to-edge on desktop */
+  grid-template-columns: repeat(6, 1fr);
   gap:.85rem;
   margin-bottom:0;
   align-items:stretch;
@@ -2018,6 +2018,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-charts-side       { flex-direction:row; gap:.75rem; }
   .dash-charts-side .card { flex:1; }
   .dash-chart-box-sm      { height:162px; }
+  /* 6 cols too cramped on mid-size tablets — switch to 3 */
+  #page-dashboard .kpi-grid { grid-template-columns:repeat(3,1fr); }
 }
 
 /* ── 760px: hero stacks, strip + KPIs go 2-col ── */

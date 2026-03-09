@@ -405,11 +405,12 @@ const SMS = {
       this._pendingUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
         if(!snap.exists) return;
         const status = snap.data()?.status;
+        console.log('[pendingListener] status from Firestore:', status);
         if(status === 'suspended'){
           if(this._pendingUnsub) this._pendingUnsub();
           this.showSuspendedScreen(snap.data(), email);
         }
-      }, ()=>{});
+      }, (err)=>{ console.warn('[pendingListener] error:', err.message); });
     }
   },
 

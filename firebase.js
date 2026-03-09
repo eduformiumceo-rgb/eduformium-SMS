@@ -80,13 +80,10 @@ const FDB = {
 
   async getSchoolProfile(sid) {
     try {
-      const s = await _db.collection('schools').doc(sid).get({ source: 'server' });
-      console.log('[getSchoolProfile] server fetch OK — status:', s.data()?.status);
+      const s = await _db.collection('schools').doc(sid).get();
       return s.exists ? s.data() : null;
     } catch(e) {
-      console.warn('[getSchoolProfile] server fetch FAILED, using cache. Error:', e.message);
-      try { const s = await _db.collection('schools').doc(sid).get(); return s.exists ? s.data() : null; }
-      catch(e2){ return null; }
+      return null;
     }
   },
 

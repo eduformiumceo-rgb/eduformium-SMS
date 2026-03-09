@@ -362,6 +362,7 @@ const SMS = {
   },
 
   showPendingScreen(profile, email){
+    console.log('showPendingScreen called — status:', profile?.status, '| full profile:', JSON.stringify(profile));
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='none';

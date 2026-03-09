@@ -40,16 +40,74 @@ const sanitize = (str) => {
     .replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/\//g,'&#x2F;');
 };
 let _currency='GHS';
+let _currentTerm='2';
+let _academicYear='2025/2026';
 const SYMS={GHS:'₵',NGN:'₦',KES:'KSh ',USD:'$',GBP:'£',ZAR:'R ',EUR:'€'};
 const fmt=(n)=>(SYMS[_currency]||'₵')+(+n||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtDate=(s)=>{ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); };
 const gradeFromScore=(s,max=100)=>{const p=s/max*100; if(p>=80)return'A';if(p>=70)return'B';if(p>=60)return'C';if(p>=50)return'D';return'F';};
 const statusBadge=(s)=>{const map={active:'badge-success',inactive:'badge-neutral',graduated:'badge-brand',suspended:'badge-danger',pending:'badge-warn',approved:'badge-success',rejected:'badge-danger',completed:'badge-brand',upcoming:'badge-info',available:'badge-success',borrowed:'badge-warn'};return`<span class="badge ${map[s]||'badge-neutral'}">${s}</span>`;};
 
-// ── SEED DEMO DATA ──
+// ── YEAR-AWARE FEE HELPERS ──
+// Get a student's paid amounts for a specific year (backward-compatible)
+const getYearFees=(s,year)=>{
+  if(!s?.feesPaid) return {term1:0,term2:0,term3:0};
+  // Old flat format: feesPaid = {term1:N, term2:N, term3:N}
+  if(typeof s.feesPaid.term1==='number') return s.feesPaid;
+  return s.feesPaid[year]||{term1:0,term2:0,term3:0};
+};
+// Get fee structure for a class+year combo (backward-compatible)
+const getYearStructure=(classId,year)=>{
+  const all=DB.get('feeStructure',[]);
+  return all.find(f=>f.classId===classId&&f.year===year)
+    ||all.find(f=>f.classId===classId&&!f.year)
+    ||null;
+};
+// Get all academic years sorted newest first
+const getAllAcademicYears=()=>{
+  const school=DB.get('school',{});
+  const years=school.academicYears||[];
+  if(!years.length) return [{year:school.academicYear||'2025/2026',isCurrent:true}];
+  return [...years].sort((a,b)=>b.year.localeCompare(a.year));
+};
+// Migrate old flat feesPaid → year-keyed (runs once, idempotent)
+function migrateToYearFees(){
+  const school=DB.get('school',{});
+  const year=school.academicYear||'2025/2026';
+  // Students
+  const students=DB.get('students',[]);
+  let sc=false;
+  students.forEach(s=>{
+    if(s.feesPaid&&typeof s.feesPaid.term1==='number'){
+      s.feesPaid={[year]:{term1:+(s.feesPaid.term1||0),term2:+(s.feesPaid.term2||0),term3:+(s.feesPaid.term3||0)}};
+      sc=true;
+    }
+  });
+  if(sc) DB.set('students',students);
+  // feeStructure — add year field
+  const fs=DB.get('feeStructure',[]);
+  let fsc=false;
+  fs.forEach(f=>{if(!f.year){f.year=year;fsc=true;}});
+  if(fsc) DB.set('feeStructure',fs);
+  // feePayments — add academicYear field
+  const payments=DB.get('feePayments',[]);
+  let fpc=false;
+  payments.forEach(p=>{if(!p.academicYear){p.academicYear=year;fpc=true;}});
+  if(fpc) DB.set('feePayments',payments);
+  // Ensure academicYears list exists on school object
+  if(!school.academicYears||!school.academicYears.length){
+    school.academicYears=[{year,isCurrent:true,label:year}];
+    DB.set('school',school);
+  }
+}
 function seedData(){
   if(DB.get('seeded')) return;
-  DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12'});
+  DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12',
+    academicYears:[
+      {year:'2023/2024',isCurrent:false,label:'2023/2024',startDate:'2023-09-01',endDate:'2024-07-31'},
+      {year:'2024/2025',isCurrent:false,label:'2024/2025',startDate:'2024-09-01',endDate:'2025-07-31'},
+      {year:'2025/2026',isCurrent:true, label:'2025/2026',startDate:'2025-09-01',endDate:'2026-07-31'},
+    ]});
   // Store hashed password (SHA-256 of 'BFA@demo2026') — never plain text
   hashPassword('BFA@demo2026').then(hash=>{
     DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',passwordHash:hash,name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
@@ -102,7 +160,7 @@ function seedData(){
     fname:s[0],lname:s[1],classId:s[2],gender:s[3],dob:s[4],
     dadName:s[5],dadPhone:s[6],status:'active',admitDate:'2024-09-01',
     address:'Accra, Ghana',
-    feesPaid:{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},
+    feesPaid:{'2025/2026':{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},'2024/2025':{term1:850,term2:850,term3:850}},
   })));
   DB.set('subjects',[
     {id:'subj1',name:'English Language',code:'ENG',classId:'cls7',teacherId:'stf7',periods:6},
@@ -115,19 +173,24 @@ function seedData(){
     {id:'subj8',name:'English Language',code:'ENG',classId:'cls9',teacherId:'stf7',periods:6},
   ]);
   DB.set('feeStructure',[
-    {id:'fs1',classId:'cls1',term1:650,term2:650,term3:650},{id:'fs2',classId:'cls2',term1:650,term2:650,term3:650},
-    {id:'fs3',classId:'cls3',term1:700,term2:700,term3:700},{id:'fs4',classId:'cls4',term1:700,term2:700,term3:700},
-    {id:'fs5',classId:'cls5',term1:750,term2:750,term3:750},{id:'fs6',classId:'cls6',term1:750,term2:750,term3:750},
-    {id:'fs7',classId:'cls7',term1:900,term2:900,term3:900},{id:'fs8',classId:'cls8',term1:900,term2:900,term3:900},
-    {id:'fs9',classId:'cls9',term1:950,term2:950,term3:950},
+    {id:'fs1',classId:'cls1',year:'2025/2026',term1:650,term2:650,term3:650},{id:'fs2',classId:'cls2',year:'2025/2026',term1:650,term2:650,term3:650},
+    {id:'fs3',classId:'cls3',year:'2025/2026',term1:700,term2:700,term3:700},{id:'fs4',classId:'cls4',year:'2025/2026',term1:700,term2:700,term3:700},
+    {id:'fs5',classId:'cls5',year:'2025/2026',term1:750,term2:750,term3:750},{id:'fs6',classId:'cls6',year:'2025/2026',term1:750,term2:750,term3:750},
+    {id:'fs7',classId:'cls7',year:'2025/2026',term1:900,term2:900,term3:900},{id:'fs8',classId:'cls8',year:'2025/2026',term1:900,term2:900,term3:900},
+    {id:'fs9',classId:'cls9',year:'2025/2026',term1:950,term2:950,term3:950},
+    {id:'fs1p',classId:'cls1',year:'2024/2025',term1:600,term2:600,term3:600},{id:'fs2p',classId:'cls2',year:'2024/2025',term1:600,term2:600,term3:600},
+    {id:'fs7p',classId:'cls7',year:'2024/2025',term1:850,term2:850,term3:850},{id:'fs8p',classId:'cls8',year:'2024/2025',term1:850,term2:850,term3:850},
   ]);
   DB.set('feePayments',[
-    {id:uid('fp'),studentId:'stu1',term:'1',amount:850,method:'cash',date:'2025-01-10',by:'Admin',receiptNo:'REC-001'},
-    {id:uid('fp'),studentId:'stu2',term:'1',amount:850,method:'mobile',date:'2025-01-12',by:'Admin',receiptNo:'REC-002'},
-    {id:uid('fp'),studentId:'stu3',term:'1',amount:850,method:'bank',date:'2025-01-15',by:'Admin',receiptNo:'REC-003'},
-    {id:uid('fp'),studentId:'stu5',term:'1',amount:900,method:'cash',date:'2025-01-11',by:'Admin',receiptNo:'REC-004'},
-    {id:uid('fp'),studentId:'stu2',term:'2',amount:850,method:'mobile',date:'2025-02-05',by:'Admin',receiptNo:'REC-005'},
-    {id:uid('fp'),studentId:'stu7',term:'1',amount:750,method:'cash',date:'2025-01-20',by:'Admin',receiptNo:'REC-006'},
+    {id:uid('fp'),studentId:'stu1',term:'1',amount:850,method:'cash',date:'2025-01-10',by:'Admin',receiptNo:'REC-001',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu2',term:'1',amount:850,method:'mobile',date:'2025-01-12',by:'Admin',receiptNo:'REC-002',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu3',term:'1',amount:850,method:'bank',date:'2025-01-15',by:'Admin',receiptNo:'REC-003',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu5',term:'1',amount:900,method:'cash',date:'2025-01-11',by:'Admin',receiptNo:'REC-004',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu2',term:'2',amount:850,method:'mobile',date:'2025-02-05',by:'Admin',receiptNo:'REC-005',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu7',term:'1',amount:750,method:'cash',date:'2025-01-20',by:'Admin',receiptNo:'REC-006',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu1',term:'1',amount:600,method:'cash',date:'2024-09-10',by:'Admin',receiptNo:'REC-P001',academicYear:'2024/2025'},
+    {id:uid('fp'),studentId:'stu2',term:'1',amount:600,method:'mobile',date:'2024-09-12',by:'Admin',receiptNo:'REC-P002',academicYear:'2024/2025'},
+    {id:uid('fp'),studentId:'stu1',term:'2',amount:600,method:'cash',date:'2025-01-09',by:'Admin',receiptNo:'REC-P003',academicYear:'2024/2025'},
   ]);
   DB.set('exams',[
     {id:'ex1',name:'Term 2 Mid-Term',type:'midterm',classId:'cls7',subjectId:'subj1',date:'2025-03-15',maxScore:100,term:'2',duration:90,status:'completed'},
@@ -309,6 +372,9 @@ const SMS = {
       // Do NOT seed demo data here - only seed in demo mode
       const school=DB.get('school',{});
       _currency=school.currency||'GHS';
+      _currentTerm=school.currentTerm||'2';
+      _academicYear=school.academicYear||'2025/2026';
+      migrateToYearFees();
       const session=DB.get('session');
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
       this._afterLoad(()=>this.showLogin()); return;
@@ -343,7 +409,9 @@ const SMS = {
         }
         const school=DB.get('school',{});
         _currency=school.currency||'GHS';
-        const users=DB.get('users',[]);
+        _currentTerm=school.currentTerm||'2';
+        _academicYear=school.academicYear||'2025/2026';
+        migrateToYearFees();
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this._afterLoad(()=>this.boot());
       } else {
@@ -671,7 +739,7 @@ const SMS = {
     document.getElementById('add-fee-btn')?.addEventListener('click',()=>this.openFeeModal());
     document.getElementById('save-fee-btn')?.addEventListener('click',()=>this.saveFee());
     document.getElementById('fee-search')?.addEventListener('input',()=>this.renderFees());
-    ['fee-class-f','fee-term-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderFees()));
+    ['fee-class-f','fee-term-f','fee-year-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{ this.renderFeesKpis(); this.renderFees(); this.renderFeeStructure(); this.renderDefaulters(); }));
     document.getElementById('exp-fees-btn')?.addEventListener('click',()=>this.exportFees());
     document.getElementById('add-fee-struct-btn')?.addEventListener('click',()=>this.openFeeStructModal());
     document.getElementById('add-expense-btn')?.addEventListener('click',()=>this.openExpenseModal());
@@ -1077,7 +1145,8 @@ const SMS = {
     }
     // Fee defaulters count for KPI
     const feeStr=DB.get('feeStructure',[]);
-    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; });
+    // Defaulters: only current term of current year
+    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
     // Attendance colour helper
     const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
     // KPI cards — with trend context line
@@ -1136,8 +1205,9 @@ const SMS = {
     // Defaulters — with actual amount owed
     document.getElementById('dash-defaulters').innerHTML=defaulters.slice(0,5).map(s=>{
       const fs=feeStr.find(f=>f.classId===s.classId);
-      const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
-      const owed=Math.max(0,t1-(+(s.feesPaid?.term1||0)))+Math.max(0,t2-(+(s.feesPaid?.term2||0)))+Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
+      const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
+      const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
       return `<div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
         <div style="flex:1;min-width:0">
@@ -1249,7 +1319,7 @@ const SMS = {
     tbody.innerHTML=slice.map(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
       const termFee1=+(fs?.term1||0), termFee2=+(fs?.term2||0), termFee3=+(fs?.term3||0);
-      const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0), p3=+(s.feesPaid?.term3||0);
+      const _syf=getYearFees(s,_academicYear); const p1=+(_syf.term1||0), p2=+(_syf.term2||0), p3=+(_syf.term3||0);
       const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
       const noStructure=!fs||(termFee1===0&&termFee2===0&&termFee3===0);
       const feeStatus=noStructure?`<span style="color:var(--t4);font-size:.76rem;font-weight:600">—</span>`:owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
@@ -1284,9 +1354,9 @@ const SMS = {
     const grades=DB.get('grades',[]).filter(g=>g.studentId===id);
     const exams=DB.get('exams',[]);
     const feeStructure=DB.get('feeStructure',[]);
-    const fs=feeStructure.find(f=>f.classId===s.classId);
+    const fs=getYearStructure(s.classId,_academicYear);
     const ft1=+(fs?.term1||0),ft2=+(fs?.term2||0),ft3=+(fs?.term3||0);
-    const fp1=+(s.feesPaid?.term1||0),fp2=+(s.feesPaid?.term2||0),fp3=+(s.feesPaid?.term3||0);
+    const _spyf=getYearFees(s,_academicYear); const fp1=+(_spyf.term1||0),fp2=+(_spyf.term2||0),fp3=+(_spyf.term3||0);
     const fb1=Math.max(0,ft1-fp1),fb2=Math.max(0,ft2-fp2),fb3=Math.max(0,ft3-fp3);
     const totalDue=ft1+ft2+ft3, totalPaid=fp1+fp2+fp3, totalOwed=fb1+fb2+fb3;
     const noFeeStruct=!fs||(ft1===0&&ft2===0&&ft3===0);
@@ -1425,7 +1495,7 @@ const SMS = {
     const existingId=document.getElementById('sf-id').value;
     const _maxId=students.reduce((mx,st)=>{ const n=parseInt((st.studentId||'').split('-').pop()||0); return n>mx?n:mx; },100);
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(_maxId+1).padStart(4,'0');
-    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{term1:0,term2:0,term3:0}};
+    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
       if(i>-1){ const old=students[i]; students[i]={...old,...data,id:existingId,studentId:old.studentId,feesPaid:old.feesPaid}; DB.set('students',students); this.audit('Edit Student','edit',`Updated student: ${fname} ${lname}`); this.toast('Student updated','success'); }
@@ -2139,23 +2209,34 @@ const SMS = {
     const classes=DB.get('classes',[]);
     const sel=document.getElementById('fee-class-f'); if(sel) sel.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)})</option>`).join(''); }
+    // Populate year filter
+    const yearSel=document.getElementById('fee-year-f');
+    if(yearSel){
+      const years=getAllAcademicYears();
+      yearSel.innerHTML=years.map(y=>`<option value="${y.year}"${y.year===_academicYear?' selected':''}>${y.year}${y.isCurrent?' (Current)':''}</option>`).join('');
+    }
+    // Populate fee modal year dropdown
+    const fmYear=document.getElementById('fee-academic-year');
+    if(fmYear){
+      const years=getAllAcademicYears();
+      fmYear.innerHTML=years.map(y=>`<option value="${y.year}"${y.year===_academicYear?' selected':''}>${y.year}${y.isCurrent?' (Current)':''}</option>`).join('');
+    }
     this.renderFeesKpis(); this.renderFees(); this.renderFeeStructure(); this.renderDefaulters();
   },
 
   renderFeesKpis(){
-    const payments=DB.get('feePayments',[]);
+    const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
+    const payments=DB.get('feePayments',[]).filter(p=>!p.academicYear||p.academicYear===yearFilter);
     const students=DB.get('students',[]).filter(s=>s.status==='active');
-    const feeStructure=DB.get('feeStructure',[]);
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    // Correct outstanding: all 3 terms, no hardcoded fallbacks, active students only
+    // Outstanding = all 3 terms for selected year, active students only
     let outstanding=0, defaulterCount=0;
     students.forEach(s=>{
-      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const fs=getYearStructure(s.classId,yearFilter);
       if(!fs) return;
+      const yf=getYearFees(s,yearFilter);
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      const owed=Math.max(0,t1-(+(s.feesPaid?.term1||0)))
-               +Math.max(0,t2-(+(s.feesPaid?.term2||0)))
-               +Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      const owed=Math.max(0,t1-(+(yf.term1||0)))+Math.max(0,t2-(+(yf.term2||0)))+Math.max(0,t3-(+(yf.term3||0)));
       if(owed>0){ outstanding+=owed; defaulterCount++; }
     });
     document.getElementById('fees-kpis').innerHTML=[
@@ -2172,26 +2253,29 @@ const SMS = {
     const q=(document.getElementById('fee-search')?.value||'').toLowerCase();
     const cf=document.getElementById('fee-class-f')?.value||'';
     const tf=document.getElementById('fee-term-f')?.value||'';
+    const yf=document.getElementById('fee-year-f')?.value||_academicYear;
     let filtered=payments.filter(p=>{
       const s=students.find(x=>x.id===p.studentId);
       if(!s) return false; if(cf&&s.classId!==cf) return false; if(tf&&p.term!==tf) return false;
+      if(yf&&p.academicYear&&p.academicYear!==yf) return false;
       if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${p.receiptNo||''}`.toLowerCase().includes(q)) return false; return true;
     }).sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('fees-tbody').innerHTML=filtered.map(p=>{
       const s=students.find(x=>x.id===p.studentId);
       // Work out if this term is fully paid for the student
-      const fs=s?feeStructure.find(f=>f.classId===s.classId):null;
+      const pYear=p.academicYear||_academicYear;
+      const fs=s?getYearStructure(s.classId,pYear):null;
+      const sfyf=s?getYearFees(s,pYear):{term1:0,term2:0,term3:0};
       const termDue=fs?+(fs['term'+p.term]||0):0;
-      const termPaid=s?+(s.feesPaid?.['term'+p.term]||0):0;
+      const termPaid=+(sfyf['term'+p.term]||0);
       const termOwed=Math.max(0,termDue-termPaid);
       const termStatus=termDue===0
         ? `<span class="badge badge-neutral">No structure</span>`
         : termOwed===0
           ? `<span class="badge badge-success">Term ${p.term} Fully Paid</span>`
           : `<span class="badge badge-warn">Balance: ${fmt(termOwed)}</span>`;
-      // Overall balance across all terms
       const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
-      const totalOwed=s&&fs?Math.max(0,t1-(+(s.feesPaid?.term1||0)))+Math.max(0,t2-(+(s.feesPaid?.term2||0)))+Math.max(0,t3-(+(s.feesPaid?.term3||0))):0;
+      const totalOwed=s&&fs?Math.max(0,t1-(+(sfyf.term1||0)))+Math.max(0,t2-(+(sfyf.term2||0)))+Math.max(0,t3-(+(sfyf.term3||0))):0;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3);white-space:nowrap">${p.receiptNo||'—'}</td>
         <td><div style="font-weight:600;color:var(--t1);white-space:nowrap">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
@@ -2211,7 +2295,8 @@ const SMS = {
   },
 
   renderFeeStructure(){
-    const fs=DB.get('feeStructure',[]); const classes=DB.get('classes',[]);
+    const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
+    const fs=DB.get('feeStructure',[]).filter(f=>!f.year||f.year===yearFilter); const classes=DB.get('classes',[]);
     document.getElementById('fee-struct-tbody').innerHTML=fs.map(f=>{
       const cls=classes.find(c=>c.id===f.classId);
       const total=(+f.term1||0)+(+f.term2||0)+(+f.term3||0);
@@ -2226,20 +2311,22 @@ const SMS = {
   },
 
   renderDefaulters(){
-    const students=DB.get('students',[]); const classes=DB.get('classes',[]); const feeStructure=DB.get('feeStructure',[]);
+    const students=DB.get('students',[]); const classes=DB.get('classes',[]);
+    const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
     const defaulters=students.filter(s=>{
       if(s.status!=='active') return false;
-      const fs=feeStructure.find(f=>f.classId===s.classId);
-      if(!fs) return false;
+      const fs=getYearStructure(s.classId,yearFilter); if(!fs) return false;
+      const yf=getYearFees(s,yearFilter);
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
+      return (+(yf.term1||0))<t1 || (+(yf.term2||0))<t2 || (+(yf.term3||0))<t3;
     });
     document.getElementById('defaulters-tbody').innerHTML=defaulters.map(s=>{
-      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const fs=getYearStructure(s.classId,yearFilter);
+      const yf=getYearFees(s,yearFilter);
       const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-      const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
-      const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
-      const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      const owed1=Math.max(0,t1-(+(yf.term1||0)));
+      const owed2=Math.max(0,t2-(+(yf.term2||0)));
+      const owed3=Math.max(0,t3-(+(yf.term3||0)));
       return `<tr>
         <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
@@ -2262,11 +2349,12 @@ const SMS = {
   sendFeeReminder(studentId){
     const s=DB.get('students',[]).find(x=>x.id===studentId); if(!s) return;
     const feeStructure=DB.get('feeStructure',[]);
-    const fs=feeStructure.find(f=>f.classId===s.classId);
+    const fs=getYearStructure(s.classId,_academicYear);
+    const _ryf=getYearFees(s,_academicYear);
     const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-    const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
-    const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
-    const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+    const owed1=Math.max(0,t1-(+(_ryf.term1||0)));
+    const owed2=Math.max(0,t2-(+(_ryf.term2||0)));
+    const owed3=Math.max(0,t3-(+(_ryf.term3||0)));
     const total=owed1+owed2+owed3;
     const school=DB.get('school',{});
     const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
@@ -2294,10 +2382,10 @@ const SMS = {
     const students=DB.get('students',[]); const feeStructure=DB.get('feeStructure',[]);
     const defaulters=students.filter(s=>{
       if(s.status!=='active') return false;
-      const fs=feeStructure.find(f=>f.classId===s.classId);
-      if(!fs) return false;
+      const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false;
+      const yf=getYearFees(s,_academicYear);
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
+      return (+(yf.term1||0))<t1 || (+(yf.term2||0))<t2 || (+(yf.term3||0))<t3;
     });
     if(defaulters.length===0){ this.toast('No defaulters — all fees are paid!','success'); return; }
     this.audit('Fee Reminder','create',`Bulk reminders queued for ${defaulters.length} defaulters`);
@@ -2351,7 +2439,7 @@ const SMS = {
     if(!fromId||!toId||fromId===toId){ this.toast('Select two different classes','warn'); return; }
     const students=DB.get('students',[]);
     const promotedIds=[]; let count=0;
-    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; promotedIds.push(s.id); count++; } });
+    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; if(!s.feesPaid||typeof s.feesPaid.term1==='number') s.feesPaid={}; s.feesPaid[_academicYear]={term1:0,term2:0,term3:0}; promotedIds.push(s.id); count++; } });
     DB.set('students',students);
     // Clear old fee payment records for promoted students so feesPaid stays in sync
     const orphanPromo=DB.get('feePayments',[]).filter(p=>promotedIds.includes(p.studentId));
@@ -2521,8 +2609,11 @@ const SMS = {
   openFeeModal(preStudentId=null){
     ['fee-id','fee-amount','fee-ref','fee-notes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     document.getElementById('fee-date').value=new Date().toISOString().split('T')[0];
-    document.getElementById('fee-term').value=DB.get('school',{}).currentTerm||'2';
+    document.getElementById('fee-term').value=_currentTerm;
     document.getElementById('fee-method').value='cash';
+    // Set academic year dropdown
+    const fmYearEl=document.getElementById('fee-academic-year');
+    if(fmYearEl){ const years=getAllAcademicYears(); fmYearEl.innerHTML=years.map(y=>`<option value="${y.year}"${y.year===_academicYear?' selected':''}>${y.year}${y.isCurrent?' (Current)':''}</option>`).join(''); }
     document.getElementById('fee-err').style.display='none';
     const fstu=document.getElementById('fee-student'); if(fstu) fstu.value=preStudentId||'';
     // Always re-enable save button in case it was disabled by a previous "fully paid" check
@@ -2537,10 +2628,11 @@ const SMS = {
       const saveBtn=document.getElementById('save-fee-btn');
       if(!sId||!tm){ errEl.style.display='none'; return; }
       const st=DB.get('students',[]).find(x=>x.id===sId);
-      const fs=DB.get('feeStructure',[]).find(f=>f.classId===st?.classId);
+      const fmYear=document.getElementById('fee-academic-year')?.value||_academicYear;
+      const fs=getYearStructure(st?.classId,fmYear);
       if(!st||!fs){ errEl.style.display='none'; return; }
       const due=+(fs['term'+tm]||0);
-      const paid=+(st.feesPaid?.['term'+tm]||0);
+      const fmyf=getYearFees(st,fmYear); const paid=+(fmyf['term'+tm]||0);
       const owed=Math.max(0,due-paid);
       if(due===0){ errEl.style.display='none'; return; }
       if(owed===0){
@@ -2562,7 +2654,7 @@ const SMS = {
     };
     setTimeout(()=>{
       // Replace elements with clones to remove any previously stacked listeners
-      ['fee-student','fee-term'].forEach(eid=>{
+      ['fee-student','fee-term','fee-academic-year'].forEach(eid=>{
         const el=document.getElementById(eid); if(!el) return;
         const clone=el.cloneNode(true); el.parentNode.replaceChild(clone,el);
         clone.addEventListener('change', checkTermStatus);
@@ -2581,10 +2673,11 @@ const SMS = {
     if(amount<=0){ errEl.style.display='block'; errEl.textContent='Amount must be greater than zero.'; return; }
     // Hard block — prevent overpayment if term is already fully paid
     const stCheck=DB.get('students',[]).find(x=>x.id===studentId);
-    const fsCheck=DB.get('feeStructure',[]).find(f=>f.classId===stCheck?.classId);
+    const payYear=document.getElementById('fee-academic-year')?.value||_academicYear;
+    const fsCheck=getYearStructure(stCheck?.classId,payYear);
     if(stCheck&&fsCheck){
       const due=+(fsCheck['term'+term]||0);
-      const paid=+(stCheck.feesPaid?.['term'+term]||0);
+      const scyf=getYearFees(stCheck,payYear); const paid=+(scyf['term'+term]||0);
       if(due>0&&paid>=due){
         errEl.style.display='block';
         errEl.style.background='var(--danger-bg)';
@@ -2593,7 +2686,7 @@ const SMS = {
         return;
       }
       // Also cap: don't allow amount that exceeds remaining balance
-      const owed=due-paid;
+      const owed=Math.max(0,due-paid);
       if(due>0&&amount>owed){
         errEl.style.display='block';
         errEl.style.background='var(--danger-bg)';
@@ -2606,18 +2699,24 @@ const SMS = {
     const payments=DB.get('feePayments',[]);
     const maxRec=payments.reduce((mx,p)=>{ const n=parseInt((p.receiptNo||'').replace('REC-','')||0); return n>mx?n:mx; },0);
     const receiptNo='REC-'+String(maxRec+1).padStart(4,'0');
-    const payment={id:uid('fp'),studentId,term,amount,method:document.getElementById('fee-method').value,date,by:this.currentUser.name,receiptNo,ref:document.getElementById('fee-ref').value,notes:document.getElementById('fee-notes').value};
+    const _saveYear=document.getElementById('fee-academic-year')?.value||_academicYear;
+    const payment={id:uid('fp'),studentId,term,amount,method:document.getElementById('fee-method').value,date,by:this.currentUser.name,receiptNo,ref:document.getElementById('fee-ref').value,notes:document.getElementById('fee-notes').value,academicYear:_saveYear};
     payments.push(payment); DB.set('feePayments',payments);
-    // Update student feesPaid
+    // Update student feesPaid (year-keyed)
     const students=DB.get('students',[]); const si=students.findIndex(s=>s.id===studentId);
-    if(si>-1){ if(!students[si].feesPaid) students[si].feesPaid={}; students[si].feesPaid['term'+term]=(+(students[si].feesPaid['term'+term]||0))+amount; DB.set('students',students); }
+    if(si>-1){
+      if(!students[si].feesPaid||typeof students[si].feesPaid.term1==='number') students[si].feesPaid={};
+      if(!students[si].feesPaid[_saveYear]) students[si].feesPaid[_saveYear]={term1:0,term2:0,term3:0};
+      students[si].feesPaid[_saveYear]['term'+term]=(+(students[si].feesPaid[_saveYear]['term'+term]||0))+amount;
+      DB.set('students',students);
+    }
     const s=DB.get('students',[]).find(x=>x.id===studentId);
     this.audit('Fee Payment','create',`Payment recorded: ${s?.fname} ${s?.lname} — ${fmt(amount)} Term ${term} (${receiptNo})`);
     // Refresh student to get updated feesPaid
     const updatedSt=DB.get('students',[]).find(x=>x.id===studentId);
-    const fs2=DB.get('feeStructure',[]).find(f=>f.classId===updatedSt?.classId);
+    const fs2=getYearStructure(updatedSt?.classId,_saveYear);
     const termDue2=fs2?+(fs2['term'+term]||0):0;
-    const termPaid2=updatedSt?+(updatedSt.feesPaid?.['term'+term]||0):0;
+    const _ustYF=getYearFees(updatedSt,_saveYear); const termPaid2=+((_ustYF)['term'+term]||0);
     const termFullyPaid=termDue2>0&&termPaid2>=termDue2;
     const toastMsg=termFullyPaid
       ? `Term ${term} fully paid! Receipt: ${receiptNo}`
@@ -3064,6 +3163,7 @@ const SMS = {
     document.getElementById('ac-pass').value=school.passMark||50;
     document.getElementById('ac-currency').value=school.currency||'GHS';
     document.getElementById('ac-type').value=school.type||'k12';
+    this.renderAcademicYearHistory();
   },
 
   saveAcademic(){
@@ -3075,8 +3175,252 @@ const SMS = {
     school.currency=document.getElementById('ac-currency').value;
     school.type=document.getElementById('ac-type').value;
     _currency=school.currency;
-    DB.set('school',school); this.audit('Settings','settings','Academic settings updated');
+    _currentTerm=school.currentTerm;
+    _academicYear=school.academicYear;
+    // Ensure this year is in academicYears list
+    if(!school.academicYears) school.academicYears=[];
+    if(!school.academicYears.find(y=>y.year===school.academicYear)){
+      school.academicYears.push({year:school.academicYear,isCurrent:true,label:school.academicYear});
+    }
+    // Mark current year
+    school.academicYears.forEach(y=>y.isCurrent=(y.year===school.academicYear));
+    DB.set('school',school);
+    // Ensure fee structure exists for new year
+    const fs=DB.get('feeStructure',[]);
+    const classes=DB.get('classes',[]);
+    let fsChanged=false;
+    classes.forEach(c=>{
+      if(!fs.find(f=>f.classId===c.id&&f.year===school.academicYear)){
+        // Copy from most recent year for this class
+        const prev=fs.filter(f=>f.classId===c.id).sort((a,b)=>(b.year||'').localeCompare(a.year||''))[0];
+        fs.push({id:uid('fs'),classId:c.id,year:school.academicYear,term1:prev?.term1||0,term2:prev?.term2||0,term3:prev?.term3||0});
+        fsChanged=true;
+      }
+    });
+    if(fsChanged) DB.set('feeStructure',fs);
+    this.audit('Settings','settings','Academic settings updated — Year: '+school.academicYear+' Term: '+school.currentTerm);
     this.toast('Academic settings saved!','success');
+    // Refresh hero stats and dashboard
+    this.setupTopbar();
+    if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
+    this.renderAcademicYearHistory();
+  },
+
+  renderAcademicYearHistory(){
+    const el=document.getElementById('ac-year-history'); if(!el) return;
+    const school=DB.get('school',{});
+    const years=getAllAcademicYears();
+    const classes=DB.get('classes',[]);
+    el.innerHTML=years.map(y=>{
+      const isCurrent=y.year===school.academicYear;
+      const payments=DB.get('feePayments',[]).filter(p=>p.academicYear===y.year);
+      const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
+      const structCount=DB.get('feeStructure',[]).filter(f=>f.year===y.year).length;
+      return `<div class="ay-card${isCurrent?' ay-card-current':''}">
+        <div class="ay-card-left">
+          <div class="ay-year-badge${isCurrent?' ay-year-badge-current':''}">${y.year}</div>
+          ${isCurrent?'<span class="badge badge-success" style="font-size:.62rem">Current Year</span>':''}
+        </div>
+        <div class="ay-card-meta">
+          <div class="ay-meta-item"><span>📅</span> ${y.startDate?fmtDate(y.startDate):'—'} → ${y.endDate?fmtDate(y.endDate):'—'}</div>
+          <div class="ay-meta-item"><span>🏫</span> ${structCount}/${classes.length} class fee structures set</div>
+          <div class="ay-meta-item"><span>💰</span> ${fmt(totalCollected)} collected (${payments.length} payments)</div>
+        </div>
+        <div class="ay-card-actions">
+          ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')">Set as Current</button>`:''}
+          <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')">Fee Structure</button>
+          <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')">Enter Fee Data</button>
+          ${!isCurrent?`<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="SMS.deleteAcademicYear('${y.year}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
+        </div>
+      </div>`;
+    }).join('')||'<div style="color:var(--t4);font-size:.85rem;padding:1rem">No academic years configured yet.</div>';
+  },
+
+  setCurrentYear(year){
+    const school=DB.get('school',{});
+    school.academicYear=year;
+    // Set term 1 as default when switching years
+    school.currentTerm='1';
+    school.academicYears=(school.academicYears||[]).map(y=>({...y,isCurrent:y.year===year}));
+    _academicYear=year; _currentTerm='1';
+    DB.set('school',school);
+    document.getElementById('ac-year').value=year;
+    document.getElementById('ac-term').value='1';
+    this.toast(`Switched to ${year} — Term 1`,'success');
+    this.setupTopbar();
+    this.renderAcademicYearHistory();
+    if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
+    this.audit('Settings','settings','Academic year switched to '+year);
+  },
+
+  openAddYearModal(){
+    const school=DB.get('school',{});
+    // Suggest the next logical year
+    const latest=getAllAcademicYears()[0]?.year||'2025/2026';
+    const parts=latest.split('/');
+    const suggestStart=+parts[0]+1; const suggestEnd=+parts[1]+1;
+    const suggested=`${suggestStart}/${suggestEnd}`;
+    document.getElementById('new-ay-year').value=suggested;
+    document.getElementById('new-ay-start').value=`${suggestStart}-09-01`;
+    document.getElementById('new-ay-end').value=`${suggestEnd}-07-31`;
+    document.getElementById('new-ay-err').style.display='none';
+    this.openModal('m-add-year');
+  },
+
+  saveNewYear(){
+    const year=document.getElementById('new-ay-year').value.trim();
+    const startDate=document.getElementById('new-ay-start').value;
+    const endDate=document.getElementById('new-ay-end').value;
+    const errEl=document.getElementById('new-ay-err');
+    if(!year||!/^\d{4}\/\d{4}$/.test(year)){
+      errEl.style.display='block'; errEl.textContent='Year must be in format YYYY/YYYY (e.g. 2023/2024)'; return;
+    }
+    const school=DB.get('school',{});
+    if(!school.academicYears) school.academicYears=[];
+    if(school.academicYears.find(y=>y.year===year)){
+      errEl.style.display='block'; errEl.textContent=`${year} already exists.`; return;
+    }
+    school.academicYears.push({year,isCurrent:false,label:year,startDate,endDate});
+    DB.set('school',school);
+    // Auto-create fee structure for this year based on current year's rates
+    const fs=DB.get('feeStructure',[]); const classes=DB.get('classes',[]);
+    const copyFrom=school.academicYear||_academicYear;
+    classes.forEach(c=>{
+      if(!fs.find(f=>f.classId===c.id&&f.year===year)){
+        const prev=fs.find(f=>f.classId===c.id&&f.year===copyFrom)||fs.filter(f=>f.classId===c.id).sort((a,b)=>(b.year||'').localeCompare(a.year||''))[0];
+        fs.push({id:uid('fs'),classId:c.id,year,term1:prev?.term1||0,term2:prev?.term2||0,term3:prev?.term3||0});
+      }
+    });
+    DB.set('feeStructure',fs);
+    this.closeModal('m-add-year');
+    this.renderAcademicYearHistory();
+    this.audit('Settings','settings','Academic year added: '+year);
+    this.toast(`${year} added! Adjust its fee structure and enter historical payments.`,'success');
+  },
+
+  deleteAcademicYear(year){
+    if(!confirm(`Delete academic year ${year}? This will also remove all fee payments recorded for this year.`)) return;
+    const school=DB.get('school',{});
+    school.academicYears=(school.academicYears||[]).filter(y=>y.year!==year);
+    DB.set('school',school);
+    // Remove fee payments for that year
+    DB.set('feePayments',DB.get('feePayments',[]).filter(p=>p.academicYear!==year));
+    // Remove fee structures for that year
+    DB.set('feeStructure',DB.get('feeStructure',[]).filter(f=>f.year!==year));
+    // Remove from students' feesPaid
+    const students=DB.get('students',[]);
+    students.forEach(s=>{ if(s.feesPaid&&s.feesPaid[year]){ delete s.feesPaid[year]; } });
+    DB.set('students',students);
+    this.renderAcademicYearHistory();
+    this.toast(`${year} deleted.`,'info');
+  },
+
+  openFeeStructureForYear(year){
+    // Open the fee structure modal pre-filtered to the selected year
+    const school=DB.get('school',{});
+    const prev=school.academicYear;
+    // Temporarily switch year filter to show that year's structure
+    document.getElementById('fee-year-f') && (document.getElementById('fee-year-f').value=year);
+    SMS.nav('fees');
+    // Switch to fee structure tab
+    setTimeout(()=>{
+      document.querySelectorAll('.fee-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.fee-pane').forEach(p=>p.classList.remove('active'));
+      const structTab=document.querySelector('.fee-tab[data-pane="structure"]');
+      const structPane=document.getElementById('fee-pane-structure');
+      if(structTab) structTab.classList.add('active');
+      if(structPane) structPane.classList.add('active');
+      this.renderFeeStructure();
+    },100);
+  },
+
+  openHistoricalFeeEntry(year){
+    const students=DB.get('students',[]).filter(s=>s.status==='active');
+    const classes=DB.get('classes',[]);
+    const fs=DB.get('feeStructure',[]).filter(f=>f.year===year);
+    document.getElementById('hist-fee-year-title').textContent=year;
+    document.getElementById('hist-fee-year-input').value=year;
+    const tbody=document.getElementById('hist-fee-tbody');
+    if(!tbody) return;
+    tbody.innerHTML=students.map(s=>{
+      const fss=fs.find(f=>f.classId===s.classId);
+      const yf=getYearFees(s,year);
+      const t1due=+(fss?.term1||0), t2due=+(fss?.term2||0), t3due=+(fss?.term3||0);
+      const p1=+(yf.term1||0), p2=+(yf.term2||0), p3=+(yf.term3||0);
+      const cls=classes.find(c=>c.id===s.classId);
+      const rowClass=p1+p2+p3>0?'hist-row-has-data':'';
+      return `<tr class="${rowClass}" id="hist-row-${s.id}">
+        <td><div style="font-weight:600;font-size:.82rem">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div style="font-size:.7rem;color:var(--t4)">${cls?.name||'—'} · ${s.studentId}</div></td>
+        <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t1due):'—'}</td>
+        <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p1||''}" placeholder="0.00" data-sid="${s.id}" data-term="term1" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
+        <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t2due):'—'}</td>
+        <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p2||''}" placeholder="0.00" data-sid="${s.id}" data-term="term2" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
+        <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t3due):'—'}</td>
+        <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p3||''}" placeholder="0.00" data-sid="${s.id}" data-term="term3" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
+        <td class="hist-balance-cell" id="hist-bal-${s.id}" style="font-weight:700;font-size:.8rem;white-space:nowrap">${this._histBalance(p1,p2,p3,t1due,t2due,t3due)}</td>
+      </tr>`;
+    }).join('')||'<tr><td colspan="8" class="tbl-empty">No active students found.</td></tr>';
+    this.openModal('m-hist-fees');
+  },
+
+  _histBalance(p1,p2,p3,t1,t2,t3){
+    const total=(+t1||0)+(+t2||0)+(+t3||0);
+    const paid=(+p1||0)+(+p2||0)+(+p3||0);
+    const owed=Math.max(0,total-paid);
+    if(!total) return '<span style="color:var(--t4)">No structure</span>';
+    if(owed===0) return `<span style="color:var(--success)">✓ ${fmt(paid)}</span>`;
+    return `<span style="color:var(--danger)">${fmt(owed)} owed</span>`;
+  },
+
+  _histRowUpdate(sid,year){
+    const s=DB.get('students',[]).find(x=>x.id===sid); if(!s) return;
+    const fss=getYearStructure(sid?s.classId:null,year)||{term1:0,term2:0,term3:0};
+    const p1=+document.querySelector(`[data-sid="${sid}"][data-term="term1"]`)?.value||0;
+    const p2=+document.querySelector(`[data-sid="${sid}"][data-term="term2"]`)?.value||0;
+    const p3=+document.querySelector(`[data-sid="${sid}"][data-term="term3"]`)?.value||0;
+    const balEl=document.getElementById('hist-bal-'+sid);
+    if(balEl) balEl.innerHTML=this._histBalance(p1,p2,p3,fss.term1,fss.term2,fss.term3);
+    const row=document.getElementById('hist-row-'+sid);
+    if(row) row.classList.toggle('hist-row-has-data',(p1+p2+p3)>0);
+  },
+
+  saveHistoricalFees(){
+    const year=document.getElementById('hist-fee-year-input')?.value;
+    if(!year){ this.toast('No year selected','danger'); return; }
+    const inputs=document.querySelectorAll('.hist-amt');
+    const students=DB.get('students',[]);
+    const payments=DB.get('feePayments',[]);
+    let savedCount=0;
+    const byStudent={};
+    inputs.forEach(inp=>{
+      const sid=inp.dataset.sid, term=inp.dataset.term, amount=+(inp.value||0);
+      if(!sid) return;
+      if(!byStudent[sid]) byStudent[sid]={};
+      byStudent[sid][term]=amount;
+    });
+    Object.entries(byStudent).forEach(([sid,terms])=>{
+      const si=students.findIndex(s=>s.id===sid); if(si<0) return;
+      if(!students[si].feesPaid||typeof students[si].feesPaid.term1==='number') students[si].feesPaid={};
+      const prev=students[si].feesPaid[year]||{term1:0,term2:0,term3:0};
+      students[si].feesPaid[year]={term1:+(terms.term1||0),term2:+(terms.term2||0),term3:+(terms.term3||0)};
+      // Sync feePayments: remove old historical payments for this student/year, re-add as single records
+      const filtered=payments.filter(p=>!(p.studentId===sid&&p.academicYear===year&&p.ref==='historical-entry'));
+      const s=students[si];
+      ['term1','term2','term3'].forEach((t,ti)=>{
+        const amt=+(terms[t]||0); if(amt<=0) return;
+        const maxRec=filtered.reduce((mx,p)=>{ const n=parseInt((p.receiptNo||'').replace('REC-','')||0); return n>mx?n:mx; },0);
+        filtered.push({id:uid('fp'),studentId:sid,term:String(ti+1),amount:amt,method:'historical',date:year.split('/')[0]+'-09-01',by:this.currentUser.name,receiptNo:'REC-'+String(maxRec+1).padStart(4,'0'),academicYear:year,ref:'historical-entry'});
+        savedCount++;
+      });
+      payments.length=0; filtered.forEach(p=>payments.push(p));
+    });
+    DB.set('students',students);
+    DB.set('feePayments',[...payments]);
+    this.closeModal('m-hist-fees');
+    this.audit('Historical Fees','create',`Historical fee data saved for ${year} — ${savedCount} term records`);
+    this.toast(`Historical fees saved for ${year}!`,'success');
+    this.renderAcademicYearHistory();
   },
 
   loadAppearanceSettings(){

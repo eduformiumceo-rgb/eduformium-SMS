@@ -1288,17 +1288,27 @@ const SMS = {
   },
 
   renderDashCharts(students,classes,payments,attRecords){
+    // Helper: reset canvas so Chart.js always renders fresh
+    function resetCanvas(id){
+      const el=document.getElementById(id); if(!el) return null;
+      const par=el.parentElement;
+      el.remove();
+      const fresh=document.createElement('canvas');
+      fresh.id=id;
+      par.appendChild(fresh);
+      return fresh;
+    }
     // ── Enrollment by class ──
-    const ctx1=document.getElementById('chart-enrollment');
-    if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
+    const ctx1=resetCanvas('chart-enrollment');
+    if(ctx1){ if(this._charts.enrollment){ this._charts.enrollment.destroy(); this._charts.enrollment=null; }
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
       this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}},onClick:()=>SMS.nav('students')}});
       ctx1.style.cursor='pointer';
     }
     // ── Fee collection — real data, last 6 months ──
-    const ctx2=document.getElementById('chart-fees');
-    if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
+    const ctx2=resetCanvas('chart-fees');
+    if(ctx2){ if(this._charts.fees){ this._charts.fees.destroy(); this._charts.fees=null; }
       const now=new Date();
       const feeKeys=[],feeLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
@@ -1309,17 +1319,15 @@ const SMS = {
       }
       payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
       const hasAnyFee=feeData.some(v=>v>0);
-      // Currency symbol from school settings
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}},onClick:()=>SMS.nav('fees')}});
       ctx2.style.cursor='pointer';
-      // Show a "no payments yet" note if all zeros
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
     // ── Attendance — real data, last 7 days ──
-    const ctx3=document.getElementById('chart-attendance');
-    if(ctx3){ if(this._charts.att) this._charts.att.destroy();
+    const ctx3=resetCanvas('chart-attendance');
+    if(ctx3){ if(this._charts.att){ this._charts.att.destroy(); this._charts.att=null; }
       const recs=attRecords||DB.get('attendance',[]);
       const attKeys=[],attLabels=[],attData=[],attColors=[];
       for(let i=6;i>=0;i--){

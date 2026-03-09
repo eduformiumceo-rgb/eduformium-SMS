@@ -1035,6 +1035,9 @@
           </div>
         </div>
 
+        <!-- ── Today at a Glance Strip ── -->
+        <div class="dash-today-strip" id="dash-today-strip"></div>
+
         <!-- ── KPI Cards ── -->
         <div class="dash-section-label">Key Metrics</div>
         <div class="kpi-grid" id="dash-kpis"></div>
@@ -1043,7 +1046,7 @@
         <div class="dash-section-label">Analytics</div>
         <div class="dash-charts-layout">
           <!-- Fee collection — wide -->
-          <div class="card dash-chart-main">
+          <div class="card dash-chart-main" style="cursor:pointer" onclick="SMS.nav('fees')" title="Click to view Fees">
             <div class="card-hd">
               <div>
                 <div class="card-title">Fee Collection</div>
@@ -1087,8 +1090,12 @@
             <div class="mini-list" id="dash-events"></div>
           </div>
           <div class="card">
-            <div class="card-hd"><span class="card-title">Fee Defaulters</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('fees')">View all →</button></div>
+            <div class="card-hd"><span class="card-title">Fee Defaulters <span class="badge badge-danger" id="dash-defaulters-count" style="display:none;margin-left:.3rem"></span></span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('fees')">View all →</button></div>
             <div class="mini-list" id="dash-defaulters"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Upcoming Exams</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('exams')">View all →</button></div>
+            <div class="mini-list" id="dash-exams"></div>
           </div>
         </div>
 

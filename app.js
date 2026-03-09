@@ -42,10 +42,16 @@ const sanitize = (str) => {
 let _currency='GHS';
 let _currentTerm='2';
 let _academicYear='2025/2026';
+let _passMark=50;
+let _gradeSystem='percentage';
 const SYMS={GHS:'₵',NGN:'₦',KES:'KSh ',USD:'$',GBP:'£',ZAR:'R ',EUR:'€'};
 const fmt=(n)=>(SYMS[_currency]||'₵')+(+n||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtDate=(s)=>{ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); };
-const gradeFromScore=(s,max=100)=>{const p=s/max*100; if(p>=80)return'A';if(p>=70)return'B';if(p>=60)return'C';if(p>=50)return'D';return'F';};
+const gradeFromScore=(s,max=100)=>{
+  const p=s/max*100; const pm=_passMark||50;
+  if(_gradeSystem==='gpa'){ if(p>=90)return'4.0';if(p>=80)return'3.0';if(p>=70)return'2.0';if(p>=pm)return'1.0';return'0.0'; }
+  if(p>=80)return'A';if(p>=70)return'B';if(p>=60)return'C';if(p>=pm)return'D';return'F';
+};
 const statusBadge=(s)=>{const map={active:'badge-success',inactive:'badge-neutral',graduated:'badge-brand',suspended:'badge-danger',pending:'badge-warn',approved:'badge-success',rejected:'badge-danger',completed:'badge-brand',upcoming:'badge-info',available:'badge-success',borrowed:'badge-warn'};return`<span class="badge ${map[s]||'badge-neutral'}">${s}</span>`;};
 
 // ── YEAR-AWARE FEE HELPERS ──
@@ -374,6 +380,8 @@ const SMS = {
       _currency=school.currency||'GHS';
       _currentTerm=school.currentTerm||'2';
       _academicYear=school.academicYear||'2025/2026';
+      _passMark=school.passMark||50;
+      _gradeSystem=school.gradeSystem||'percentage';
       migrateToYearFees();
       const session=DB.get('session');
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
@@ -411,6 +419,8 @@ const SMS = {
         _currency=school.currency||'GHS';
         _currentTerm=school.currentTerm||'2';
         _academicYear=school.academicYear||'2025/2026';
+        _passMark=school.passMark||50;
+        _gradeSystem=school.gradeSystem||'percentage';
         migrateToYearFees();
         const users=DB.get('users',[]);
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
@@ -1130,11 +1140,14 @@ const SMS = {
     const classes=DB.get('classes',[]);
     const payments=DB.get('feePayments',[]);
     const school=DB.get('school',{});
+    const exams=DB.get('exams',[]);
+    const leaves=DB.get('leaves',[]);
     const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
     const todayStr=new Date().toISOString().split('T')[0];
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
+    const now=new Date();
     // Attendance rate
     let attRate='—', attSub='No data yet', attNum=null;
     if(todayAtt.length>0){
@@ -1150,6 +1163,40 @@ const SMS = {
     const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
     // Attendance colour helper
     const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
+
+    // ── TODAY AT A GLANCE strip ──
+    const todayPayments=payments.filter(p=>p.date===todayStr);
+    const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
+    const attClassesToday=todayAtt.length;
+    const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
+    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date); return d>=now&&(d-now)<=7*864e5; }).length;
+    const stripEl=document.getElementById('dash-today-strip');
+    if(stripEl){
+      const tiles=[
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+          label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
+          color:'#0d9488',page:'fees'},
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
+          label:'Attendance Today',val:attClassesToday>0?attRate:'—',sub:attClassesToday>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked`:'No sessions marked',
+          color:attNum===null?'#64748b':attNum>=90?'#16a34a':attNum>=75?'#d97706':'#dc2626',page:'attendance'},
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+          label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
+          color:'#1a3a6b',page:'exams'},
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+          label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
+          color:pendingLeaves>0?'#d97706':'#16a34a',page:'leave'},
+      ];
+      stripEl.innerHTML=tiles.map(t=>`
+        <div class="dash-today-tile" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
+          <div class="dash-today-icon" style="color:${t.color};background:${t.color}18">${t.icon}</div>
+          <div class="dash-today-body">
+            <div class="dash-today-val" style="color:${t.color}">${t.val}</div>
+            <div class="dash-today-label">${t.label}</div>
+            <div class="dash-today-sub">${t.sub}</div>
+          </div>
+        </div>`).join('');
+    }
+
     // KPI cards — with trend context line
     const kpis=[
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue'},
@@ -1176,7 +1223,7 @@ const SMS = {
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
       const ci=classes.findIndex(c=>c.id===s.classId);
       const clsColor=clsPalette[ci%clsPalette.length]||'#1a3a6b';
-      return `<div class="mini-item">
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
         <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${s.fname[0]}${s.lname[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
@@ -1187,14 +1234,14 @@ const SMS = {
     }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
     // Events
     const events=DB.get('events',[]);
-    const upcomingEv=[...events].filter(e=>new Date(e.start)>=new Date()).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
+    const upcomingEv=[...events].filter(e=>new Date(e.start)>=now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
     const evIcons={exam:'📝',academic:'🎓',sports:'⚽',holiday:'🏖️',meeting:'📅',cultural:'🎭'};
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
       const col=evColors[e.type]||'#1a3a6b';
-      const daysLeft=Math.ceil((new Date(e.start)-new Date())/(1000*60*60*24));
+      const daysLeft=Math.ceil((new Date(e.start)-now)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
-      return `<div class="mini-item">
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('events')">
         <div class="mini-av" style="background:${col}18;color:${col};font-size:.85rem">${evIcons[e.type]||'📌'}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.title)}</div>
@@ -1204,12 +1251,13 @@ const SMS = {
       </div>`;
     }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
     // Defaulters — with actual amount owed
+    const defBadge=document.getElementById('dash-defaulters-count');
+    if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
     document.getElementById('dash-defaulters').innerHTML=defaulters.slice(0,5).map(s=>{
-      const fs=feeStr.find(f=>f.classId===s.classId);
       const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
       const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
       const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
-      return `<div class="mini-item">
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
@@ -1221,6 +1269,22 @@ const SMS = {
         </div>
       </div>`;
     }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
+    // Upcoming Exams panel
+    const upcomingExams=[...exams].filter(e=>e.date&&new Date(e.date)>=now).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
+    const examEl=document.getElementById('dash-exams');
+    if(examEl){ examEl.innerHTML=upcomingExams.map(e=>{
+      const daysLeft=Math.ceil((new Date(e.date)-now)/(1000*60*60*24));
+      const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
+      const urgColor=daysLeft<=2?'var(--danger)':daysLeft<=7?'var(--warn)':'var(--brand)';
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('exams')">
+        <div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">📝</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(e.name)}</div>
+          <div class="mini-sub">${this.className(e.classId)||'All Classes'} · ${fmtDate(e.date)}</div>
+        </div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgColor}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
+      </div>`;
+    }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>'; }
   },
 
   renderDashCharts(students,classes,payments,attRecords){
@@ -1229,7 +1293,8 @@ const SMS = {
     if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
-      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}});
+      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}},onClick:()=>SMS.nav('students')}});
+      ctx1.style.cursor='pointer';
     }
     // ── Fee collection — real data, last 6 months ──
     const ctx2=document.getElementById('chart-fees');
@@ -1246,7 +1311,8 @@ const SMS = {
       const hasAnyFee=feeData.some(v=>v>0);
       // Currency symbol from school settings
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
-      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}}}});
+      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}},onClick:()=>SMS.nav('fees')}});
+      ctx2.style.cursor='pointer';
       // Show a "no payments yet" note if all zeros
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
@@ -1272,7 +1338,8 @@ const SMS = {
         }
       }
       const hasAttData=attData.some(v=>v!==null);
-      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}},onClick:()=>SMS.nav('attendance')}});
+      ctx3.style.cursor='pointer';
       const sub3=document.getElementById('dash-att-sub');
       if(sub3) sub3.textContent=hasAttData?'Last 7 days':'No records yet';
     }
@@ -3178,6 +3245,8 @@ const SMS = {
     _currency=school.currency;
     _currentTerm=school.currentTerm;
     _academicYear=school.academicYear;
+    _passMark=school.passMark;
+    _gradeSystem=school.gradeSystem;
     // Ensure this year is in academicYears list
     if(!school.academicYears) school.academicYears=[];
     if(!school.academicYears.find(y=>y.year===school.academicYear)){
@@ -3244,6 +3313,8 @@ const SMS = {
     school.currentTerm='1';
     school.academicYears=(school.academicYears||[]).map(y=>({...y,isCurrent:y.year===year}));
     _academicYear=year; _currentTerm='1';
+    _passMark=school.passMark||50;
+    _gradeSystem=school.gradeSystem||'percentage';
     DB.set('school',school);
     document.getElementById('ac-year').value=year;
     document.getElementById('ac-term').value='1';

@@ -398,30 +398,19 @@ const SMS = {
 
     const soBtn = document.getElementById('ps-signout-btn');
     if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
-  },
 
-  showSuspendedScreen(profile, email){
-    document.getElementById('loading-overlay').style.display='none';
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='none';
-    document.getElementById('pending-screen').style.display='none';
-    document.getElementById('suspended-screen').style.display='block';
-
-    const schoolName = profile?.name || 'Your School';
-    const adminEmail = profile?.adminEmail || profile?.email || email || '';
-
-    document.getElementById('ss-school-name').textContent = schoolName;
-    document.getElementById('ss-school-email').textContent = adminEmail;
-    document.getElementById('ss-school-avatar').textContent = schoolName.charAt(0).toUpperCase();
-
-    const waBtn = document.getElementById('ss-wa-btn');
-    if(waBtn) waBtn.href = 'https://wa.me/233553774541?text=' + encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.');
-
-    const emailBtn = document.getElementById('ss-email-btn');
-    if(emailBtn) emailBtn.href = 'mailto:eduformium.ceo@gmail.com?subject=' + encodeURIComponent('Account Suspension - ' + schoolName) + '&body=' + encodeURIComponent('Hello,\n\nMy school account has been suspended.\nSchool: ' + schoolName + '\nEmail: ' + adminEmail);
-
-    const soBtn = document.getElementById('ss-signout-btn');
-    if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); document.getElementById('suspended-screen').style.display='none'; this.showLogin(); };
+    // Watch for status changes while user is on pending screen
+    if(this._pendingUnsub) this._pendingUnsub();
+    if(this.schoolId && window._db){
+      this._pendingUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
+        if(!snap.exists) return;
+        const status = snap.data()?.status;
+        if(status === 'suspended'){
+          if(this._pendingUnsub) this._pendingUnsub();
+          this.showSuspendedScreen(snap.data(), email);
+        }
+      }, ()=>{});
+    }
   },
 
   showSuspendedScreen(profile, email){
@@ -435,19 +424,22 @@ const SMS = {
     // Populate school info
     const schoolName = profile?.name || 'Your School';
     const adminEmail = profile?.adminEmail || profile?.email || email || '';
-    document.getElementById('sus-school-name-display').textContent = schoolName;
-    document.getElementById('sus-school-email-display').textContent = adminEmail;
-    document.getElementById('sus-school-avatar').textContent = schoolName.charAt(0).toUpperCase();
+    const nameEl = document.getElementById('ss-school-name');
+    const emailEl = document.getElementById('ss-school-email');
+    const avatarEl = document.getElementById('ss-school-avatar');
+    if(nameEl) nameEl.textContent = schoolName;
+    if(emailEl) emailEl.textContent = adminEmail;
+    if(avatarEl) avatarEl.textContent = schoolName.charAt(0).toUpperCase();
 
     // WhatsApp button
-    const waBtn = document.getElementById('sus-wa-btn');
+    const waBtn = document.getElementById('ss-wa-btn');
     if(waBtn){
       const msg = encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.');
       waBtn.href = 'https://wa.me/233553774541?text=' + msg;
     }
 
     // Email button
-    const emailBtn = document.getElementById('sus-email-btn');
+    const emailBtn = document.getElementById('ss-email-btn');
     if(emailBtn){
       const subj = 'Account Suspension - ' + schoolName;
       const body = 'Hello,\n\nMy school account has been suspended.\nSchool: ' + schoolName + '\nEmail: ' + adminEmail + '\n\nPlease help me restore access.';
@@ -455,7 +447,7 @@ const SMS = {
     }
 
     // Sign out button
-    const soBtn = document.getElementById('sus-signout-btn');
+    const soBtn = document.getElementById('ss-signout-btn');
     if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ss.style.display='none'; this.showLogin(); };
   },
 

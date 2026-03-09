@@ -331,10 +331,15 @@ const SMS = {
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
         try{ await Migration.run(this.schoolId); }catch(e){}
         // Approval gate — block anyone who is not explicitly 'active'
-        const _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
+        // Retry once on failure so a brief network blip doesn't lose the suspended status
+        let _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
+        if(!_sp) _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
         const _spStatus = _sp?.status || 'pending';
         if(_spStatus !== 'active'){
-          this._afterLoad(()=>this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email));
+          // IMPORTANT: never fall back to hardcoded 'pending' — preserve the real status from Firestore
+          // so suspended schools see the suspended screen, not the pending screen.
+          const _fallback = {status: _spStatus, name:'', adminEmail:firebaseUser.email};
+          this._afterLoad(()=>this.showPendingScreen(_sp || _fallback, firebaseUser.email));
           return;
         }
         const school=DB.get('school',{});
@@ -415,6 +420,21 @@ const SMS = {
     // Sign out button
     const soBtn = document.getElementById('ps-signout-btn');
     if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
+
+    // Real-time listener on pending screen
+    // Detects status changes (e.g. pending->suspended) without requiring manual refresh.
+    if(this.schoolId && window._db){
+      if(this._pendingScreenUnsub) this._pendingScreenUnsub();
+      this._pendingScreenUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
+        if(!snap.exists) return;
+        const newStatus = snap.data()?.status;
+        if(newStatus && newStatus !== profile.status){
+          if(this._pendingScreenUnsub) this._pendingScreenUnsub();
+          this._pendingScreenUnsub = null;
+          this.showPendingScreen(snap.data(), email);
+        }
+      }, ()=>{});
+    }
   },
 
   boot(){

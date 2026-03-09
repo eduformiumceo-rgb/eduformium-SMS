@@ -498,6 +498,8 @@ const SMS = {
     const h=new Date().getHours();
     const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
     const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${u.name.split(' ')[0]}! Here's your school overview.`;
+    const heroToday=document.getElementById('dash-hero-today'); if(heroToday){ const dn=new Date(); heroToday.textContent=dn.toLocaleDateString('default',{day:'numeric',month:'short'}); }
+    const heroTerm=document.getElementById('dash-hero-term'); if(heroTerm){ const school=DB.get('school',{}); heroTerm.textContent=school.currentTerm?'T'+school.currentTerm:'T1'; }
   },
 
   roleLabel(r){ return {admin:'Administrator',teacher:'Teacher',accountant:'Accountant',librarian:'Librarian',staff:'Staff'}[r]||r; },
@@ -1054,14 +1056,23 @@ const SMS = {
     const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
-    const todayAtt=attRecords.filter(a=>a.date===new Date().toISOString().split('T')[0]);
-    const attRate=todayAtt.length>0?Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100):94;
+    const todayStr=new Date().toISOString().split('T')[0];
+    const todayAtt=attRecords.filter(a=>a.date===todayStr);
+    // Attendance rate: today if data exists, else last 7 days, else show '—'
+    let attRate='—', attSub='No data yet';
+    if(todayAtt.length>0){
+      attRate=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100)+'%';
+      attSub="Today's average";
+    } else {
+      const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)<=7*864e5; });
+      if(week.length>0){ attRate=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100)+'%'; attSub='7-day average'; }
+    }
     const kpis=[
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active`,color:'blue'},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers`,color:'teal'},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects`,color:'green'},
       {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:'All time collected',color:'amber'},
-      {icon:'check',label:'Attendance Rate',val:attRate+'%',sub:"Today's average",color:'teal'},
+      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal'},
       {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue'},
     ];
     document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
@@ -1071,7 +1082,7 @@ const SMS = {
         <div class="kpi-label">${k.label}</div>
         <div style="font-size:.72rem;color:var(--t4);margin-top:.2rem">${k.sub}</div>
       </div>`).join('');
-    this.renderDashCharts(students,classes,payments);
+    this.renderDashCharts(students,classes,payments,attRecords);
     // Recent students
     const recent=[...students].sort((a,b)=>new Date(b.admitDate)-new Date(a.admitDate)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>`
@@ -1101,27 +1112,58 @@ const SMS = {
       </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
   },
 
-  renderDashCharts(students,classes,payments){
-    // Enrollment by class
+  renderDashCharts(students,classes,payments,attRecords){
+    // ── Enrollment by class ──
     const ctx1=document.getElementById('chart-enrollment');
     if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
-      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}});
+      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}});
     }
-    // Fee collection
+    // ── Fee collection — real data, last 6 months ──
     const ctx2=document.getElementById('chart-fees');
     if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
-      const months=['Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
-      const feeData=[18200,22400,19800,14200,28600,24100,18900];
-      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:months,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}});
+      const now=new Date();
+      const feeKeys=[],feeLabels=[],feeData=[];
+      for(let i=5;i>=0;i--){
+        const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+        feeKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+        feeLabels.push(d.toLocaleString('default',{month:'short'}));
+        feeData.push(0);
+      }
+      payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
+      const hasAnyFee=feeData.some(v=>v>0);
+      // Currency symbol from school settings
+      const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
+      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}}}});
+      // Show a "no payments yet" note if all zeros
+      const sub=ctx2.closest('.card')?.querySelector('.card-subtitle');
+      if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
-    // Attendance chart
+    // ── Attendance — real data, last 7 days ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
-      const days=['Mon','Tue','Wed','Thu','Fri'];
-      const attData=[94,91,96,89,95];
-      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:days,datasets:[{data:attData,backgroundColor:attData.map(v=>v>=90?'rgba(13,148,136,0.8)':'rgba(217,119,6,0.8)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:70,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+      const recs=attRecords||DB.get('attendance',[]);
+      const attKeys=[],attLabels=[],attData=[],attColors=[];
+      for(let i=6;i>=0;i--){
+        const d=new Date(); d.setDate(d.getDate()-i);
+        const key=d.toISOString().split('T')[0];
+        attKeys.push(key);
+        attLabels.push(d.toLocaleString('default',{weekday:'short'}));
+        const dayRecs=recs.filter(a=>a.date===key);
+        if(dayRecs.length>0){
+          const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
+          attData.push(rate);
+          attColors.push(rate>=90?'rgba(13,148,136,0.85)':rate>=75?'rgba(217,119,6,0.85)':'rgba(220,38,38,0.75)');
+        } else {
+          attData.push(null);
+          attColors.push('rgba(0,0,0,0.08)');
+        }
+      }
+      const hasAttData=attData.some(v=>v!==null);
+      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+      const sub3=ctx3.closest('.card')?.querySelector('.card-subtitle');
+      if(sub3) sub3.textContent=hasAttData?'Last 7 days':'No records yet';
     }
   },
 

@@ -991,39 +991,71 @@
 
       <!-- ── DASHBOARD ── -->
       <div id="page-dashboard" class="page active">
-        <div class="ph">
-          <div>
-            <div class="ph-title">Dashboard</div>
-            <div class="ph-sub" id="dash-welcome">Good morning! Here's your school overview.</div>
+
+        <!-- Hero Banner -->
+        <div class="dash-hero">
+          <div class="dash-hero-left">
+            <div class="dash-hero-greeting" id="dash-welcome">Good morning! Here's your overview.</div>
+            <div class="dash-hero-sub">School Management System &mdash; Live Overview</div>
           </div>
-          <div class="ph-right">
-            <button class="btn btn-ghost btn-sm" id="dash-refresh-btn" title="Refresh Dashboard">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          <div class="dash-hero-right">
+            <div class="dash-hero-stat">
+              <div class="dash-hero-stat-val" id="dash-hero-today">—</div>
+              <div class="dash-hero-stat-lbl">Today</div>
+            </div>
+            <div class="dash-hero-stat">
+              <div class="dash-hero-stat-val" id="dash-hero-term">T1</div>
+              <div class="dash-hero-stat-lbl">Term</div>
+            </div>
+            <button class="btn btn-white btn-sm" id="dash-refresh-btn" title="Refresh Dashboard" style="gap:.4rem">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+              Refresh
             </button>
-            <button class="btn btn-primary btn-sm" onclick="SMS.nav('students')">
+            <button class="btn btn-white btn-sm" onclick="SMS.nav('students')" style="gap:.4rem">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Enroll Student
             </button>
           </div>
         </div>
+
         <!-- KPI Cards -->
+        <div class="dash-section-label">Key Metrics</div>
         <div class="kpi-grid" id="dash-kpis"></div>
+
         <!-- Charts Row -->
+        <div class="dash-section-label">Analytics</div>
         <div class="charts-grid">
           <div class="card">
-            <div class="card-hd"><span class="card-title">Enrollment by Class</span></div>
+            <div class="card-hd">
+              <div>
+                <div class="card-title">Enrollment by Class</div>
+                <div class="card-subtitle">Students per class</div>
+              </div>
+            </div>
             <div class="chart-box"><canvas id="chart-enrollment"></canvas></div>
           </div>
           <div class="card">
-            <div class="card-hd"><span class="card-title">Fee Collection</span><span class="card-subtitle">This term</span></div>
+            <div class="card-hd">
+              <div>
+                <div class="card-title">Fee Collection</div>
+                <div class="card-subtitle" id="dash-fee-sub">Last 6 months</div>
+              </div>
+            </div>
             <div class="chart-box"><canvas id="chart-fees"></canvas></div>
           </div>
           <div class="card">
-            <div class="card-hd"><span class="card-title">Attendance Rate</span><span class="card-subtitle">This week</span></div>
-            <div class="chart-box" style="height:160px"><canvas id="chart-attendance"></canvas></div>
+            <div class="card-hd">
+              <div>
+                <div class="card-title">Attendance Rate</div>
+                <div class="card-subtitle" id="dash-att-sub">Last 7 days</div>
+              </div>
+            </div>
+            <div class="chart-box"><canvas id="chart-attendance"></canvas></div>
           </div>
         </div>
-        <!-- Quick panels -->
+
+        <!-- Quick Panels -->
+        <div class="dash-section-label">Quick View</div>
         <div class="dash-panels">
           <div class="card">
             <div class="card-hd"><span class="card-title">Recent Admissions</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('students')">View all →</button></div>
@@ -1038,6 +1070,7 @@
             <div class="mini-list" id="dash-defaulters"></div>
           </div>
         </div>
+
       </div>
 
       <!-- ── STUDENTS ── -->

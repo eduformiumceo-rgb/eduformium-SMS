@@ -25,6 +25,20 @@ const DB = {
   },
 };
 const uid=(p='')=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+// ── PASSWORD HASHING (SHA-256 via Web Crypto — no plain-text passwords stored) ──
+const hashPassword = async (pwd) => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+};
+
+// ── XSS SANITIZATION — escape user-supplied strings before innerHTML injection ──
+const sanitize = (str) => {
+  if(str == null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/\//g,'&#x2F;');
+};
 let _currency='GHS';
 const SYMS={GHS:'₵',NGN:'₦',KES:'KSh ',USD:'$',GBP:'£',ZAR:'R ',EUR:'€'};
 const fmt=(n)=>(SYMS[_currency]||'₵')+(+n||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -36,7 +50,10 @@ const statusBadge=(s)=>{const map={active:'badge-success',inactive:'badge-neutra
 function seedData(){
   if(DB.get('seeded')) return;
   DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12'});
-  DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',password:'BFA@demo2026',name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
+  // Store hashed password (SHA-256 of 'BFA@demo2026') — never plain text
+  hashPassword('BFA@demo2026').then(hash=>{
+    DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',passwordHash:hash,name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
+  });
   DB.set('classes',[
     {id:'cls1',name:'Class 1',level:'Primary 1',teacherId:'stf1',capacity:35,room:'Room 1'},
     {id:'cls2',name:'Class 2',level:'Primary 2',teacherId:'stf2',capacity:35,room:'Room 2'},
@@ -672,8 +689,13 @@ const SMS = {
 
     // Always check localStorage first (covers demo account + offline use)
     const users=DB.get('users',[]);
-    const localUser=users.find(u=>u.email===email&&u.password===pass);
+    const pwHash = await hashPassword(pass);
+    const localUser=users.find(u=>u.email===email&&(u.passwordHash===pwHash||u.password===pass));
     if(localUser){
+      // Auto-migrate legacy plain-text password to hash on next login
+      if(localUser.password&&!localUser.passwordHash){
+        localUser.passwordHash=pwHash; delete localUser.password; DB.set('users',users);
+      }
       this._demoMode = true;
       localUser.lastLogin=new Date().toISOString(); DB.set('users',users);
       DB.set('session',{userId:localUser.id});
@@ -772,18 +794,17 @@ const SMS = {
 
     if (!school || !name || !email || !pwd) { errEl.textContent = 'Please fill in all required fields.'; errEl.style.display = 'flex'; return; }
     if (pwd !== cpwd) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'flex'; return; }
-    if (pwd.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'flex'; return; }
+    if (pwd.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'flex'; return; }
 
     btn.disabled = true;
     btn.querySelector('span').textContent = 'Sending code…';
     errEl.style.display = 'none';
 
-    // Generate 6-digit OTP
+    // Generate 6-digit OTP — store only its hash, never the plain code
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    // Store state
-    this._otpState = { otp, expiresAt, school, motto, name, email, pwd };
+    const otpHash = await hashPassword(otp);
+    this._otpState = { otpHash, expiresAt, school, motto, name, email, pwd };
 
     // Send via EmailJS
     const sent = await this._sendOTPEmail(email, name, otp);
@@ -904,7 +925,7 @@ const SMS = {
 
   async verifyOTP() {
     const entered = this._getOTPValue();
-    const { otp, expiresAt, school, motto, name, email, pwd } = this._otpState;
+    const { otpHash, expiresAt, school, motto, name, email, pwd } = this._otpState;
     const errEl = document.getElementById('otp-err');
     const btn = document.getElementById('otp-verify-btn');
 
@@ -917,7 +938,8 @@ const SMS = {
     }
 
     // Check code
-    if (entered !== otp) {
+    const enteredHash = await hashPassword(entered);
+    if (enteredHash !== otpHash) {
       errEl.textContent = 'Incorrect code. Please try again.';
       errEl.style.display = 'flex';
       this._clearOTPBoxes(true);
@@ -934,7 +956,7 @@ const SMS = {
       const users = DB.get('users', []);
       if (users.find(u => u.email === email)) { errEl.textContent = 'Email already registered.'; errEl.style.display = 'flex'; btn.disabled = false; btn.querySelector('span').textContent = 'Verify & Create Account'; return; }
       const sc = DB.get('school', {}); sc.name = school; sc.motto = motto || sc.motto; DB.set('school', sc);
-      const newUser = { id: uid('u'), email, password: pwd, name, role: 'admin', phone: '', createdAt: new Date().toISOString(), lastLogin: null };
+      const newUser = { id: uid('u'), email, passwordHash: await hashPassword(pwd), name, role: 'admin', phone: '', createdAt: new Date().toISOString(), lastLogin: null };
       users.push(newUser); DB.set('users', users); DB.set('session', { userId: newUser.id }); this.currentUser = newUser;
       this.toast(`Welcome, ${name.split(' ')[0]}!`, 'success');
       this.clearOTPState();
@@ -997,7 +1019,7 @@ const SMS = {
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>`
       <div class="mini-item">
         <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
+        <div><div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students enrolled yet</div>';
     // Events
@@ -1007,7 +1029,7 @@ const SMS = {
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>`
       <div class="mini-item">
         <div class="mini-av" style="background:${evColors[e.type]||'var(--brand-lt)'};color:white"></div>
-        <div><div class="mini-name">${e.title}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
+        <div><div class="mini-name">${sanitize(e.title)}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
         <div class="mini-right"><span class="badge badge-info" style="font-size:.65rem">${e.type}</span></div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
     // Defaulters
@@ -1016,7 +1038,7 @@ const SMS = {
     document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
       <div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${s.fname} ${s.lname}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
+        <div><div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
         <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger)">Owes fees</div>
       </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
   },
@@ -1048,11 +1070,11 @@ const SMS = {
   // ══ STUDENTS ══
   loadStudents(){
     const classes=DB.get('classes',[]);
-    const sel=document.getElementById('s-class-f'); if(sel){ sel.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); }
+    const sel=document.getElementById('s-class-f'); if(sel){ sel.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join(''); }
     this.renderStudentStats();
     this.renderStudents();
     // Populate student dropdown in fee modal
-    const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${s.fname} ${s.lname} (${this.className(s.classId)})</option>`).join(''); }
+    const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)})</option>`).join(''); }
   },
 
   renderStudentStats(){
@@ -1075,7 +1097,7 @@ const SMS = {
       if(cf&&s.classId!==cf) return false;
       if(sf&&s.status!==sf) return false;
       if(gf&&s.gender!==gf) return false;
-      if(q&&!`${s.fname} ${s.lname} ${s.studentId} ${s.dadPhone||''}`.toLowerCase().includes(q)) return false;
+      if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.studentId} ${s.dadPhone||''}`.toLowerCase().includes(q)) return false;
       return true;
     });
     const perPage=15, total=filtered.length, pages=Math.ceil(total/perPage);
@@ -1092,7 +1114,7 @@ const SMS = {
       const feeStatus=owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.studentId}</td>
-        <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600;color:var(--t1)">${s.fname} ${s.lname}</div><div style="font-size:.73rem;color:var(--t4)">${fmtDate(s.dob)}</div></div></div></td>
+        <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600;color:var(--t1)">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div style="font-size:.73rem;color:var(--t4)">${fmtDate(s.dob)}</div></div></div></td>
         <td>${this.className(s.classId)}</td>
         <td>${s.gender}</td>
         <td><div style="font-size:.8rem;font-weight:600">${s.dadName||'—'}</div><div style="font-size:.73rem;color:var(--t4)">${s.momName||''}</div></td>
@@ -1103,7 +1125,7 @@ const SMS = {
           <div style="display:flex;gap:.3rem">
             <button class="btn btn-ghost btn-sm" onclick="SMS.viewStudent('${s.id}')" style="padding:.3rem .5rem" title="View Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
             <button class="btn btn-ghost btn-sm" onclick="SMS.openStudentModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-            <button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete student ${s.fname} ${s.lname}?',()=>SMS.deleteStudent('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+            <button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete student ${sanitize(s.fname)} ${sanitize(s.lname)}?',()=>SMS.deleteStudent('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
           </div>
         </td>
       </tr>`;
@@ -1116,7 +1138,7 @@ const SMS = {
 
   viewStudent(id){
     const s=DB.get('students',[]).find(x=>x.id===id); if(!s) return;
-    document.getElementById('sp-modal-title').textContent=`${s.fname} ${s.lname}`;
+    document.getElementById('sp-modal-title').textContent=`${sanitize(s.fname)} ${sanitize(s.lname)}`;
     const payments=DB.get('feePayments',[]).filter(p=>p.studentId===id);
     const grades=DB.get('grades',[]).filter(g=>g.studentId===id);
     const exams=DB.get('exams',[]);
@@ -1124,7 +1146,7 @@ const SMS = {
       <div style="display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem">
         <div class="profile-av-lg">${s.fname[0]}${s.lname[0]}</div>
         <div style="flex:1">
-          <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--t1);margin-bottom:.2rem">${s.fname} ${s.lname}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;color:var(--t1);margin-bottom:.2rem">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
           <div style="font-size:.82rem;color:var(--t3);margin-bottom:.75rem">${s.studentId} · ${this.className(s.classId)} · ${s.gender}</div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">${statusBadge(s.status)}<span class="badge badge-info">${this.className(s.classId)}</span></div>
         </div>
@@ -1157,7 +1179,7 @@ const SMS = {
 
   openStudentModal(id=null){
     const classes=DB.get('classes',[]);
-    const sel=document.getElementById('sf-class'); if(sel) sel.innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    const sel=document.getElementById('sf-class'); if(sel) sel.innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     document.getElementById('sf-err').style.display='none';
     // Reset all fields
     ['sf-id','sf-fname','sf-mname','sf-lname','sf-dob','sf-address','sf-sid','sf-roll','sf-prev-school','sf-notes','sf-dad','sf-dad-phone','sf-dad-email','sf-dad-job','sf-mom','sf-mom-phone','sf-mom-job','sf-emer','sf-emer-phone','sf-emer-rel','sf-allergies','sf-medical','sf-doctor','sf-doc-phone'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
@@ -1266,17 +1288,17 @@ const SMS = {
     const q=(document.getElementById('staff-search')?.value||'').toLowerCase();
     const df=document.getElementById('staff-dept-f')?.value||'';
     const rf=document.getElementById('staff-role-f')?.value||'';
-    let filtered=staff.filter(s=>{ if(df&&s.dept!==df) return false; if(rf&&s.role!==rf) return false; if(q&&!`${s.fname} ${s.lname} ${s.subjects||''}`.toLowerCase().includes(q)) return false; return true; });
+    let filtered=staff.filter(s=>{ if(df&&s.dept!==df) return false; if(rf&&s.role!==rf) return false; if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.subjects||''}`.toLowerCase().includes(q)) return false; return true; });
     document.getElementById('staff-tbody').innerHTML=filtered.map(s=>`<tr>
       <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.id.toUpperCase()}</td>
-      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600">${s.fname} ${s.lname}</div><div style="font-size:.73rem;color:var(--t4)">${s.qualification||''}</div></div></div></td>
-      <td><span class="badge badge-info">${s.role}</span></td>
+      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div style="font-size:.73rem;color:var(--t4)">${s.qualification||''}</div></div></div></td>
+      <td><span class="badge badge-info">${sanitize(s.role)}</span></td>
       <td>${s.dept||'—'}</td>
       <td style="font-size:.78rem;color:var(--t3)">${s.subjects||'—'}</td>
-      <td>${s.phone}</td>
+      <td>${sanitize(s.phone)}</td>
       <td style="font-weight:600;color:var(--brand)">${fmt(s.salary)}</td>
       <td>${statusBadge(s.status||'active')}</td>
-      <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openStaffModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove staff member ${s.fname} ${s.lname}?',()=>SMS.deleteStaff('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
+      <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openStaffModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove staff member ${sanitize(s.fname)} ${sanitize(s.lname)}?',()=>SMS.deleteStaff('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
     </tr>`).join('')||SMS._emptyState('staff','No Staff Members Found','Add your first staff member or adjust your search filters.','+ Add Staff',"SMS.openStaffModal()");
   },
 
@@ -1339,12 +1361,12 @@ const SMS = {
     const staff=DB.get('staff',[]).filter(s=>s.role==='teacher');
     ['clf-teacher','subj-class','att-class','tt-class-sel','hw-class-f','grade-class-sel','res-class-sel','fee-class-f','sf-class','msg-class','ex-class','s-class-f'].forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
-      if(id==='clf-teacher') el.innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join('');
+      if(id==='clf-teacher') el.innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)}</option>`).join('');
       else if(id==='subj-class'||id==='att-class'||id==='tt-class-sel'||id==='hw-class-f'||id==='grade-class-sel'||id==='res-class-sel'||id==='fee-class-f'||id==='msg-class'||id==='ex-class')
-        el.innerHTML=(id==='att-class'||id==='tt-class-sel'?'<option value="">Select Class</option>':'<option value="">All Classes</option>')+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-      else el.innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+        el.innerHTML=(id==='att-class'||id==='tt-class-sel'?'<option value="">Select Class</option>':'<option value="">All Classes</option>')+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
+      else el.innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     });
-    ['subj-teacher'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join(''); });
+    ['subj-teacher'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)}</option>`).join(''); });
   },
 
   renderClasses(){
@@ -1355,7 +1377,7 @@ const SMS = {
       const count=students.filter(s=>s.classId===c.id).length;
       const teacher=staff.find(s=>s.id===c.teacherId);
       return `<div class="class-card" onclick="SMS.openClassModal('${c.id}')">
-        <div class="class-card-name">${c.name}</div>
+        <div class="class-card-name">${sanitize(c.name)}</div>
         <div class="class-card-teacher"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:4px;vertical-align:middle;opacity:.6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${teacher?teacher.fname+' '+teacher.lname:'No class teacher'}</div>
         <div class="class-card-stats">
           <div class="cc-stat"><strong>${count}</strong>Students</div>
@@ -1374,19 +1396,19 @@ const SMS = {
       const cls=classes.find(c=>c.id===s.classId);
       const teacher=staff.find(t=>t.id===s.teacherId);
       return `<tr>
-        <td style="font-weight:600">${s.name}</td>
+        <td style="font-weight:600">${sanitize(s.name)}</td>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.code||'—'}</td>
         <td>${cls?.name||'—'}</td>
         <td>${teacher?teacher.fname+' '+teacher.lname:'—'}</td>
         <td>${s.periods||'—'}/week</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete subject ${s.name}?',()=>SMS.deleteSubject('${s.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete subject ${sanitize(s.name)}?',()=>SMS.deleteSubject('${s.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
       </tr>`;
     }).join('')||SMS._emptyState('default','No Subjects Added','Add subjects to your classes so you can assign exams and track grades.','+ Add Subject',"SMS.openSubjectModal()");
   },
 
   openClassModal(id=null){
     const staff=DB.get('staff',[]).filter(s=>s.role==='teacher');
-    document.getElementById('clf-teacher').innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join('');
+    document.getElementById('clf-teacher').innerHTML='<option value="">— Select —</option>'+staff.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)}</option>`).join('');
     ['clf-id','clf-name','clf-level','clf-room'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
     document.getElementById('clf-capacity').value='40';
     document.getElementById('class-modal-title').textContent='Add Class';
@@ -1430,7 +1452,7 @@ const SMS = {
   loadAttendance(){
     this.renderAttSummary(); this.renderAttendanceRecords();
     const classes=DB.get('classes',[]);
-    const sel=document.getElementById('att-class'); if(sel) sel.innerHTML='<option value="">Select Class</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    const sel=document.getElementById('att-class'); if(sel) sel.innerHTML='<option value="">Select Class</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     const from=document.getElementById('att-from'), to=document.getElementById('att-to');
     if(from) from.value=new Date(Date.now()-7*86400000).toISOString().split('T')[0];
     if(to) to.value=new Date().toISOString().split('T')[0];
@@ -1461,7 +1483,7 @@ const SMS = {
     document.getElementById('att-student-list').innerHTML=`<div style="padding:0 1.25rem 1rem">${students.map(s=>`
       <div class="att-student-row">
         <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
-        <div><div style="font-weight:600;font-size:.85rem">${s.fname} ${s.lname}</div><div style="font-size:.73rem;color:var(--t4)">${s.studentId}</div></div>
+        <div><div style="font-weight:600;font-size:.85rem">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div style="font-size:.73rem;color:var(--t4)">${s.studentId}</div></div>
         <div class="att-radio-group">
           <label class="att-radio"><input type="radio" name="att_${s.id}" value="present" checked> <span style="color:var(--success);font-weight:600">P</span></label>
           <label class="att-radio"><input type="radio" name="att_${s.id}" value="absent"> <span style="color:var(--danger);font-weight:600">A</span></label>
@@ -1514,8 +1536,8 @@ const SMS = {
   // ══ EXAMS ══
   loadExams(){
     const classes=DB.get('classes',[]); const subjects=DB.get('subjects',[]);
-    ['ex-class','grade-class-sel','res-class-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join(''); });
-    ['ex-subject','grade-exam-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">All Subjects</option>'+subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); });
+    ['ex-class','grade-class-sel','res-class-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join(''); });
+    ['ex-subject','grade-exam-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML='<option value="">All Subjects</option>'+subjects.map(s=>`<option value="${s.id}">${sanitize(s.name)}</option>`).join(''); });
     this.renderExams();
   },
 
@@ -1524,24 +1546,24 @@ const SMS = {
     document.getElementById('exams-tbody').innerHTML=exams.map(e=>{
       const cls=classes.find(c=>c.id===e.classId); const subj=subjects.find(s=>s.id===e.subjectId);
       return `<tr>
-        <td style="font-weight:600">${e.name}</td>
+        <td style="font-weight:600">${sanitize(e.name)}</td>
         <td><span class="badge badge-info">${e.type}</span></td>
         <td>${cls?.name||'—'}</td>
         <td>${subj?.name||'—'}</td>
         <td>${fmtDate(e.date)}</td>
         <td style="font-weight:700">${e.maxScore}</td>
         <td>${statusBadge(e.status)}</td>
-        <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openExamModal('${e.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete exam ${e.name}?',()=>SMS.deleteExam('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
+        <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openExamModal('${e.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete exam ${sanitize(e.name)}?',()=>SMS.deleteExam('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
       </tr>`;
     }).join('')||SMS._emptyState('exams','No Exams Created','Create your first exam to start tracking student performance.','+ Create Exam',"SMS.openExamModal()");
     // Populate grade exam selector
-    const gex=document.getElementById('grade-exam-sel'); if(gex) gex.innerHTML='<option value="">— Select Exam —</option>'+exams.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+    const gex=document.getElementById('grade-exam-sel'); if(gex) gex.innerHTML='<option value="">— Select Exam —</option>'+exams.map(e=>`<option value="${e.id}">${sanitize(e.name)}</option>`).join('');
   },
 
   openExamModal(id=null){
     const classes=DB.get('classes',[]); const subjects=DB.get('subjects',[]);
-    document.getElementById('ex-class').innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-    document.getElementById('ex-subject').innerHTML='<option value="">— Select —</option>'+subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    document.getElementById('ex-class').innerHTML='<option value="">— Select —</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
+    document.getElementById('ex-subject').innerHTML='<option value="">— Select —</option>'+subjects.map(s=>`<option value="${s.id}">${sanitize(s.name)}</option>`).join('');
     ['ex-name','ex-date'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
     document.getElementById('ex-max').value='100'; document.getElementById('ex-duration').value='90'; document.getElementById('ex-type').value='midterm'; document.getElementById('ex-term').value='2'; document.getElementById('ex-class').value=''; document.getElementById('ex-subject').value='';
     if(id){
@@ -1573,7 +1595,7 @@ const SMS = {
     list.innerHTML=`<div style="margin-bottom:.75rem;font-size:.82rem;color:var(--t3)">Entering grades for: <strong>${exam?.name||'Exam'}</strong> · Max Score: <strong>${exam?.maxScore||100}</strong></div>`+students.map(s=>{
       const existing=existingGrades.find(g=>g.studentId===s.id);
       return `<div class="grade-row">
-        <div class="grade-name">${s.fname} ${s.lname} <span style="font-size:.73rem;color:var(--t4)">${s.studentId}</span></div>
+        <div class="grade-name">${sanitize(s.fname)} ${sanitize(s.lname)} <span style="font-size:.73rem;color:var(--t4)">${s.studentId}</span></div>
         <input type="number" class="form-input grade-input" data-student="${s.id}" min="0" max="${exam?.maxScore||100}" value="${existing?.score||''}" placeholder="Score" style="width:90px"/>
         <span class="grade-badge" id="gb_${s.id}">${existing?`<span class="badge ${gradeFromScore(existing.score,exam?.maxScore||100)==='F'?'badge-danger':'badge-success'}">${gradeFromScore(existing.score,exam?.maxScore||100)}</span>`:''}</span>
       </div>`;
@@ -1620,7 +1642,7 @@ const SMS = {
       return {student:s,count:sGrades.length,avg,grade:gradeFromScore(avg)};
     }).filter(r=>r.count>0).sort((a,b)=>b.avg-a.avg);
     document.getElementById('results-tbody').innerHTML=results.map((r,i)=>`<tr>
-      <td style="font-weight:600">${r.student.fname} ${r.student.lname}</td>
+      <td style="font-weight:600">${sanitize(r.student.fname)} ${sanitize(r.student.lname)}</td>
       <td>${this.className(r.student.classId)}</td>
       <td>${r.count}</td>
       <td style="font-weight:700">${r.avg*r.count}</td>
@@ -1633,7 +1655,7 @@ const SMS = {
 
   showReportCards(){
     const classes=DB.get('classes',[]);
-    const html=`<div style="margin-bottom:1rem;font-size:.85rem;color:var(--t3)">Select a class to generate report cards:</div><div style="display:flex;gap:.75rem;flex-wrap:wrap">${classes.map(c=>`<button class="btn btn-secondary btn-sm" onclick="SMS.generateReportCard('${c.id}')">${c.name}</button>`).join('')}</div>`;
+    const html=`<div style="margin-bottom:1rem;font-size:.85rem;color:var(--t3)">Select a class to generate report cards:</div><div style="display:flex;gap:.75rem;flex-wrap:wrap">${classes.map(c=>`<button class="btn btn-secondary btn-sm" onclick="SMS.generateReportCard('${c.id}')">${sanitize(c.name)}</button>`).join('')}</div>`;
     document.getElementById('receipt-title').textContent='Report Cards';
     document.getElementById('receipt-body').innerHTML=html;
     this.openModal('m-receipt');
@@ -1677,7 +1699,7 @@ const SMS = {
         </div>
         <!-- Student Info Band -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;background:#f0f4f8;border-radius:8px;padding:.65rem .75rem;margin-bottom:.85rem">
-          <div><div style="font-size:.6rem;color:#888;font-weight:700">STUDENT NAME</div><div style="font-weight:700;font-size:.82rem">${s.fname} ${s.lname}</div></div>
+          <div><div style="font-size:.6rem;color:#888;font-weight:700">STUDENT NAME</div><div style="font-weight:700;font-size:.82rem">${sanitize(s.fname)} ${sanitize(s.lname)}</div></div>
           <div><div style="font-size:.6rem;color:#888;font-weight:700">STUDENT ID</div><div style="font-weight:700;font-size:.82rem">${s.studentId}</div></div>
           <div><div style="font-size:.6rem;color:#888;font-weight:700">CLASS</div><div style="font-weight:700;font-size:.82rem">${cls?.name||'—'}</div></div>
           <div><div style="font-size:.6rem;color:#888;font-weight:700">POSITION</div><div style="font-weight:700;font-size:.82rem;color:#1a3a6b">${posStr} of ${students.length}</div></div>
@@ -1736,7 +1758,7 @@ const SMS = {
     const sel = document.getElementById('tt-class-sel');
     if(sel){
       const current = sel.value;
-      sel.innerHTML = '<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      sel.innerHTML = '<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
       if(current) sel.value = current;
     }
     const editBtn = document.getElementById('edit-tt-btn');
@@ -1778,7 +1800,7 @@ const SMS = {
       <div style="display:grid;gap:.75rem;margin-top:.25rem">
         <div><label style="font-size:.8rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">Subject</label>
           <input id="tt-subj-inp" list="tt-subj-list" value="${slot.subject||''}" placeholder="Type or select subject…" class="form-input" style="width:100%">
-          <datalist id="tt-subj-list">${subjects.map(s=>`<option value="${s.name}">`).join('')}</datalist></div>
+          <datalist id="tt-subj-list">${subjects.map(s=>`<option value="${sanitize(s.name)}">`).join('')}</datalist></div>
         <div><label style="font-size:.8rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">Teacher</label>
           <input id="tt-teacher-inp" list="tt-teacher-list" value="${slot.teacher||''}" placeholder="Type or select teacher…" class="form-input" style="width:100%">
           <datalist id="tt-teacher-list">${staff.map(s=>`<option value="${s.fname+' '+s.lname}">`).join('')}</datalist></div>
@@ -1826,7 +1848,7 @@ const SMS = {
     document.getElementById('hw-cards').innerHTML=filtered.map(h=>`
       <div class="hw-card" style="border-left:4px solid ${border[h.status]||'var(--border)'}">
         <div class="hw-card-top">
-          <div class="hw-card-title">${h.title}</div>
+          <div class="hw-card-title">${sanitize(h.title)}</div>
           ${statusBadge(h.status)}
         </div>
         <div class="hw-card-meta">${this.className(h.classId)} · ${this.subjectName(h.subjectId)}</div>
@@ -1856,8 +1878,8 @@ const SMS = {
       const p=saved.find(x=>x.staffId===s.id);
       const basic=+s.salary||0, allow=basic*0.15, deduct=basic*0.05, net=basic+allow-deduct;
       return `<tr>
-        <td style="font-weight:600">${s.fname} ${s.lname}</td>
-        <td><span class="badge badge-info">${s.role}</span></td>
+        <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
+        <td><span class="badge badge-info">${sanitize(s.role)}</span></td>
         <td>${fmt(basic)}</td>
         <td>${fmt(allow)}</td>
         <td style="color:var(--danger)">${fmt(deduct)}</td>
@@ -1879,7 +1901,7 @@ const SMS = {
     const payroll=DB.get('payroll',[]); if(payroll.find(p=>p.staffId===staffId&&p.month==month&&p.year==year)){ this.toast('Already processed for this month','warn'); return; }
     const s=DB.get('staff',[]).find(x=>x.id===staffId); const basic=+s.salary||0,allow=basic*0.15,deduct=basic*0.05;
     payroll.push({id:uid('pr'),staffId,month,year,basic,allowances:allow,deductions:deduct,net,date:new Date().toISOString(),paidBy:this.currentUser.id});
-    DB.set('payroll',payroll); this.audit('Payroll','create',`Paid ${s.fname} ${s.lname}: ${fmt(net)}`); this.toast(`${s.fname} paid ${fmt(net)}`,'success'); this.renderPayroll();
+    DB.set('payroll',payroll); this.audit('Payroll','create',`Paid ${sanitize(s.fname)} ${sanitize(s.lname)}: ${fmt(net)}`); this.toast(`${s.fname} paid ${fmt(net)}`,'success'); this.renderPayroll();
   },
 
   exportPayroll(){
@@ -1921,8 +1943,8 @@ const SMS = {
   // ══ FEES ══
   loadFees(){
     const classes=DB.get('classes',[]);
-    const sel=document.getElementById('fee-class-f'); if(sel) sel.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-    const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${s.fname} ${s.lname} (${this.className(s.classId)})</option>`).join(''); }
+    const sel=document.getElementById('fee-class-f'); if(sel) sel.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
+    const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)})</option>`).join(''); }
     this.renderFeesKpis(); this.renderFees(); this.renderFeeStructure(); this.renderDefaulters();
   },
 
@@ -1957,7 +1979,7 @@ const SMS = {
     let filtered=payments.filter(p=>{
       const s=students.find(x=>x.id===p.studentId);
       if(!s) return false; if(cf&&s.classId!==cf) return false; if(tf&&p.term!==tf) return false;
-      if(q&&!`${s.fname} ${s.lname}`.toLowerCase().includes(q)) return false; return true;
+      if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)}`.toLowerCase().includes(q)) return false; return true;
     }).sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('fees-tbody').innerHTML=filtered.map(p=>{
       const s=students.find(x=>x.id===p.studentId);
@@ -2004,7 +2026,7 @@ const SMS = {
       const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
       const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
       return `<tr>
-        <td style="font-weight:600">${s.fname} ${s.lname}</td>
+        <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
         <td>${s.dadPhone||'—'}</td>
         <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'✓ Paid'}</td>
@@ -2031,7 +2053,7 @@ const SMS = {
     const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
     const total=owed1+owed2;
     const school=DB.get('school',{});
-    const msg=`Dear ${s.dadName||'Parent'}, your ward ${s.fname} ${s.lname} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
+    const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
     // Show simulated reminder modal
     document.getElementById('receipt-title').textContent='📩 Fee Reminder Preview';
     document.getElementById('receipt-body').innerHTML=`
@@ -2040,7 +2062,7 @@ const SMS = {
         <div style="font-size:.88rem;color:var(--t1);line-height:1.6">${msg}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${s.fname} ${s.lname}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">AMOUNT OWED</div><div style="font-weight:700;color:var(--danger)">${fmt(total)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||'Not on record'}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
@@ -2048,7 +2070,7 @@ const SMS = {
       <div style="margin-top:1rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
         ⚠️ Configure your SMS gateway in Settings → SMS Notifications to send real messages. This preview shows what will be sent.
       </div>`;
-    this.audit('Fee Reminder','create',`Fee reminder sent to parent of ${s.fname} ${s.lname}`);
+    this.audit('Fee Reminder','create',`Fee reminder sent to parent of ${sanitize(s.fname)} ${sanitize(s.lname)}`);
     this.openModal('m-receipt');
   },
 
@@ -2073,11 +2095,11 @@ const SMS = {
       <div class="form-grid-2" style="margin-bottom:1rem">
         <div class="form-field">
           <label class="form-label">From Class *</label>
-          <select class="form-input" id="promo-from">${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+          <select class="form-input" id="promo-from">${classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('')}</select>
         </div>
         <div class="form-field">
           <label class="form-label">To Class *</label>
-          <select class="form-input" id="promo-to"><option value="">— Select Target Class —</option>${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
+          <select class="form-input" id="promo-to"><option value="">— Select Target Class —</option>${classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('')}</select>
         </div>
       </div>
       <div style="background:var(--warn-bg);border:1px solid var(--warn);border-radius:8px;padding:.75rem;font-size:.78rem;color:var(--t2);margin-bottom:1rem">
@@ -2102,7 +2124,7 @@ const SMS = {
     const prev=document.getElementById('promo-preview'); if(!prev) return;
     if(!fromId||!toId||fromId===toId){ prev.innerHTML=''; return; }
     const students=DB.get('students',[]).filter(s=>s.classId===fromId&&s.status==='active');
-    prev.innerHTML=`<strong>${students.length} student(s)</strong> will be promoted: ${students.slice(0,5).map(s=>`${s.fname} ${s.lname}`).join(', ')}${students.length>5?` +${students.length-5} more`:''}`;
+    prev.innerHTML=`<strong>${students.length} student(s)</strong> will be promoted: ${students.slice(0,5).map(s=>`${sanitize(s.fname)} ${sanitize(s.lname)}`).join(', ')}${students.length>5?` +${students.length-5} more`:''}`;
   },
 
   executePromotion(){
@@ -2173,18 +2195,25 @@ const SMS = {
           ${errors.length>0?`<div style="background:var(--danger-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.75rem;color:var(--danger)">${errors.slice(0,5).join('<br>')}</div>`:''}
           <div style="overflow-x:auto;max-height:200px;overflow-y:auto;font-size:.75rem;border:1px solid var(--border);border-radius:8px">
             <table class="tbl" style="font-size:.73rem"><thead><tr><th>Name</th><th>Class</th><th>Gender</th><th>Parent</th></tr></thead><tbody>
-            ${toImport.slice(0,10).map(s=>`<tr><td>${s.fname} ${s.lname}</td><td>${this.className(s.classId)}</td><td>${s.gender}</td><td>${s.dadName||'—'}</td></tr>`).join('')}
+            ${toImport.slice(0,10).map(s=>`<tr><td>${sanitize(s.fname)} ${sanitize(s.lname)}</td><td>${this.className(s.classId)}</td><td>${s.gender}</td><td>${s.dadName||'—'}</td></tr>`).join('')}
             ${toImport.length>10?`<tr><td colspan="4" style="text-align:center;color:var(--t4)">+${toImport.length-10} more...</td></tr>`:''}
             </tbody></table>
           </div>
-          <button class="btn btn-primary" style="margin-top:.75rem" onclick="SMS.confirmImport(${JSON.stringify(toImport).replace(/"/g,'&quot;')})">Import ${valid} Students</button>`;
+          <button class="btn btn-primary" style="margin-top:.75rem" id="do-import-btn">Import ${valid} Students</button>\`;
+        // Store safely in memory — never pass via onclick attribute
+        SMS._pendingImport = toImport;
+        setTimeout(()=>{
+          document.getElementById('do-import-btn')?.addEventListener('click',()=>SMS.confirmImport());
+        },50);
       }catch(err){ document.getElementById('import-preview').innerHTML=`<div style="color:var(--danger)">Error reading file: ${err.message}</div>`; }
     };
     reader.readAsArrayBuffer(file);
   },
 
-  confirmImport(studentsJson){
-    let toImport; try{ toImport=typeof studentsJson==='string'?JSON.parse(studentsJson.replace(/&quot;/g,'"')):studentsJson; }catch(e){ this.toast('Import data error','error'); return; }
+  confirmImport(){
+    const toImport=this._pendingImport;
+    if(!toImport||!toImport.length){ this.toast('No import data found','error'); return; }
+    this._pendingImport=null;
     const students=DB.get('students',[]); students.push(...toImport); DB.set('students',students);
     this.audit('Bulk Import','create',`Imported ${toImport.length} students via file upload`);
     this.toast(`${toImport.length} students imported successfully!`,'success');
@@ -2228,7 +2257,7 @@ const SMS = {
             ${students.map((s,i)=>`
               <tr style="background:${i%2===0?'#f9f9f9':'white'}">
                 <td style="padding:.45rem;border:1px solid #ddd;font-weight:700">${i+1}</td>
-                <td style="padding:.45rem;border:1px solid #ddd;font-weight:600">${s.fname} ${s.lname}</td>
+                <td style="padding:.45rem;border:1px solid #ddd;font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
                 <td style="padding:.45rem;border:1px solid #ddd;font-family:monospace;font-size:.72rem">${s.studentId}</td>
                 <td style="padding:.45rem;border:1px solid #ddd;text-align:center">☐</td>
                 <td style="padding:.45rem;border:1px solid #ddd;text-align:center">☐</td>
@@ -2405,7 +2434,7 @@ const SMS = {
     ['msg-subject','msg-body'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     document.getElementById('msg-to').value='';
     document.getElementById('msg-class-field').style.display='none';
-    const classes=DB.get('classes',[]); const sel=document.getElementById('msg-class'); if(sel) sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    const classes=DB.get('classes',[]); const sel=document.getElementById('msg-class'); if(sel) sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     this.openModal('m-compose');
   },
 
@@ -2433,11 +2462,11 @@ const SMS = {
   renderLibrary(){
     const books=DB.get('books',[]); const q=(document.getElementById('lib-search')?.value||'').toLowerCase();
     const cf=document.getElementById('lib-cat-f')?.value||''; const sf=document.getElementById('lib-status-f')?.value||'';
-    let filtered=books.filter(b=>{ if(cf&&b.category!==cf) return false; if(sf==='available'&&b.available<1) return false; if(sf==='borrowed'&&b.available>0) return false; if(q&&!`${b.title} ${b.author} ${b.isbn}`.toLowerCase().includes(q)) return false; return true; });
+    let filtered=books.filter(b=>{ if(cf&&b.category!==cf) return false; if(sf==='available'&&b.available<1) return false; if(sf==='borrowed'&&b.available>0) return false; if(q&&!`${sanitize(b.title)} ${sanitize(b.author)} ${sanitize(b.isbn)}`.toLowerCase().includes(q)) return false; return true; });
     document.getElementById('lib-tbody').innerHTML=filtered.map(b=>`<tr>
       <td style="font-family:monospace;font-size:.73rem;color:var(--t3)">${b.isbn||'—'}</td>
-      <td style="font-weight:600">${b.title}</td>
-      <td>${b.author}</td>
+      <td style="font-weight:600">${sanitize(b.title)}</td>
+      <td>${sanitize(b.author)}</td>
       <td><span class="badge badge-neutral">${b.category}</span></td>
       <td style="text-align:center">${b.copies}</td>
       <td style="text-align:center;font-weight:700;color:${b.available>0?'var(--success)':'var(--danger)'}">${b.available}</td>
@@ -2481,11 +2510,11 @@ const SMS = {
       <div class="event-item">
         <div class="event-dot" style="background:${colors[e.type]||'#999'}"></div>
         <div>
-          <div class="event-title">${e.title}</div>
+          <div class="event-title">${sanitize(e.title)}</div>
           <div class="event-meta">${fmtDate(e.start)}${e.end?` — ${fmtDate(e.end)}`:''}${e.venue?' · '+e.venue:''}</div>
           ${e.desc?`<div style="font-size:.75rem;color:var(--t3);margin-top:.25rem">${e.desc}</div>`:''}
         </div>
-        <button class="btn btn-ghost btn-sm admin-only" onclick="SMS.confirmDelete('Delete event ${e.title}?',()=>SMS.deleteEvent('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem;margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+        <button class="btn btn-ghost btn-sm admin-only" onclick="SMS.confirmDelete('Delete event ${sanitize(e.title)}?',()=>SMS.deleteEvent('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem;margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
       </div>`).join('')||'<div style="padding:2rem;text-align:center;font-size:.82rem;color:var(--t4)">No events scheduled</div>';
   },
 
@@ -2510,7 +2539,7 @@ const SMS = {
       title.textContent='Academic Performance Report';
       const grades=DB.get('grades',[]); const exams=DB.get('exams',[]);
       const byStudent=students.map(s=>{ const sg=grades.filter(g=>g.studentId===s.id); const avg=sg.length>0?Math.round(sg.reduce((sum,g)=>{ const ex=exams.find(e=>e.id===g.examId); return sum+(g.score/(ex?.maxScore||100)*100); },0)/sg.length):null; return {...s,avg,gradeCount:sg.length}; }).filter(s=>s.avg!==null).sort((a,b)=>b.avg-a.avg).slice(0,10);
-      content.innerHTML=`<table class="tbl"><thead><tr><th>Rank</th><th>Student</th><th>Class</th><th>Average</th><th>Grade</th></tr></thead><tbody>${byStudent.map((s,i)=>`<tr><td style="font-weight:800;color:${i<3?'var(--warn)':'var(--t3)'}">${i+1}</td><td style="font-weight:600">${s.fname} ${s.lname}</td><td>${this.className(s.classId)}</td><td style="font-weight:700;color:var(--brand-teal)">${s.avg}%</td><td><span class="badge ${gradeFromScore(s.avg)==='F'?'badge-danger':'badge-success'}">${gradeFromScore(s.avg)}</span></td></tr>`).join('')}</tbody></table>`;
+      content.innerHTML=`<table class="tbl"><thead><tr><th>Rank</th><th>Student</th><th>Class</th><th>Average</th><th>Grade</th></tr></thead><tbody>${byStudent.map((s,i)=>`<tr><td style="font-weight:800;color:${i<3?'var(--warn)':'var(--t3)'}">${i+1}</td><td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td><td>${this.className(s.classId)}</td><td style="font-weight:700;color:var(--brand-teal)">${s.avg}%</td><td><span class="badge ${gradeFromScore(s.avg)==='F'?'badge-danger':'badge-success'}">${gradeFromScore(s.avg)}</span></td></tr>`).join('')}</tbody></table>`;
     } else if(type==='finance'){
       title.textContent='Financial Report';
       const totalFees=payments.reduce((s,p)=>s+(+p.amount||0),0); const totalExp=expenses.reduce((s,e)=>s+(+e.amount||0),0);
@@ -2522,7 +2551,7 @@ const SMS = {
     } else if(type==='enrollment'){
       title.textContent='Enrollment Report';
       const classes=DB.get('classes',[]);
-      content.innerHTML=`<table class="tbl"><thead><tr><th>Class</th><th>Level</th><th>Enrolled</th><th>Male</th><th>Female</th><th>Capacity</th><th>Fill Rate</th></tr></thead><tbody>${classes.map(c=>{ const cl=students.filter(s=>s.classId===c.id); const m=cl.filter(s=>s.gender==='Male').length, f=cl.filter(s=>s.gender==='Female').length, rate=Math.round(cl.length/c.capacity*100); return `<tr><td style="font-weight:600">${c.name}</td><td>${c.level||'—'}</td><td style="font-weight:700;color:var(--brand)">${cl.length}</td><td>${m}</td><td>${f}</td><td>${c.capacity}</td><td><span class="badge ${rate>90?'badge-danger':rate>70?'badge-warn':'badge-success'}">${rate}%</span></td></tr>`; }).join('')}</tbody></table>`;
+      content.innerHTML=`<table class="tbl"><thead><tr><th>Class</th><th>Level</th><th>Enrolled</th><th>Male</th><th>Female</th><th>Capacity</th><th>Fill Rate</th></tr></thead><tbody>${classes.map(c=>{ const cl=students.filter(s=>s.classId===c.id); const m=cl.filter(s=>s.gender==='Male').length, f=cl.filter(s=>s.gender==='Female').length, rate=Math.round(cl.length/c.capacity*100); return `<tr><td style="font-weight:600">${sanitize(c.name)}</td><td>${c.level||'—'}</td><td style="font-weight:700;color:var(--brand)">${cl.length}</td><td>${m}</td><td>${f}</td><td>${c.capacity}</td><td><span class="badge ${rate>90?'badge-danger':rate>70?'badge-warn':'badge-success'}">${rate}%</span></td></tr>`; }).join('')}</tbody></table>`;
     } else if(type==='attendance'){
       title.textContent='Attendance Report';
       const att=DB.get('attendance',[]);
@@ -2547,8 +2576,8 @@ const SMS = {
       <div class="audit-item">
         <div class="audit-icon" style="background:${colors[l.type]||'var(--surface-3)'}20;color:${colors[l.type]||'var(--t3)'}">${emojis[l.type]||''}</div>
         <div class="audit-text">
-          <div class="audit-action">${l.action} <span style="font-weight:400;color:var(--t3)">by</span> ${l.user}</div>
-          <div style="font-size:.78rem;color:var(--t2);margin:.15rem 0">${l.details}</div>
+          <div class="audit-action">${sanitize(l.action)} <span style="font-weight:400;color:var(--t3)">by</span> ${sanitize(l.user)}</div>
+          <div style="font-size:.78rem;color:var(--t2);margin:.15rem 0">${sanitize(l.details)}</div>
           <div class="audit-time">${new Date(l.time).toLocaleString()}</div>
         </div>
         <span class="badge badge-neutral" style="font-size:.65rem;flex-shrink:0">${l.type}</span>
@@ -2617,17 +2646,24 @@ const SMS = {
     }
   },
 
-  changePassword(){
+  async changePassword(){
     const oldPw=document.getElementById('pw-old').value;
     const newPw=document.getElementById('pw-new').value;
     const confirmPw=document.getElementById('pw-confirm').value;
     const errEl=document.getElementById('pw-err');
-    if(this.currentUser.password!==oldPw){ errEl.style.display='block'; errEl.textContent='Current password is incorrect.'; return; }
-    if(newPw.length<6){ errEl.style.display='block'; errEl.textContent='New password must be at least 6 characters.'; return; }
+    const oldHash=await hashPassword(oldPw);
+    const cu=this.currentUser;
+    const valid=cu.passwordHash?cu.passwordHash===oldHash:cu.password===oldPw;
+    if(!valid){ errEl.style.display='block'; errEl.textContent='Current password is incorrect.'; return; }
+    if(newPw.length<8){ errEl.style.display='block'; errEl.textContent='New password must be at least 8 characters.'; return; }
     if(newPw!==confirmPw){ errEl.style.display='block'; errEl.textContent='Passwords do not match.'; return; }
     errEl.style.display='none';
-    const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===this.currentUser.id);
-    if(i>-1){ users[i].password=newPw; DB.set('users',users); this.currentUser=users[i]; }
+    const newHash=await hashPassword(newPw);
+    const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===cu.id);
+    if(i>-1){ users[i].passwordHash=newHash; delete users[i].password; DB.set('users',users); this.currentUser=users[i]; }
+    if(window.firebase&&firebase.auth().currentUser){
+      firebase.auth().currentUser.updatePassword(newPw).catch(e=>console.warn('Firebase pw sync:',e));
+    }
     this.audit('Security','settings','Password changed');
     this.toast('Password updated!','success');
     ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
@@ -2665,12 +2701,12 @@ const SMS = {
   renderUsers(){
     const users=DB.get('users',[]);
     document.getElementById('users-tbody').innerHTML=users.map(u=>`<tr>
-      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${u.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="font-weight:600">${u.name}</div></div></td>
-      <td style="font-size:.8rem">${u.email}</td>
+      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${u.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="font-weight:600">${sanitize(u.name)}</div></div></td>
+      <td style="font-size:.8rem">${sanitize(u.email)}</td>
       <td><span class="badge ${u.role==='admin'?'badge-brand':'badge-info'}">${u.role}</span></td>
       <td style="font-size:.78rem;color:var(--t4)">${u.lastLogin?fmtDate(u.lastLogin):'Never'}</td>
       <td>${statusBadge('active')}</td>
-      <td>${u.id!==this.currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove user ${u.name}?',()=>SMS.deleteUser('${u.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}</td>
+      <td>${u.id!==this.currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove user ${sanitize(u.name)}?',()=>SMS.deleteUser('${u.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}</td>
     </tr>`).join('');
   },
 
@@ -2681,12 +2717,14 @@ const SMS = {
     this.openModal('m-user');
   },
 
-  saveUser(){
+  async saveUser(){
     const name=document.getElementById('uf-name').value.trim(); const email=document.getElementById('uf-email').value.trim(); const pwd=document.getElementById('uf-pwd').value; const role=document.getElementById('uf-role').value;
     const errEl=document.getElementById('uf-err');
     if(!name||!email||!pwd){ errEl.style.display='block'; errEl.textContent='All fields required.'; return; }
+    if(pwd.length<8){ errEl.style.display='block'; errEl.textContent='Password must be at least 8 characters.'; return; }
     const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.style.display='block'; errEl.textContent='Email already exists.'; return; }
-    users.push({id:uid('u'),email,password:pwd,name,role,phone:'',createdAt:new Date().toISOString(),lastLogin:null});
+    const passwordHash=await hashPassword(pwd);
+    users.push({id:uid('u'),email,passwordHash,name,role,phone:'',createdAt:new Date().toISOString(),lastLogin:null});
     DB.set('users',users); this.audit('Add User','create',`New user: ${name} (${role})`); this.toast('User created!','success'); this.closeModal('m-user'); this.renderUsers();
   },
 
@@ -2720,11 +2758,11 @@ const SMS = {
       staff:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
       fees:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
     };
-    DB.get('students',[]).filter(s=>`${s.fname} ${s.lname} ${s.studentId} ${s.dadName||''} ${s.dadPhone||''}`.toLowerCase().includes(ql)).slice(0,5).forEach(s=>hits.push({iconHtml:iconSvg.students,color:'var(--brand-lt)',iconColor:'var(--brand)',title:`${s.fname} ${s.lname}`,sub:`${s.studentId} · ${this.className(s.classId)} · ${s.status}`,action:()=>{ SMS.viewStudent(s.id); document.getElementById('search-overlay').style.display='none'; }}));
-    DB.get('staff',[]).filter(s=>`${s.fname} ${s.lname} ${s.subjects||''} ${s.email||''}`.toLowerCase().includes(ql)).slice(0,3).forEach(s=>hits.push({iconHtml:iconSvg.staff,color:'var(--brand-teal-lt)',iconColor:'var(--brand-teal)',title:`${s.fname} ${s.lname}`,sub:`${s.role} · ${s.dept||''} · ${s.phone}`,action:()=>{ SMS.nav('staff'); document.getElementById('search-overlay').style.display='none'; }}));
-    DB.get('feePayments',[]).filter(p=>{ const s=DB.get('students',[]).find(x=>x.id===p.studentId); return s&&`${s.fname} ${s.lname} ${p.receiptNo||''}`.toLowerCase().includes(ql); }).slice(0,2).forEach(p=>{ const s=DB.get('students',[]).find(x=>x.id===p.studentId); hits.push({iconHtml:iconSvg.fees,color:'rgba(13,148,136,.08)',iconColor:'var(--brand-teal)',title:`Receipt ${p.receiptNo||'—'}`,sub:`${s?.fname} ${s?.lname} · ${fmt(p.amount)} · Term ${p.term}`,action:()=>{ SMS.nav('fees'); document.getElementById('search-overlay').style.display='none'; }}); });
+    DB.get('students',[]).filter(s=>`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.studentId} ${s.dadName||''} ${s.dadPhone||''}`.toLowerCase().includes(ql)).slice(0,5).forEach(s=>hits.push({iconHtml:iconSvg.students,color:'var(--brand-lt)',iconColor:'var(--brand)',title:`${sanitize(s.fname)} ${sanitize(s.lname)}`,sub:`${s.studentId} · ${this.className(s.classId)} · ${s.status}`,action:()=>{ SMS.viewStudent(s.id); document.getElementById('search-overlay').style.display='none'; }}));
+    DB.get('staff',[]).filter(s=>`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.subjects||''} ${s.email||''}`.toLowerCase().includes(ql)).slice(0,3).forEach(s=>hits.push({iconHtml:iconSvg.staff,color:'var(--brand-teal-lt)',iconColor:'var(--brand-teal)',title:`${sanitize(s.fname)} ${sanitize(s.lname)}`,sub:`${sanitize(s.role)} · ${s.dept||''} · ${sanitize(s.phone)}`,action:()=>{ SMS.nav('staff'); document.getElementById('search-overlay').style.display='none'; }}));
+    DB.get('feePayments',[]).filter(p=>{ const s=DB.get('students',[]).find(x=>x.id===p.studentId); return s&&`${sanitize(s.fname)} ${sanitize(s.lname)} ${p.receiptNo||''}`.toLowerCase().includes(ql); }).slice(0,2).forEach(p=>{ const s=DB.get('students',[]).find(x=>x.id===p.studentId); hits.push({iconHtml:iconSvg.fees,color:'rgba(13,148,136,.08)',iconColor:'var(--brand-teal)',title:`Receipt ${p.receiptNo||'—'}`,sub:`${s?.fname} ${s?.lname} · ${fmt(p.amount)} · Term ${p.term}`,action:()=>{ SMS.nav('fees'); document.getElementById('search-overlay').style.display='none'; }}); });
     if(hits.length===0){ results.innerHTML='<div style="padding:2rem;text-align:center;font-size:.85rem;color:var(--t4)">No results found</div>'; return; }
-    results.innerHTML=hits.map((h,i)=>`<div style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1.25rem;cursor:pointer;border-bottom:1px solid var(--border);font-size:.85rem" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''" id="sr_${i}"><div style="width:32px;height:32px;border-radius:8px;background:${h.color};color:${h.iconColor};display:flex;align-items:center;justify-content:center;flex-shrink:0">${h.iconHtml}</div><div><div style="font-weight:600;color:var(--t1)">${h.title}</div><div style="font-size:.75rem;color:var(--t3)">${h.sub}</div></div></div>`).join('');
+    results.innerHTML=hits.map((h,i)=>`<div style="display:flex;align-items:center;gap:.85rem;padding:.75rem 1.25rem;cursor:pointer;border-bottom:1px solid var(--border);font-size:.85rem" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''" id="sr_${i}"><div style="width:32px;height:32px;border-radius:8px;background:${h.color};color:${h.iconColor};display:flex;align-items:center;justify-content:center;flex-shrink:0">${h.iconHtml}</div><div><div style="font-weight:600;color:var(--t1)">${sanitize(h.title)}</div><div style="font-size:.75rem;color:var(--t3)">${sanitize(h.sub)}</div></div></div>`).join('');
     hits.forEach((h,i)=>document.getElementById('sr_'+i)?.addEventListener('click',h.action));
   },
 
@@ -2765,9 +2803,9 @@ const SMS = {
         onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
         <div style="width:32px;height:32px;border-radius:8px;background:${color}18;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">${icon}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:.8rem;font-weight:600;color:var(--t1);margin-bottom:.1rem">${l.action}</div>
-          <div style="font-size:.75rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.details||''}</div>
-          <div style="font-size:.68rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${l.user}</div>
+          <div style="font-size:.8rem;font-weight:600;color:var(--t1);margin-bottom:.1rem">${sanitize(l.action)}</div>
+          <div style="font-size:.75rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sanitize(l.details||'')}</div>
+          <div style="font-size:.68rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${sanitize(l.user)}</div>
         </div>
       </div>`;
     }).join('');
@@ -2899,14 +2937,14 @@ const SMS = {
         <div>
           <label style="font-size:.78rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">From Class</label>
           <select id="promo-from" class="form-select" style="width:100%" onchange="SMS._updatePromotionPreview()">
-            <option value="">— Select —</option>${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+            <option value="">— Select —</option>${classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('')}
           </select>
         </div>
         <div style="text-align:center;font-size:1.2rem;padding-top:1.2rem">→</div>
         <div>
           <label style="font-size:.78rem;font-weight:600;color:var(--t2);display:block;margin-bottom:.3rem">To Class</label>
           <select id="promo-to" class="form-select" style="width:100%" onchange="SMS._updatePromotionPreview()">
-            <option value="">— Select —</option>${classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+            <option value="">— Select —</option>${classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -2930,7 +2968,7 @@ const SMS = {
     preview.style.display='block';
     btn.style.display='block';
     if(students.length===0){ preview.innerHTML=`<span style="color:var(--warn)">⚠ No active students found in ${fromName}.</span>`; btn.style.display='none'; return; }
-    preview.innerHTML=`<strong>${students.length} student(s)</strong> will be moved from <strong>${fromName}</strong> → <strong>${toName}</strong>:<br><div style="margin-top:.4rem;max-height:100px;overflow-y:auto">${students.map(s=>`<span style="display:inline-block;margin:.15rem .3rem;background:var(--surface-3,rgba(0,0,0,.06));border-radius:4px;padding:.1rem .4rem">${s.fname} ${s.lname}</span>`).join('')}</div>`;
+    preview.innerHTML=`<strong>${students.length} student(s)</strong> will be moved from <strong>${fromName}</strong> → <strong>${toName}</strong>:<br><div style="margin-top:.4rem;max-height:100px;overflow-y:auto">${students.map(s=>`<span style="display:inline-block;margin:.15rem .3rem;background:var(--surface-3,rgba(0,0,0,.06));border-radius:4px;padding:.1rem .4rem">${sanitize(s.fname)} ${sanitize(s.lname)}</span>`).join('')}</div>`;
   },
 
   runPromotion(){
@@ -2992,9 +3030,9 @@ const SMS = {
   openHomeworkModal(id=null){
     const classes=DB.get('classes',[]); const subjects=DB.get('subjects',[]);
     const sel=document.getElementById('hw-class-sel');
-    if(sel) sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    if(sel) sel.innerHTML='<option value="">— Select Class —</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     const ssel=document.getElementById('hw-subject-sel');
-    if(ssel) ssel.innerHTML='<option value="">— Select Subject —</option>'+subjects.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+    if(ssel) ssel.innerHTML='<option value="">— Select Subject —</option>'+subjects.map(s=>`<option value="${s.id}">${sanitize(s.name)}</option>`).join('');
     ['hw-id','hw-title','hw-desc'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
     document.getElementById('hw-due').value='';
     document.getElementById('hw-status-sel').value='pending';
@@ -3007,7 +3045,7 @@ const SMS = {
       document.getElementById('hw-due').value=hw.dueDate; document.getElementById('hw-status-sel').value=hw.status;
       document.getElementById('hw-desc').value=hw.desc||'';
     }
-    document.getElementById('hw-class-sel').onchange=()=>{ const cid=document.getElementById('hw-class-sel').value; const filtered=subjects.filter(s=>!cid||s.classId===cid); document.getElementById('hw-subject-sel').innerHTML='<option value="">— Select Subject —</option>'+filtered.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); };
+    document.getElementById('hw-class-sel').onchange=()=>{ const cid=document.getElementById('hw-class-sel').value; const filtered=subjects.filter(s=>!cid||s.classId===cid); document.getElementById('hw-subject-sel').innerHTML='<option value="">— Select Subject —</option>'+filtered.map(s=>`<option value="${s.id}">${sanitize(s.name)}</option>`).join(''); };
     document.getElementById('save-hw-btn').onclick=()=>this.saveHomework();
     this.openModal('m-homework');
   },
@@ -3030,7 +3068,7 @@ const SMS = {
   openLeaveModal(){
     const staff=DB.get('staff',[]);
     const sel=document.getElementById('lv-staff');
-    if(sel) sel.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname} (${s.role})</option>`).join('');
+    if(sel) sel.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${sanitize(s.role)})</option>`).join('');
     ['lv-id','lv-reason'].forEach(f=>{ const e=document.getElementById(f); if(e) e.value=''; });
     document.getElementById('lv-from').value=''; document.getElementById('lv-to').value='';
     document.getElementById('lv-type').value='Annual'; document.getElementById('lv-err').style.display='none';
@@ -3084,10 +3122,10 @@ const SMS = {
   openBookIssueModal(preselect=null){
     const books=DB.get('books',[]); const students=DB.get('students',[]).filter(s=>s.status==='active'); const staff=DB.get('staff',[]); const issues=DB.get('bookIssues',[]).filter(i=>!i.returnedDate);
     const avail=books.filter(b=>b.available>0);
-    const bkSel=document.getElementById('issue-book'); if(bkSel) bkSel.innerHTML='<option value="">— Select Book —</option>'+avail.map(b=>`<option value="${b.id}">${b.title} (${b.available} avail.)</option>`).join('');
+    const bkSel=document.getElementById('issue-book'); if(bkSel) bkSel.innerHTML='<option value="">— Select Book —</option>'+avail.map(b=>`<option value="${b.id}">${sanitize(b.title)} (${b.available} avail.)</option>`).join('');
     if(preselect&&bkSel) bkSel.value=preselect;
-    const stSel=document.getElementById('issue-student'); if(stSel) stSel.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${s.fname} ${s.lname} — ${this.className(s.classId)}</option>`).join('');
-    const sfSel=document.getElementById('issue-staff-mem'); if(sfSel) sfSel.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>`<option value="${s.id}">${s.fname} ${s.lname}</option>`).join('');
+    const stSel=document.getElementById('issue-student'); if(stSel) stSel.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} — ${this.className(s.classId)}</option>`).join('');
+    const sfSel=document.getElementById('issue-staff-mem'); if(sfSel) sfSel.innerHTML='<option value="">— Select Staff —</option>'+staff.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)}</option>`).join('');
     document.getElementById('issue-date').value=new Date().toISOString().split('T')[0];
     const due=new Date(); due.setDate(due.getDate()+14); document.getElementById('issue-due').value=due.toISOString().split('T')[0];
     document.getElementById('issue-err').style.display='none';
@@ -3123,7 +3161,7 @@ const SMS = {
   // ══ FEE STRUCTURE EDITOR ══
   openFeeStructModal(classId=null){
     const classes=DB.get('classes',[]); const feeStr=DB.get('feeStructure',[]);
-    if(!classId){ document.getElementById('receipt-title').textContent='Select Class to Edit Fees'; document.getElementById('receipt-body').innerHTML=`<div style="margin-bottom:.75rem;font-size:.85rem;color:var(--t3)">Choose a class to edit its fee structure:</div><div style="display:flex;gap:.75rem;flex-wrap:wrap">${classes.map(c=>`<button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructModal('${c.id}');SMS.closeModal('m-receipt')">${c.name}</button>`).join('')}</div>`; this.openModal('m-receipt'); return; }
+    if(!classId){ document.getElementById('receipt-title').textContent='Select Class to Edit Fees'; document.getElementById('receipt-body').innerHTML=`<div style="margin-bottom:.75rem;font-size:.85rem;color:var(--t3)">Choose a class to edit its fee structure:</div><div style="display:flex;gap:.75rem;flex-wrap:wrap">${classes.map(c=>`<button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructModal('${c.id}');SMS.closeModal('m-receipt')">${sanitize(c.name)}</button>`).join('')}</div>`; this.openModal('m-receipt'); return; }
     const cls=classes.find(c=>c.id===classId); const fs=feeStr.find(f=>f.classId===classId)||{term1:0,term2:0,term3:0};
     document.getElementById('fs-class-id').value=classId; document.getElementById('fs-class-name').value=cls?.name||'';
     document.getElementById('fs-term1').value=fs.term1||''; document.getElementById('fs-term2').value=fs.term2||''; document.getElementById('fs-term3').value=fs.term3||'';
@@ -3173,7 +3211,7 @@ const SMS = {
   openTimetableDesigner(){
     const classes = DB.get('classes',[]);
     // Populate class selects in tabs 2 & 3
-    const opts = '<option value="">— Select Class —</option>' + classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    const opts = '<option value="">— Select Class —</option>' + classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     document.getElementById('tt-fill-class').innerHTML = opts;
     document.getElementById('tt-preview-class').innerHTML = opts;
 
@@ -3300,7 +3338,7 @@ const SMS = {
     const subjects = DB.get('subjects',[]).filter(s=>!s.classId||s.classId===classId);
     const staff = DB.get('staff',[]);
 
-    const subjOpts = subjects.map(s=>`<option value="${s.name}">`).join('');
+    const subjOpts = subjects.map(s=>`<option value="${sanitize(s.name)}">`).join('');
     const staffOpts = staff.map(s=>`<option value="${s.fname+' '+s.lname}">`).join('');
     const datalists = `<datalist id="ttf-subj-dl">${subjOpts}</datalist><datalist id="ttf-staff-dl">${staffOpts}</datalist>`;
 

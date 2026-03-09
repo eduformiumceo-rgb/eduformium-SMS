@@ -994,8 +994,6 @@
 
         <!-- ── Hero Banner ── -->
         <div class="dash-hero">
-          <div class="dash-hero-shimmer"></div>
-          <div class="dash-hero-orb2"></div>
           <div class="dash-hero-left">
             <div class="dash-hero-eyebrow" id="dash-hero-school-name">Eduformium SMS</div>
             <div class="dash-hero-greeting" id="dash-welcome">Good morning! Here's your overview.</div>
@@ -1005,11 +1003,11 @@
                 <span id="dash-hero-today-full">—</span>
               </span>
               <span class="dash-hero-meta-pill">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><circle cx="12" cy="12" r="10"/></svg>
                 Year <span id="dash-hero-year">—</span>
               </span>
               <span class="dash-hero-meta-pill">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
                 Term <span id="dash-hero-term">—</span>
               </span>
             </div>
@@ -1026,20 +1024,20 @@
               </div>
             </div>
             <div class="dash-hero-actions">
-              <button class="btn btn-white btn-sm" id="dash-refresh-btn" title="Refresh dashboard">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+              <button class="btn btn-white btn-sm" id="dash-refresh-btn" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
                 Refresh
               </button>
               <button class="btn btn-white btn-sm" onclick="SMS.nav('students');SMS.openStudentModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Enroll
               </button>
               <button class="btn btn-white btn-sm" onclick="SMS.nav('fees');SMS.openFeeModal()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 Collect Fee
               </button>
               <button class="btn btn-white btn-sm" onclick="SMS.nav('attendance')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
                 Attendance
               </button>
             </div>
@@ -1057,37 +1055,35 @@
         <div class="dash-section-label">Analytics</div>
         <div class="dash-charts-layout">
           <!-- Fee collection — wide -->
-          <div class="card dash-chart-main" style="cursor:pointer" onclick="SMS.nav('fees')" title="View all fee records">
+          <div class="card dash-chart-main" style="cursor:pointer" onclick="SMS.nav('fees')" title="Click to view all fees">
             <div class="card-hd">
               <div>
                 <div class="card-title">Fee Collection</div>
                 <div class="card-subtitle" id="dash-fee-sub">Last 6 months</div>
               </div>
-              <span style="display:inline-flex;align-items:center;gap:.32rem;font-size:.63rem;font-weight:700;color:#0d9488;background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.18);border-radius:99px;padding:.2rem .65rem;letter-spacing:.04em;text-transform:uppercase">
-                <span style="width:5px;height:5px;background:#0d9488;border-radius:50%;display:inline-block;box-shadow:0 0 5px rgba(13,148,136,.6)"></span>Live
+              <span style="font-size:.65rem;font-weight:600;color:var(--brand-teal);background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.2);border-radius:99px;padding:.18rem .6rem;display:inline-flex;align-items:center;gap:.3rem">
+                <span style="width:5px;height:5px;background:#0d9488;border-radius:50%;display:inline-block"></span>Live
               </span>
             </div>
             <div class="dash-chart-box-tall"><canvas id="chart-fees"></canvas></div>
           </div>
           <!-- Right column — two stacked -->
           <div class="dash-charts-side">
-            <div class="card" style="cursor:pointer" onclick="SMS.nav('students')" title="View students">
+            <div class="card" style="cursor:pointer" onclick="SMS.nav('students')" title="Click to view students">
               <div class="card-hd">
                 <div>
                   <div class="card-title">Enrollment by Class</div>
                   <div class="card-subtitle">Students per class</div>
                 </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--t4)"><path d="M9 18l6-6-6-6"/></svg>
               </div>
               <div class="dash-chart-box-sm"><canvas id="chart-enrollment"></canvas></div>
             </div>
-            <div class="card" style="cursor:pointer" onclick="SMS.nav('attendance')" title="View attendance">
+            <div class="card" style="cursor:pointer" onclick="SMS.nav('attendance')" title="Click to view attendance">
               <div class="card-hd">
                 <div>
                   <div class="card-title">Attendance Rate</div>
                   <div class="card-subtitle" id="dash-att-sub">Last 7 days</div>
                 </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="color:var(--t4)"><path d="M9 18l6-6-6-6"/></svg>
               </div>
               <div class="dash-chart-box-sm"><canvas id="chart-attendance"></canvas></div>
             </div>

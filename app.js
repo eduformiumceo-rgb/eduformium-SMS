@@ -331,15 +331,14 @@ const SMS = {
         try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
         try{ await Migration.run(this.schoolId); }catch(e){}
         // Approval gate — block anyone who is not explicitly 'active'
-        // Retry once on failure so a brief network blip doesn't lose the suspended status
-        let _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
-        if(!_sp) _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
+        const _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
         const _spStatus = _sp?.status || 'pending';
+        if(_spStatus === 'suspended'){
+          this._afterLoad(()=>this.showSuspendedScreen(_sp, firebaseUser.email));
+          return;
+        }
         if(_spStatus !== 'active'){
-          // IMPORTANT: never fall back to hardcoded 'pending' — preserve the real status from Firestore
-          // so suspended schools see the suspended screen, not the pending screen.
-          const _fallback = {status: _spStatus, name:'', adminEmail:firebaseUser.email};
-          this._afterLoad(()=>this.showPendingScreen(_sp || _fallback, firebaseUser.email));
+          this._afterLoad(()=>this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email));
           return;
         }
         const school=DB.get('school',{});
@@ -349,9 +348,12 @@ const SMS = {
         this._afterLoad(()=>this.boot());
       } else {
         this.schoolId=null; this.currentUser=null;
-        // Only show login if pending screen is not already visible
+        // Only show login if pending/suspended screen is not already visible
         const _ps = document.getElementById('pending-screen');
-        if(!_ps || _ps.style.display === 'none' || _ps.style.display === '') {
+        const _ss = document.getElementById('suspended-screen');
+        const _psVisible = _ps && _ps.style.display !== 'none' && _ps.style.display !== '';
+        const _ssVisible = _ss && _ss.style.display !== 'none' && _ss.style.display !== '';
+        if(!_psVisible && !_ssVisible) {
           this._afterLoad(()=>this.showLogin());
         }
       }
@@ -362,79 +364,99 @@ const SMS = {
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('pending-screen').style.display='none';
+    document.getElementById('suspended-screen').style.display='none';
     this.bindForms(); // bind login/register buttons
     PWABanner.tryShow();
   },
 
   showPendingScreen(profile, email){
     console.log('showPendingScreen called — status:', profile?.status, '| full profile:', JSON.stringify(profile));
+    if(profile?.status === 'suspended') return this.showSuspendedScreen(profile, email);
+
     document.getElementById('loading-overlay').style.display='none';
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='none';
+    document.getElementById('suspended-screen').style.display='none';
     const ps = document.getElementById('pending-screen');
     ps.style.display='block';
-
-    const isSuspended = profile.status === 'suspended';
-    ps.className = isSuspended ? 'suspended' : '';
-
-    // Update headline & description
-    if(isSuspended){
-      document.getElementById('ps-eyebrow-text').textContent = 'Account Suspended';
-      document.getElementById('ps-headline').innerHTML = 'Your account has been <span style="color:#ff4757">suspended</span>';
-      document.getElementById('ps-desc').textContent = 'Your school account has been suspended by Eduformium. Please contact us directly on WhatsApp to resolve this and restore access to your dashboard.';
-      document.getElementById('ps-step-review').className='ps-step active';
-      document.getElementById('ps-step-review').querySelector('.ps-step-label').textContent='Account Suspended';
-      document.getElementById('ps-step-review').querySelector('.ps-step-sub').textContent='Contact Eduformium to resolve';
-      document.getElementById('ps-step-review').querySelector('.ps-step-num').textContent='!';
-      // Ring color
-      const ringPath = ps.querySelector('.ring-svg path');
-      if(ringPath) ringPath.setAttribute('stroke','#ff4757');
-      const ringIcon = ps.querySelector('.ps-status-icon svg');
-      if(ringIcon){ ringIcon.setAttribute('stroke','#ff4757'); ringIcon.innerHTML='<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'; }
-    }
+    ps.className = '';
 
     // Populate school info
-    const schoolName = profile.name || 'Your School';
-    const adminEmail = profile.adminEmail || profile.email || email || '';
+    const schoolName = profile?.name || 'Your School';
+    const adminEmail = profile?.adminEmail || profile?.email || email || '';
     document.getElementById('ps-school-name-display').textContent = schoolName;
     document.getElementById('ps-school-email-display').textContent = adminEmail;
-    const initial = schoolName.charAt(0).toUpperCase();
-    document.getElementById('ps-school-avatar').textContent = initial;
+    document.getElementById('ps-school-avatar').textContent = schoolName.charAt(0).toUpperCase();
 
-    // Pre-fill WhatsApp message with school name
     const waBtn = document.getElementById('ps-wa-btn');
+    if(waBtn) waBtn.href = 'https://wa.me/233553774541?text=' + encodeURIComponent('Hello Eduformium, I just registered my school on Eduformium SMS and I am requesting account activation. School: ' + schoolName + '. Email: ' + adminEmail);
+
+    const emailLinks = ps.querySelectorAll('a[href^="mailto"]');
+    emailLinks.forEach(a => {
+      a.href = 'mailto:eduformium.ceo@gmail.com?subject=' + encodeURIComponent('Account Activation Request - ' + schoolName) + '&body=' + encodeURIComponent('Hello,\n\nI would like to request activation for my school account.\nSchool: ' + schoolName + '\nEmail: ' + adminEmail);
+    });
+
+    const soBtn = document.getElementById('ps-signout-btn');
+    if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
+  },
+
+  showSuspendedScreen(profile, email){
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='none';
+    document.getElementById('pending-screen').style.display='none';
+    document.getElementById('suspended-screen').style.display='block';
+
+    const schoolName = profile?.name || 'Your School';
+    const adminEmail = profile?.adminEmail || profile?.email || email || '';
+
+    document.getElementById('ss-school-name').textContent = schoolName;
+    document.getElementById('ss-school-email').textContent = adminEmail;
+    document.getElementById('ss-school-avatar').textContent = schoolName.charAt(0).toUpperCase();
+
+    const waBtn = document.getElementById('ss-wa-btn');
+    if(waBtn) waBtn.href = 'https://wa.me/233553774541?text=' + encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.');
+
+    const emailBtn = document.getElementById('ss-email-btn');
+    if(emailBtn) emailBtn.href = 'mailto:eduformium.ceo@gmail.com?subject=' + encodeURIComponent('Account Suspension - ' + schoolName) + '&body=' + encodeURIComponent('Hello,\n\nMy school account has been suspended.\nSchool: ' + schoolName + '\nEmail: ' + adminEmail);
+
+    const soBtn = document.getElementById('ss-signout-btn');
+    if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); document.getElementById('suspended-screen').style.display='none'; this.showLogin(); };
+  },
+
+  showSuspendedScreen(profile, email){
+    document.getElementById('loading-overlay').style.display='none';
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('pending-screen').style.display='none';
+    document.getElementById('app').style.display='none';
+    const ss = document.getElementById('suspended-screen');
+    ss.style.display='block';
+
+    // Populate school info
+    const schoolName = profile?.name || 'Your School';
+    const adminEmail = profile?.adminEmail || profile?.email || email || '';
+    document.getElementById('sus-school-name-display').textContent = schoolName;
+    document.getElementById('sus-school-email-display').textContent = adminEmail;
+    document.getElementById('sus-school-avatar').textContent = schoolName.charAt(0).toUpperCase();
+
+    // WhatsApp button
+    const waBtn = document.getElementById('sus-wa-btn');
     if(waBtn){
-      const msg = isSuspended
-        ? encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.')
-        : encodeURIComponent('Hello Eduformium, I just registered my school on Eduformium SMS and I am requesting account activation. School: ' + schoolName + '. Email: ' + adminEmail);
+      const msg = encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.');
       waBtn.href = 'https://wa.me/233553774541?text=' + msg;
     }
 
-    // Email link
-    const emailLinks = ps.querySelectorAll('a[href^="mailto"]');
-    emailLinks.forEach(a => {
-      const subj = isSuspended ? 'Account Suspension - ' + schoolName : 'Account Activation Request - ' + schoolName;
-      a.href = 'mailto:eduformium.ceo@gmail.com?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent((isSuspended ? 'Hello,\n\nMy school account has been suspended.\nSchool: ' : 'Hello,\n\nI would like to request activation for my school account.\nSchool: ') + schoolName + '\nEmail: ' + adminEmail);
-    });
+    // Email button
+    const emailBtn = document.getElementById('sus-email-btn');
+    if(emailBtn){
+      const subj = 'Account Suspension - ' + schoolName;
+      const body = 'Hello,\n\nMy school account has been suspended.\nSchool: ' + schoolName + '\nEmail: ' + adminEmail + '\n\nPlease help me restore access.';
+      emailBtn.href = 'mailto:eduformium.ceo@gmail.com?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+    }
 
     // Sign out button
-    const soBtn = document.getElementById('ps-signout-btn');
-    if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
-
-    // Real-time listener on pending screen
-    // Detects status changes (e.g. pending->suspended) without requiring manual refresh.
-    if(this.schoolId && window._db){
-      if(this._pendingScreenUnsub) this._pendingScreenUnsub();
-      this._pendingScreenUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
-        if(!snap.exists) return;
-        const newStatus = snap.data()?.status;
-        if(newStatus && newStatus !== profile.status){
-          if(this._pendingScreenUnsub) this._pendingScreenUnsub();
-          this._pendingScreenUnsub = null;
-          this.showPendingScreen(snap.data(), email);
-        }
-      }, ()=>{});
-    }
+    const soBtn = document.getElementById('sus-signout-btn');
+    if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ss.style.display='none'; this.showLogin(); };
   },
 
   boot(){
@@ -458,7 +480,11 @@ const SMS = {
         if(status && status !== 'active'){
           // Status changed — kick them out immediately
           if(this._statusUnsub) this._statusUnsub();
-          this.showPendingScreen(snap.data(), this.currentUser?.email || '');
+          if(status === 'suspended'){
+            this.showSuspendedScreen(snap.data(), this.currentUser?.email || '');
+          } else {
+            this.showPendingScreen(snap.data(), this.currentUser?.email || '');
+          }
         }
       }, ()=>{}); // silently ignore listener errors (e.g. offline)
     }

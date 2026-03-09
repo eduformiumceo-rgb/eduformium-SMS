@@ -599,7 +599,190 @@
 </div>
 
 
-<!-- ══════════════════ APP SHELL ══════════════════ -->
+<!-- ══════════════════ SUSPENDED SCREEN ══════════════════ -->
+<div id="suspended-screen" style="display:none">
+  <style>
+    #suspended-screen {
+      position: fixed; inset: 0; z-index: 200;
+      background: #0d1117; font-family: 'DM Sans', sans-serif; overflow-y: auto;
+    }
+    #suspended-screen::before {
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192,57,43,.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    #suspended-screen::after {
+      content: ''; position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(192,57,43,.09) 1px, transparent 1px);
+      background-size: 28px 28px; pointer-events: none; opacity: .6;
+    }
+    .ss-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1.5rem; position: relative; z-index: 1; }
+    .ss-wordmark { display: flex; align-items: center; gap: .75rem; margin-bottom: 2.5rem; animation: ssFadeUp .6s ease both; }
+    .ss-mark { width: 44px; height: 44px; background: linear-gradient(135deg, #1a0808, #3d1010); border: 1.5px solid rgba(192,57,43,.4); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 12px rgba(192,57,43,.25); }
+    .ss-brand-name { font-size: .95rem; font-weight: 700; color: #e8d5d5; letter-spacing: .02em; }
+    .ss-brand-tag { font-size: .62rem; color: #7a5a5a; letter-spacing: .12em; text-transform: uppercase; margin-top: .1rem; }
+    .ss-card {
+      width: 100%; max-width: 560px;
+      background: #141a22; border: 1px solid rgba(192,57,43,.15);
+      border-radius: 22px; padding: 2.75rem 2.5rem;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+      animation: ssFadeUp .7s .1s ease both; position: relative; overflow: hidden;
+    }
+    .ss-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #c0392b, #7b1a1a, #c0392b);
+      background-size: 200% 100%; animation: ssGradient 3s linear infinite;
+    }
+    @keyframes ssGradient { 0%{background-position:0%} 100%{background-position:200%} }
+    .ss-icon-ring { width: 80px; height: 80px; margin: 0 auto 1.6rem; position: relative; }
+    .ss-ring-svg { width: 80px; height: 80px; animation: ssRingSpin 8s linear infinite; }
+    @keyframes ssRingSpin { to { transform: rotate(360deg); } }
+    .ss-icon-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .ss-shield { animation: ssPulse 2.5s ease-in-out infinite; }
+    @keyframes ssPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.6;transform:scale(.9);} }
+    .ss-badge { display: flex; align-items: center; justify-content: center; gap: .45rem; background: rgba(192,57,43,.12); border: 1px solid rgba(192,57,43,.3); border-radius: 99px; padding: .3rem .85rem; margin: 0 auto 1rem; width: fit-content; }
+    .ss-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #e53e3e; animation: ssBlink 1.4s ease-in-out infinite; }
+    @keyframes ssBlink { 0%,100%{opacity:1;} 50%{opacity:.15;} }
+    .ss-badge-text { font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; color: #e53e3e; font-weight: 700; }
+    .ss-headline { text-align: center; font-size: 1.75rem; font-weight: 800; color: #f0e0e0; line-height: 1.2; margin-bottom: .85rem; letter-spacing: -.025em; }
+    .ss-headline span { color: #e53e3e; }
+    .ss-desc { text-align: center; font-size: .87rem; color: #7a6060; line-height: 1.8; margin-bottom: 1.75rem; max-width: 440px; margin-left: auto; margin-right: auto; }
+    .ss-school-pill { display: flex; align-items: center; gap: .85rem; background: rgba(192,57,43,.07); border: 1px solid rgba(192,57,43,.2); border-radius: 12px; padding: .85rem 1.1rem; margin-bottom: 1.5rem; }
+    .ss-school-avatar { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #3d0f0f, #6b1f1f); border: 1.5px solid rgba(192,57,43,.3); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 800; color: #e57373; flex-shrink: 0; }
+    .ss-school-name { font-size: .88rem; font-weight: 700; color: #e8d5d5; }
+    .ss-school-email { font-size: .73rem; color: #7a5a5a; margin-top: .1rem; font-family: monospace; }
+    .ss-school-status { margin-left: auto; flex-shrink: 0; background: rgba(192,57,43,.15); border: 1px solid rgba(192,57,43,.35); border-radius: 6px; padding: .2rem .55rem; font-size: .68rem; font-weight: 700; color: #e53e3e; letter-spacing: .08em; text-transform: uppercase; }
+    .ss-info-box { background: rgba(10,5,5,.5); border: 1px solid rgba(192,57,43,.12); border-radius: 14px; padding: 1.1rem 1.35rem; margin-bottom: 1.75rem; }
+    .ss-info-row { display: flex; align-items: flex-start; gap: .8rem; padding: .6rem 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .ss-info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .ss-info-row:first-child { padding-top: 0; }
+    .ss-info-icon { width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; display: flex; align-items: center; justify-content: center; margin-top: .1rem; }
+    .ss-info-icon.red { background: rgba(192,57,43,.15); }
+    .ss-info-icon.amber { background: rgba(214,137,16,.12); }
+    .ss-info-icon.blue { background: rgba(59,130,246,.1); }
+    .ss-info-label { font-size: .79rem; font-weight: 700; margin-bottom: .15rem; }
+    .ss-info-label.red { color: #e57373; }
+    .ss-info-label.amber { color: #d68910; }
+    .ss-info-label.blue { color: #60a5fa; }
+    .ss-info-text { font-size: .76rem; color: #6a4a4a; line-height: 1.6; }
+    .ss-wa-btn { display: flex; align-items: center; justify-content: center; gap: .85rem; width: 100%; background: linear-gradient(135deg, #128c7e, #0f7a6e); border: none; border-radius: 12px; padding: 1rem 1.5rem; color: #fff; font-family: 'DM Sans', sans-serif; font-size: .95rem; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 4px 16px rgba(18,140,126,.3); transition: all .2s; }
+    .ss-wa-btn:hover { background: linear-gradient(135deg, #0f7a6e, #0d6b60); transform: translateY(-1px); }
+    .ss-wa-text { display: flex; flex-direction: column; align-items: flex-start; }
+    .ss-wa-main { font-size: .95rem; font-weight: 700; line-height: 1.2; }
+    .ss-wa-sub { font-size: .71rem; opacity: .8; font-weight: 400; margin-top: .1rem; }
+    .ss-divider { display: flex; align-items: center; gap: .75rem; margin: 1.1rem 0; color: #4a2a2a; font-size: .75rem; }
+    .ss-divider::before, .ss-divider::after { content: ''; flex: 1; height: 1px; background: rgba(192,57,43,.15); }
+    .ss-secondary { display: flex; gap: .65rem; flex-wrap: wrap; }
+    .ss-sec-btn { flex: 1; min-width: 130px; background: rgba(255,255,255,.03); border: 1.5px solid rgba(192,57,43,.15); border-radius: 10px; padding: .7rem 1rem; color: #7a5a5a; font-family: 'DM Sans', sans-serif; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: .45rem; text-decoration: none; }
+    .ss-sec-btn:hover { background: rgba(192,57,43,.08); border-color: rgba(192,57,43,.35); color: #e57373; }
+    .ss-footer { margin-top: 2rem; text-align: center; font-size: .71rem; color: #4a2a2a; animation: ssFadeUp .8s .3s ease both; letter-spacing: .04em; }
+    @keyframes ssFadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:none;} }
+    @media (max-width: 600px) { .ss-card{padding:2rem 1.25rem;} .ss-headline{font-size:1.4rem;} .ss-secondary{flex-direction:column;} }
+  </style>
+
+  <div class="ss-wrap">
+    <div class="ss-wordmark">
+      <div class="ss-mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e57373" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div>
+        <div class="ss-brand-name">Eduformium</div>
+        <div class="ss-brand-tag">School Management System</div>
+      </div>
+    </div>
+
+    <div class="ss-card">
+      <!-- Animated ring icon -->
+      <div class="ss-icon-ring">
+        <svg class="ss-ring-svg" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="36" stroke="rgba(192,57,43,.2)" stroke-width="3"/>
+          <path d="M40 4 A36 36 0 0 1 76 40" stroke="#c0392b" stroke-width="3" stroke-linecap="round"/>
+          <path d="M76 40 A36 36 0 0 1 60 72" stroke="rgba(192,57,43,.4)" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <div class="ss-icon-center">
+          <svg class="ss-shield" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="ss-badge">
+        <span class="ss-badge-dot"></span>
+        <span class="ss-badge-text">Account Suspended</span>
+      </div>
+
+      <h1 class="ss-headline">Your account has been <span>suspended</span></h1>
+      <p class="ss-desc" id="ss-desc">Your school account has been suspended by Eduformium. Please contact us directly on WhatsApp to resolve this and restore access to your dashboard.</p>
+
+      <div class="ss-school-pill">
+        <div class="ss-school-avatar" id="ss-school-avatar">S</div>
+        <div>
+          <div class="ss-school-name" id="ss-school-name">Your School</div>
+          <div class="ss-school-email" id="ss-school-email"></div>
+        </div>
+        <div class="ss-school-status">Suspended</div>
+      </div>
+
+      <div class="ss-info-box">
+        <div class="ss-info-row">
+          <div class="ss-info-icon red">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e53e3e" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <div class="ss-info-label red">Access Restricted</div>
+            <div class="ss-info-text">Your school dashboard, student records, fees, and all data are temporarily inaccessible until your account is reinstated.</div>
+          </div>
+        </div>
+        <div class="ss-info-row">
+          <div class="ss-info-icon amber">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d68910" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="ss-info-label amber">Quick Resolution</div>
+            <div class="ss-info-text">Reach out to us on WhatsApp below and we will review and restore your account as quickly as possible.</div>
+          </div>
+        </div>
+        <div class="ss-info-row">
+          <div class="ss-info-icon blue">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <div class="ss-info-label blue">Your Data is Safe</div>
+            <div class="ss-info-text">All your school data is securely preserved. Nothing is deleted — you will have full access once reinstated.</div>
+          </div>
+        </div>
+      </div>
+
+      <a id="ss-wa-btn" class="ss-wa-btn" href="#" target="_blank" rel="noopener">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        <div class="ss-wa-text">
+          <span class="ss-wa-main">Contact Us on WhatsApp to Reinstate</span>
+          <span class="ss-wa-sub">+233 055 377 4541 &middot; We resolve suspensions promptly</span>
+        </div>
+      </a>
+
+      <div class="ss-divider">or</div>
+
+      <div class="ss-secondary">
+        <a id="ss-email-btn" href="mailto:eduformium.ceo@gmail.com" class="ss-sec-btn" target="_blank">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Email Us Instead
+        </a>
+        <button class="ss-sec-btn" id="ss-signout-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </div>
+
+    <div class="ss-footer">&copy; 2026 Eduformium &middot; Shape Knowledge, Build Mastery &middot; Your data is always safe with us</div>
+  </div>
+</div>
+
+
 <div id="app" class="shell" style="display:none" role="application" aria-label="Eduformium School Management System">
 
   <!-- TOPBAR -->

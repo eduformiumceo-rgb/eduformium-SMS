@@ -428,6 +428,19 @@ const SMS = {
     this.checkAdminOnly();
     this.nav('dashboard');
     this.loadNotifications();
+    // ── Real-time suspension listener ──
+    // Watches Firestore for status changes while app is open
+    if(this.schoolId && window._db){
+      this._statusUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
+        if(!snap.exists) return;
+        const status = snap.data()?.status;
+        if(status && status !== 'active'){
+          // Status changed — kick them out immediately
+          if(this._statusUnsub) this._statusUnsub();
+          this.showPendingScreen(snap.data(), this.currentUser?.email || '');
+        }
+      }, ()=>{}); // silently ignore listener errors (e.g. offline)
+    }
   },
 
   setupTopbar(){
@@ -3092,7 +3105,7 @@ const SMS = {
   },
 
   audit(action,type,details){
-    const log=DB.get('auditLog',[]); log.push({id:uid('al'),action,type,user:this.currentUser?.name||'System',userId:this.currentUser?.id||'system',details,time:new Date().toISOString()});
+    const log=DB.get('auditLog',[]); log.push({id:uid('al'),action,type,user:this.currentUser?.name||'System',details,time:new Date().toISOString()});
     if(log.length>500) log.splice(0,log.length-500);
     DB.set('auditLog',log);
   },

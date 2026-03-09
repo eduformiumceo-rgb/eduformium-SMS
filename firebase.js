@@ -176,3 +176,4 @@ const Migration = {
 window.FDB = FDB;
 window.FAuth = FAuth;
 window.Migration = Migration;
+window._db = _db;

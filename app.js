@@ -1208,18 +1208,18 @@ const SMS = {
       {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue',page:'library'},
     ];
     document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
-      <div class="kpi-card" style="${k.accent?`--kpi-accent:${k.accent}`:''}cursor:pointer" onclick="SMS.nav('${k.page}')">
+      <div class="kpi-card" style="${k.accent?`--kpi-accent:${k.accent};`:''}cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
-        <div class="kpi-val" style="${k.accent?`color:${k.accent}`:''}">${k.val}</div>
+        <div class="kpi-val">${k.val}</div>
         <div class="kpi-label">${k.label}</div>
         <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
       </div>`).join('');
     // Hero stats — live numbers
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
-    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); }
+    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=''; heroAtt.className='dash-hero-stat-val'; }
     this.renderDashCharts(students,classes,payments,attRecords);
-    // Recent students — with coloured class pill
-    const clsPalette=['#1a3a6b','#0d9488','#16a34a','#d97706','#7c3aed','#dc2626','#0891b2','#be185d'];
+    // Recent students — two-color class pills (navy / teal), no rainbow
+    const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate)-new Date(a.admitDate)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
       const ci=classes.findIndex(c=>c.id===s.classId);
@@ -1289,12 +1289,18 @@ const SMS = {
   },
 
   renderDashCharts(students,classes,payments,attRecords){
+    const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+    const gridColor=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)';
+    const tickColor=isDark?'#64748b':'#94a3b8';
+    const emptyBarColor=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.07)';
+    const chartDefaults={ responsive:true, maintainAspectRatio:false };
+
     // ── Enrollment by class ──
     const ctx1=document.getElementById('chart-enrollment');
     if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
-      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}},onClick:()=>SMS.nav('students')}});
+      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:isDark?'rgba(59,130,246,0.7)':'rgba(26,58,107,0.75)',borderRadius:5}]},options:{...chartDefaults,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:tickColor},grid:{color:gridColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('students')}});
       ctx1.style.cursor='pointer';
     }
     // ── Fee collection — real data, last 6 months ──
@@ -1310,11 +1316,10 @@ const SMS = {
       }
       payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
       const hasAnyFee=feeData.some(v=>v>0);
-      // Currency symbol from school settings
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
-      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}},onClick:()=>SMS.nav('fees')}});
+      const tealLine=isDark?'#2dd4bf':'#0d9488';
+      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:tealLine,backgroundColor:isDark?'rgba(45,212,191,0.08)':'rgba(13,148,136,0.09)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:tealLine,pointRadius:4,pointHoverRadius:6}]},options:{...chartDefaults,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{callback:v=>sym+v.toLocaleString(),color:tickColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('fees')}});
       ctx2.style.cursor='pointer';
-      // Show a "no payments yet" note if all zeros
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
@@ -1332,14 +1337,16 @@ const SMS = {
         if(dayRecs.length>0){
           const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
           attData.push(rate);
-          attColors.push(rate>=90?'rgba(13,148,136,0.85)':rate>=75?'rgba(217,119,6,0.85)':'rgba(220,38,38,0.75)');
+          attColors.push(isDark
+            ? (rate>=90?'rgba(45,212,191,0.8)':rate>=75?'rgba(251,191,36,0.8)':'rgba(248,113,113,0.75)')
+            : (rate>=90?'rgba(13,148,136,0.8)':rate>=75?'rgba(217,119,6,0.8)':'rgba(220,38,38,0.75)'));
         } else {
           attData.push(null);
-          attColors.push('rgba(0,0,0,0.08)');
+          attColors.push(emptyBarColor);
         }
       }
       const hasAttData=attData.some(v=>v!==null);
-      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}},onClick:()=>SMS.nav('attendance')}});
+      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{...chartDefaults,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:gridColor},ticks:{callback:v=>v+'%',color:tickColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('attendance')}});
       ctx3.style.cursor='pointer';
       const sub3=document.getElementById('dash-att-sub');
       if(sub3) sub3.textContent=hasAttData?'Last 7 days':'No records yet';

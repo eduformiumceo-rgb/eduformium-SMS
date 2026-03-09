@@ -1203,12 +1203,12 @@ const SMS = {
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue',page:'students'},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'blue',page:'staff'},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'blue',page:'classes'},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'teal',warn:defaulters.length>0,page:'fees'},
-      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal',accent:attColor(attNum),page:'attendance'},
+      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'teal',warn:defaulters.length>0,featured:true,page:'fees'},
+      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal',featured:true,page:'attendance'},
       {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue',page:'library'},
     ];
     document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
-      <div class="kpi-card" style="${k.accent?`--kpi-accent:${k.accent};`:''}cursor:pointer" onclick="SMS.nav('${k.page}')">
+      <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>
         <div class="kpi-label">${k.label}</div>

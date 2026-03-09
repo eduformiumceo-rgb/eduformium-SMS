@@ -498,8 +498,15 @@ const SMS = {
     const h=new Date().getHours();
     const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
     const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${u.name.split(' ')[0]}! Here's your school overview.`;
-    const heroToday=document.getElementById('dash-hero-today'); if(heroToday){ const dn=new Date(); heroToday.textContent=dn.toLocaleDateString('default',{day:'numeric',month:'short'}); }
+    const heroToday=document.getElementById('dash-hero-today'); if(heroToday){ const dn=new Date(); heroToday.textContent=dn.toLocaleDateString('default',{day:'numeric',month:'short'}); } // legacy fallback
     const heroTerm=document.getElementById('dash-hero-term'); if(heroTerm){ const school=DB.get('school',{}); heroTerm.textContent=school.currentTerm?'T'+school.currentTerm:'T1'; }
+    // New hero elements
+    const _sch=DB.get('school',{});
+    const _dn=new Date();
+    const hsn=document.getElementById('dash-hero-school-name'); if(hsn) hsn.textContent=_sch.name||'Eduformium SMS';
+    const htf=document.getElementById('dash-hero-today-full'); if(htf) htf.textContent=_dn.toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+    const hyr=document.getElementById('dash-hero-year'); if(hyr) hyr.textContent=_sch.academicYear||'—';
+    const htr=document.getElementById('dash-hero-term'); if(htr) htr.textContent=_sch.currentTerm||'—';
   },
 
   roleLabel(r){ return {admin:'Administrator',teacher:'Teacher',accountant:'Accountant',librarian:'Librarian',staff:'Staff'}[r]||r; },
@@ -1053,63 +1060,96 @@ const SMS = {
     const staff=DB.get('staff',[]);
     const classes=DB.get('classes',[]);
     const payments=DB.get('feePayments',[]);
+    const school=DB.get('school',{});
     const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
     const todayStr=new Date().toISOString().split('T')[0];
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
-    // Attendance rate: today if data exists, else last 7 days, else show '—'
-    let attRate='—', attSub='No data yet';
+    // Attendance rate
+    let attRate='—', attSub='No data yet', attNum=null;
     if(todayAtt.length>0){
-      attRate=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100)+'%';
-      attSub="Today's average";
+      attNum=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100);
+      attRate=attNum+'%'; attSub="Today's average";
     } else {
       const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)<=7*864e5; });
-      if(week.length>0){ attRate=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100)+'%'; attSub='7-day average'; }
+      if(week.length>0){ attNum=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100); attRate=attNum+'%'; attSub='7-day average'; }
     }
+    // Fee defaulters count for KPI
+    const feeStr=DB.get('feeStructure',[]);
+    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; });
+    // Attendance colour helper
+    const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
+    // KPI cards — with trend context line
     const kpis=[
-      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active`,color:'blue'},
-      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers`,color:'teal'},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects`,color:'green'},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:'All time collected',color:'amber'},
-      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal'},
+      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue'},
+      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'teal'},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'green'},
+      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'amber',warn:defaulters.length>0},
+      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:attNum===null?'teal':attNum>=90?'teal':attNum>=75?'amber':'red',accent:attColor(attNum)},
       {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue'},
     ];
     document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
-      <div class="kpi-card">
+      <div class="kpi-card" style="${k.accent?`--kpi-accent:${k.accent}`:''}">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
-        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-val" style="${k.accent?`color:${k.accent}`:''}">${k.val}</div>
         <div class="kpi-label">${k.label}</div>
-        <div style="font-size:.72rem;color:var(--t4);margin-top:.2rem">${k.sub}</div>
+        <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
       </div>`).join('');
+    // Hero stats — live numbers
+    const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
+    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); }
     this.renderDashCharts(students,classes,payments,attRecords);
-    // Recent students
+    // Recent students — with coloured class pill
+    const clsPalette=['#1a3a6b','#0d9488','#16a34a','#d97706','#7c3aed','#dc2626','#0891b2','#be185d'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate)-new Date(a.admitDate)).slice(0,5);
-    document.getElementById('dash-recent-students').innerHTML=recent.map(s=>`
-      <div class="mini-item">
-        <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
+    document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
+      const ci=classes.findIndex(c=>c.id===s.classId);
+      const clsColor=clsPalette[ci%clsPalette.length]||'#1a3a6b';
+      return `<div class="mini-item">
+        <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${s.fname[0]}${s.lname[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div class="mini-sub"><span style="background:${clsColor}18;color:${clsColor};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${this.className(s.classId)}</span> · ${s.studentId}</div>
+        </div>
         <div class="mini-right">${statusBadge(s.status)}</div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students enrolled yet</div>';
+      </div>`;
+    }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
     // Events
     const events=DB.get('events',[]);
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=new Date()).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
-    document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>`
-      <div class="mini-item">
-        <div class="mini-av" style="background:${evColors[e.type]||'var(--brand-lt)'};color:white"></div>
-        <div><div class="mini-name">${sanitize(e.title)}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
-        <div class="mini-right"><span class="badge badge-info" style="font-size:.65rem">${e.type}</span></div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
-    // Defaulters
-    const feeStr=DB.get('feeStructure',[]);
-    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; }).slice(0,4);
-    document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
-      <div class="mini-item">
+    const evIcons={exam:'📝',academic:'🎓',sports:'⚽',holiday:'🏖️',meeting:'📅',cultural:'🎭'};
+    document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
+      const col=evColors[e.type]||'#1a3a6b';
+      const daysLeft=Math.ceil((new Date(e.start)-new Date())/(1000*60*60*24));
+      const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
+      return `<div class="mini-item">
+        <div class="mini-av" style="background:${col}18;color:${col};font-size:.85rem">${evIcons[e.type]||'📌'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(e.title)}</div>
+          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
+        </div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
+      </div>`;
+    }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
+    // Defaulters — with actual amount owed
+    document.getElementById('dash-defaulters').innerHTML=defaulters.slice(0,5).map(s=>{
+      const fs=feeStr.find(f=>f.classId===s.classId);
+      const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
+      const owed=Math.max(0,t1-(+(s.feesPaid?.term1||0)))+Math.max(0,t2-(+(s.feesPaid?.term2||0)))+Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      return `<div class="mini-item">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
-        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger)">Owes fees</div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div class="mini-sub">${this.className(s.classId)}</div>
+        </div>
+        <div class="mini-right" style="text-align:right">
+          <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
+          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">outstanding</div>
+        </div>
+      </div>`;
+    }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
   },
 
   renderDashCharts(students,classes,payments,attRecords){
@@ -1137,7 +1177,7 @@ const SMS = {
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}}}});
       // Show a "no payments yet" note if all zeros
-      const sub=ctx2.closest('.card')?.querySelector('.card-subtitle');
+      const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
     // ── Attendance — real data, last 7 days ──
@@ -1162,7 +1202,7 @@ const SMS = {
       }
       const hasAttData=attData.some(v=>v!==null);
       this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
-      const sub3=ctx3.closest('.card')?.querySelector('.card-subtitle');
+      const sub3=document.getElementById('dash-att-sub');
       if(sub3) sub3.textContent=hasAttData?'Last 7 days':'No records yet';
     }
   },

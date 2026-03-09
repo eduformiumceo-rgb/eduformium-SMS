@@ -337,11 +337,12 @@ const SMS = {
 
   _kpiSvg(type){
     const S='width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+    const currSym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
     const icons={
       students:`<svg ${S}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg>`,
       staff:`<svg ${S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
       classes:`<svg ${S}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
-      fees:`<svg ${S}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+      fees:`<span style="font-size:1.15em;font-weight:900;line-height:1;font-style:normal;font-family:inherit">${currSym}</span>`,
       check:`<svg ${S}><polyline points="20 6 9 17 4 12"/></svg>`,
       library:`<svg ${S}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
       transactions:`<svg ${S}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
@@ -350,7 +351,7 @@ const SMS = {
       trending:`<svg ${S}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
       chart:`<svg ${S}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
       pending:`<svg ${S}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-      expenses:`<svg ${S}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+      expenses:`<span style="font-size:1.15em;font-weight:900;line-height:1;font-style:normal;font-family:inherit">${currSym}</span>`,
       category:`<svg ${S}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
     };
     return icons[type]||icons['chart'];
@@ -1173,7 +1174,7 @@ const SMS = {
     const stripEl=document.getElementById('dash-today-strip');
     if(stripEl){
       const tiles=[
-        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+        {icon:`<span style="font-size:1.2em;font-weight:900;line-height:1">${_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵'}</span>`,
           label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
           color:'#0d9488',page:'fees'},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
@@ -1199,15 +1200,15 @@ const SMS = {
 
     // KPI cards — with trend context line
     const kpis=[
-      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue'},
-      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'teal'},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'green'},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'amber',warn:defaulters.length>0},
-      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:attNum===null?'teal':attNum>=90?'teal':attNum>=75?'amber':'red',accent:attColor(attNum)},
-      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue'},
+      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue',page:'students'},
+      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'teal',page:'staff'},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'green',page:'classes'},
+      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'amber',warn:defaulters.length>0,page:'fees'},
+      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:attNum===null?'teal':attNum>=90?'teal':attNum>=75?'amber':'red',accent:attColor(attNum),page:'attendance'},
+      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue',page:'library'},
     ];
     document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
-      <div class="kpi-card" style="${k.accent?`--kpi-accent:${k.accent}`:''}">
+      <div class="kpi-card" style="${k.accent?`--kpi-accent:${k.accent}`:''}cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val" style="${k.accent?`color:${k.accent}`:''}">${k.val}</div>
         <div class="kpi-label">${k.label}</div>
@@ -1288,27 +1289,17 @@ const SMS = {
   },
 
   renderDashCharts(students,classes,payments,attRecords){
-    // Helper: reset canvas so Chart.js always renders fresh
-    function resetCanvas(id){
-      const el=document.getElementById(id); if(!el) return null;
-      const par=el.parentElement;
-      el.remove();
-      const fresh=document.createElement('canvas');
-      fresh.id=id;
-      par.appendChild(fresh);
-      return fresh;
-    }
     // ── Enrollment by class ──
-    const ctx1=resetCanvas('chart-enrollment');
-    if(ctx1){ if(this._charts.enrollment){ this._charts.enrollment.destroy(); this._charts.enrollment=null; }
+    const ctx1=document.getElementById('chart-enrollment');
+    if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
       this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}},onClick:()=>SMS.nav('students')}});
       ctx1.style.cursor='pointer';
     }
     // ── Fee collection — real data, last 6 months ──
-    const ctx2=resetCanvas('chart-fees');
-    if(ctx2){ if(this._charts.fees){ this._charts.fees.destroy(); this._charts.fees=null; }
+    const ctx2=document.getElementById('chart-fees');
+    if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
       const now=new Date();
       const feeKeys=[],feeLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
@@ -1319,15 +1310,17 @@ const SMS = {
       }
       payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
       const hasAnyFee=feeData.some(v=>v>0);
+      // Currency symbol from school settings
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>sym+v.toLocaleString()}},x:{grid:{display:false}}},onClick:()=>SMS.nav('fees')}});
       ctx2.style.cursor='pointer';
+      // Show a "no payments yet" note if all zeros
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
     // ── Attendance — real data, last 7 days ──
-    const ctx3=resetCanvas('chart-attendance');
-    if(ctx3){ if(this._charts.att){ this._charts.att.destroy(); this._charts.att=null; }
+    const ctx3=document.getElementById('chart-attendance');
+    if(ctx3){ if(this._charts.att) this._charts.att.destroy();
       const recs=attRecords||DB.get('attendance',[]);
       const attKeys=[],attLabels=[],attData=[],attColors=[];
       for(let i=6;i>=0;i--){
@@ -3085,7 +3078,7 @@ const SMS = {
       const feeStructure=DB.get('feeStructure',[]);
       let totalOutstanding=0; students.filter(s=>s.status==='active').forEach(s=>{ const fs=feeStructure.find(f=>f.classId===s.classId); if(!fs) return; totalOutstanding+=Math.max(0,+(fs.term1||0)-(+(s.feesPaid?.term1||0)))+Math.max(0,+(fs.term2||0)-(+(s.feesPaid?.term2||0)))+Math.max(0,+(fs.term3||0)-(+(s.feesPaid?.term3||0))); });
       content.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem">
-        <div class="kpi-card"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="kpi-val">${fmt(totalFees)}</div><div class="kpi-label">Total Fee Revenue</div></div>
+        <div class="kpi-card"><div class="kpi-icon teal">${SMS._kpiSvg('fees')}</div><div class="kpi-val">${fmt(totalFees)}</div><div class="kpi-label">Total Fee Revenue</div></div>
         <div class="kpi-card"><div class="kpi-icon red">${SMS._kpiSvg('expenses')}</div><div class="kpi-val">${fmt(totalExp)}</div><div class="kpi-label">Total Expenses</div></div>
                 <div class="kpi-card"><div class="kpi-icon amber">${SMS._kpiSvg('warning')}</div><div class="kpi-val" style="color:var(--danger)">${fmt(totalOutstanding)}</div><div class="kpi-label">Outstanding Balance</div></div>
 <div class="kpi-card"><div class="kpi-icon ${totalFees-totalExp>0?'green':'amber'}">${SMS._kpiSvg('trending')}</div><div class="kpi-val" style="color:${totalFees-totalExp>0?'var(--success)':'var(--danger)'}">${fmt(totalFees-totalExp)}</div><div class="kpi-label">Net Balance</div></div>

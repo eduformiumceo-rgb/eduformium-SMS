@@ -79,8 +79,15 @@ const FDB = {
   },
 
   async getSchoolProfile(sid) {
-    try { const s = await _db.collection('schools').doc(sid).get(); return s.exists ? s.data() : null; }
-    catch(e){ return null; }
+    try {
+      // Force server fetch so suspended/approved status is always up to date
+      const s = await _db.collection('schools').doc(sid).get({ source: 'server' });
+      return s.exists ? s.data() : null;
+    } catch(e) {
+      // If server fetch fails (offline), fall back to cache
+      try { const s = await _db.collection('schools').doc(sid).get(); return s.exists ? s.data() : null; }
+      catch(e2){ return null; }
+    }
   },
 
   async batchWrite(sid, colName, items) {

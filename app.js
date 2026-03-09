@@ -762,6 +762,12 @@ const SMS = {
     // Check school approval status — block anyone who is not explicitly 'active'
     const _profile = await FDB.getSchoolProfile(result.uid).catch(()=>null);
     const _status = _profile?.status || 'pending';
+    if(_status === 'suspended'){
+      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+      document.getElementById('login-screen').style.display='none';
+      this.showSuspendedScreen(_profile, email);
+      return;
+    }
     if(_status !== 'active'){
       btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
       document.getElementById('login-screen').style.display='none';
@@ -3856,3 +3862,139 @@ const PWABanner = (() => {
 
   return { tryShow };
 })();
+
+// ══════════════════════════════════════════════════════
+//  OFFLINE LAUNCH SCREEN CONTROLLER
+//  • Shows ONLY if the page loads with no internet
+//  • Does NOT show if internet drops during an active session
+//  • Auto-reloads when connection is restored
+// ══════════════════════════════════════════════════════
+const offlineScreen = (() => {
+  const SCREEN   = 'offline-screen';
+  const RETRY_BTN  = 'offs-retry-btn';
+  const RETRY_ICON = 'offs-retry-icon';
+  const RETRY_SPIN = 'offs-spin';
+  const RETRY_LBL  = 'offs-retry-label';
+  const CARD       = 'offs-card';
+
+  // Was the app launched offline? Latched at boot.
+  let _launchOffline = false;
+  let _retryTimer    = null;
+
+  function _getEl(id) { return document.getElementById(id); }
+
+  function show() {
+    const el = _getEl(SCREEN);
+    if (!el) return;
+    el.style.display = 'flex';
+    _resetBtn();
+  }
+
+  function hide() {
+    const el = _getEl(SCREEN);
+    if (el) el.style.display = 'none';
+    clearTimeout(_retryTimer);
+    _launchOffline = false; // screen cleared — no longer in launch-offline state
+  }
+
+  function _resetBtn() {
+    const btn  = _getEl(RETRY_BTN);
+    const icon = _getEl(RETRY_ICON);
+    const spin = _getEl(RETRY_SPIN);
+    const lbl  = _getEl(RETRY_LBL);
+    if (btn)  { btn.disabled = false; }
+    if (icon) { icon.style.display = ''; }
+    if (spin) { spin.style.display = 'none'; }
+    if (lbl)  { lbl.textContent = 'Try Again'; }
+  }
+
+  function _shakeFail() {
+    const card = _getEl(CARD);
+    if (!card) return;
+    card.classList.remove('offs-shaking');
+    // Force reflow then re-add
+    void card.offsetWidth;
+    card.classList.add('offs-shaking');
+    card.addEventListener('animationend', () => card.classList.remove('offs-shaking'), { once: true });
+  }
+
+  // ── Called by onclick on the Try Again button ──
+  function retry() {
+    const btn  = _getEl(RETRY_BTN);
+    const icon = _getEl(RETRY_ICON);
+    const spin = _getEl(RETRY_SPIN);
+    const lbl  = _getEl(RETRY_LBL);
+    if (btn)  { btn.disabled = true; }
+    if (icon) { icon.style.display = 'none'; }
+    if (spin) { spin.style.display = 'block'; }
+    if (lbl)  { lbl.textContent = 'Checking…'; }
+
+    clearTimeout(_retryTimer);
+    _retryTimer = setTimeout(() => {
+      if (navigator.onLine) {
+        window.location.reload();
+      } else {
+        _resetBtn();
+        _shakeFail();
+      }
+    }, 2200);
+  }
+
+  // ── Called by onclick on the Exit App button ──
+  function quit() {
+    window.close();
+    // Fallback: blank goodbye page if close() was blocked
+    setTimeout(() => {
+      document.body.innerHTML = `
+        <div style="
+          min-height:100dvh;display:flex;flex-direction:column;
+          align-items:center;justify-content:center;
+          background:#07111f;color:rgba(140,175,210,.6);
+          font-family:'DM Sans',sans-serif;
+          text-align:center;padding:2rem;gap:1.2rem
+        ">
+          <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="28" stroke="rgba(13,148,136,.35)" stroke-width="2"/>
+            <path d="M22 32h20M36 26l6 6-6 6" stroke="#0d9488" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p style="font-size:1rem;font-weight:700;color:rgba(220,235,248,.7);margin:0">You've closed Eduformium SMS</p>
+          <p style="font-size:.8rem;margin:0">Come back when you have an internet connection.</p>
+        </div>`;
+    }, 400);
+  }
+
+  // ════════════════════════════════════════
+  //  BOOT — only show on LAUNCH without internet
+  // ════════════════════════════════════════
+  function _boot() {
+    if (!navigator.onLine) {
+      _launchOffline = true;
+      show();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _boot);
+  } else {
+    setTimeout(_boot, 100); // let DOM settle
+  }
+
+  // Auto-hide & reload once connection restores — ONLY if we launched offline
+  window.addEventListener('online', () => {
+    if (!_launchOffline) return; // user was already logged in — do nothing
+    setTimeout(() => {
+      if (navigator.onLine) {
+        window.location.reload();
+      }
+    }, 900);
+  });
+
+  // NOTE: 'offline' event is intentionally NOT wired to show()
+  // Active sessions handle connectivity gracefully without a blocking screen.
+
+  return { show, hide, retry, quit };
+})();
+
+// ── Global helpers called from HTML onclick attributes ──
+function offlineScreenRetry() { offlineScreen.retry(); }
+function offlineScreenExit()  { offlineScreen.quit();  }

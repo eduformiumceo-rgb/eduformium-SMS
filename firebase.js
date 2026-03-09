@@ -80,11 +80,11 @@ const FDB = {
 
   async getSchoolProfile(sid) {
     try {
-      // Force server fetch so suspended/approved status is always up to date
       const s = await _db.collection('schools').doc(sid).get({ source: 'server' });
+      console.log('[getSchoolProfile] server fetch OK — status:', s.data()?.status);
       return s.exists ? s.data() : null;
     } catch(e) {
-      // If server fetch fails (offline), fall back to cache
+      console.warn('[getSchoolProfile] server fetch FAILED, using cache. Error:', e.message);
       try { const s = await _db.collection('schools').doc(sid).get(); return s.exists ? s.data() : null; }
       catch(e2){ return null; }
     }

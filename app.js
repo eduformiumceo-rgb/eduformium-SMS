@@ -65,6 +65,32 @@ const getYearFees=(s,year)=>{
   return s.feesPaid[year]||{term1:0,term2:0,term3:0};
 };
 // Get fee structure for a class+year combo (backward-compatible)
+// ── Derive enrollTerm from admitDate vs a year's exact term date ranges ──
+// Returns '1','2','3' — or falls back to _currentTerm if no term dates set.
+// admitDate: 'YYYY-MM-DD' string. yearStr: '2025/2026' string.
+const getEnrollTermFromDate=(admitDate,yearStr)=>{
+  if(!admitDate) return String(_currentTerm);
+  const school=DB.get('school',{});
+  const yEntry=(school.academicYears||[]).find(y=>y.year===yearStr)||{};
+  const admit=new Date(admitDate+'T00:00:00');
+  // Check each term's range — return the term the admitDate falls in
+  for(let t=1;t<=3;t++){
+    const key=`t${t}`;
+    const ts=yEntry[`${key}Start`]?new Date(yEntry[`${key}Start`]+'T00:00:00'):null;
+    const te=yEntry[`${key}End`]?new Date(yEntry[`${key}End`]+'T23:59:59'):null;
+    if(ts&&te&&admit>=ts&&admit<=te) return String(t);
+  }
+  // Not inside any defined range — place in earliest term that starts after or at admitDate
+  for(let t=1;t<=3;t++){
+    const ts=yEntry[`t${t}Start`]?new Date(yEntry[`t${t}Start`]+'T00:00:00'):null;
+    if(ts&&admit<=ts) return String(t);
+  }
+  // Fallback: if all term dates exist but admit is before T1, return '1'
+  if(yEntry.t1Start) return '1';
+  // No term dates configured — use _currentTerm as before
+  return String(_currentTerm);
+};
+
 const getYearStructure=(classId,year)=>{
   const all=DB.get('feeStructure',[]);
   return all.find(f=>f.classId===classId&&f.year===year)
@@ -2020,9 +2046,9 @@ const SMS = {
     const _maxId=students.reduce((mx,st)=>{ const n=parseInt((st.studentId||'').split('-').pop()||0); return n>mx?n:mx; },100);
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(_maxId+1).padStart(4,'0');
     const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,
-      // enrollTerm records which term was active when student was enrolled.
+      // enrollTerm: derived from admitDate vs term date ranges of current academic year.
       // Fees are only due from this term onwards — never back-charged for terms before enrolment.
-      enrollTerm: _currentTerm,
+      enrollTerm: getEnrollTermFromDate(admitDate, _academicYear),
       feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
@@ -3817,6 +3843,7 @@ const SMS = {
         </div>
         <div class="ay-card-actions">
           ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')">Set as Current</button>`:''}
+          <button class="btn btn-secondary btn-sm" onclick="SMS.openEditTermDatesModal('${y.year}')">📌 Term Dates</button>
           <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')">Fee Structure</button>
           <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')">Enter Fee Data</button>
           ${!isCurrent?`<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="SMS.deleteAcademicYear('${y.year}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
@@ -3843,6 +3870,108 @@ const SMS = {
     if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
     this.audit('Settings','settings','Academic year switched to '+year);
   },
+  openEditTermDatesModal(year){
+    const school=DB.get('school',{});
+    const yEntry=(school.academicYears||[]).find(y=>y.year===year)||{};
+    document.getElementById('etd-year-title').textContent=year;
+    document.getElementById('etd-year-key').value=year;
+    // Populate existing term dates
+    ['t1','t2','t3'].forEach(t=>{
+      const si=document.getElementById(`etd-${t}-start`);
+      const ei=document.getElementById(`etd-${t}-end`);
+      if(si) si.value=yEntry[`${t}Start`]||'';
+      if(ei) ei.value=yEntry[`${t}End`]||'';
+    });
+    document.getElementById('etd-impact').style.display='none';
+    this.openModal('m-edit-term-dates');
+  },
+
+  saveTermDates(){
+    const year=document.getElementById('etd-year-key').value;
+    const errEl=document.getElementById('etd-err');
+    errEl.style.display='none';
+    if(!year){ errEl.style.display='block'; errEl.textContent='Invalid academic year. Please close and reopen.'; return; }
+    // Read all 6 date inputs
+    const dates={};
+    ['t1','t2','t3'].forEach(t=>{
+      dates[`${t}Start`]=document.getElementById(`etd-${t}-start`)?.value||'';
+      dates[`${t}End`]=document.getElementById(`etd-${t}-end`)?.value||'';
+    });
+    // Validate: if both dates given for a term, start must be before end
+    for(let t=1;t<=3;t++){
+      const s=dates[`t${t}Start`], e=dates[`t${t}End`];
+      if(s&&e&&new Date(s)>=new Date(e)){
+        errEl.style.display='block';
+        errEl.textContent=`Term ${t}: Start date must be before End date.`;
+        return;
+      }
+    }
+    // Validate: terms must not overlap
+    const ranges=[];
+    for(let t=1;t<=3;t++){
+      const s=dates[`t${t}Start`], e=dates[`t${t}End`];
+      if(s&&e) ranges.push({t,s:new Date(s),e:new Date(e+'T23:59:59')});
+    }
+    for(let i=0;i<ranges.length;i++){
+      for(let j=i+1;j<ranges.length;j++){
+        if(ranges[i].s<=ranges[j].e&&ranges[j].s<=ranges[i].e){
+          errEl.style.display='block';
+          errEl.textContent=`Term ${ranges[i].t} and Term ${ranges[j].t} dates overlap. Please fix before saving.`;
+          return;
+        }
+      }
+    }
+    // Save into academicYears entry
+    const school=DB.get('school',{});
+    if(!school.academicYears) school.academicYears=[];
+    let yEntry=school.academicYears.find(y=>y.year===year);
+    if(!yEntry){ yEntry={year,label:year,isCurrent:false}; school.academicYears.push(yEntry); }
+    ['t1','t2','t3'].forEach(t=>{
+      if(dates[`${t}Start`]) yEntry[`${t}Start`]=dates[`${t}Start`]; else delete yEntry[`${t}Start`];
+      if(dates[`${t}End`]) yEntry[`${t}End`]=dates[`${t}End`]; else delete yEntry[`${t}End`];
+    });
+    DB.set('school',school);
+    // ── Re-derive enrollTerm for every student admitted in this academic year ──
+    // Only re-derive students admitted within the year's overall date range (or all if no range set)
+    const yearStart=yEntry.startDate?new Date(yEntry.startDate+'T00:00:00'):null;
+    const yearEnd=yEntry.endDate?new Date(yEntry.endDate+'T23:59:59'):null;
+    const students=DB.get('students',[]);
+    let rederived=0;
+    students.forEach(s=>{
+      if(!s.admitDate) return;
+      const admitMs=new Date(s.admitDate+'T00:00:00');
+      // Only re-derive students whose admit date falls within this academic year's range
+      const inYear=(!yearStart||admitMs>=yearStart)&&(!yearEnd||admitMs<=yearEnd);
+      if(!inYear) return;
+      const newTerm=getEnrollTermFromDate(s.admitDate,year);
+      if(String(s.enrollTerm)!==String(newTerm)){
+        s.enrollTerm=newTerm;
+        rederived++;
+      }
+    });
+    if(rederived>0) DB.set('students',students);
+    // Update settings form if this is the active year
+    if(year===school.academicYear||year===_academicYear){
+      ['t1','t2','t3'].forEach(t=>{
+        const si=document.getElementById(`ac-${t}-start`);
+        const ei=document.getElementById(`ac-${t}-end`);
+        if(si) si.value=yEntry[`${t}Start`]||'';
+        if(ei) ei.value=yEntry[`${t}End`]||'';
+      });
+    }
+    this.closeModal('m-edit-term-dates');
+    this.renderAcademicYearHistory();
+    this.audit('Settings','settings',`Term dates updated for ${year} — ${rederived} student enrol terms recalculated`);
+    if(rederived>0){
+      this.toast(`Term dates saved. ${rederived} student enrolment term${rederived!==1?'s':''} recalculated based on admission dates.`,'success');
+      // Refresh dashboard and fees if visible
+      if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
+      if(document.getElementById('page-fees')?.classList.contains('active')) this.loadFees();
+    } else {
+      this.toast(`Term dates saved for ${year}.`,'success');
+    }
+  },
+
 
   openAddYearModal(){
     const school=DB.get('school',{});

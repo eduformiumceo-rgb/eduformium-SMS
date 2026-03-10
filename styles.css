@@ -2215,6 +2215,83 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .term-dates-row { grid-template-columns:1fr; }
   .term-dates-label { padding-bottom:0; }
 }
+
+/* ── Edit Term Dates Modal ── */
+.etd-intro {
+  font-size:.83rem;
+  color:var(--t3);
+  line-height:1.65;
+  margin-bottom:1.1rem;
+}
+.etd-grid {
+  display:flex;
+  flex-direction:column;
+  gap:.6rem;
+}
+.etd-term-block {
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.etd-term-label {
+  display:flex;
+  align-items:center;
+  gap:.5rem;
+  padding:.55rem .85rem;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border);
+  font-size:.8rem;
+  font-weight:700;
+  color:var(--t2);
+}
+.etd-term-badge {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border-radius:6px;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.02em;
+  color:#fff;
+  flex-shrink:0;
+}
+.etd-t1 { background:var(--brand); }
+.etd-t2 { background:#0d9488; }
+.etd-t3 { background:#7c3aed; }
+.etd-dates {
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:end;
+  gap:.65rem;
+  padding:.75rem .85rem;
+  background:var(--surface);
+}
+.etd-arrow {
+  font-size:1rem;
+  color:var(--t4);
+  padding-bottom:.45rem;
+  user-select:none;
+}
+.etd-warning {
+  display:flex;
+  align-items:flex-start;
+  gap:.5rem;
+  margin-top:.85rem;
+  padding:.65rem .8rem;
+  background:var(--warn-bg);
+  border-left:3px solid var(--warn);
+  border-radius:var(--radius);
+  font-size:.76rem;
+  color:var(--t3);
+  line-height:1.5;
+}
+.etd-warning svg { color:var(--warn); }
+@media(max-width:480px){
+  .etd-dates { grid-template-columns:1fr; }
+  .etd-arrow { display:none; }
+}
 @media(max-width:640px){
   .ay-card { flex-direction:column; align-items:flex-start; }
   .ay-card-actions { width:100%; }

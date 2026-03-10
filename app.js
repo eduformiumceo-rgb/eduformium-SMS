@@ -108,6 +108,25 @@ function migrateToYearFees(){
     DB.set('school',school);
   }
 }
+
+// One-time migration: stamp enrollTerm on every student that is missing it.
+// Uses _currentTerm at the time the migration first runs as a conservative
+// default — existing students are assumed to have been enrolled from Term 1
+// of their first academic year, so '1' is the safest fallback.
+function migrateEnrollTerm(){
+  const students = DB.get('students', []);
+  let changed = false;
+  students.forEach(s => {
+    if(!s.enrollTerm){
+      // Default to '1' — they were here before the system tracked enrol terms.
+      // This means they may owe Term 1 if it's unpaid, which is correct behaviour.
+      s.enrollTerm = '1';
+      changed = true;
+    }
+  });
+  if(changed) DB.set('students', students);
+}
+
 function seedData(){
   if(DB.get('seeded')) return;
   DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12',
@@ -337,6 +356,26 @@ const SMS = {
   _formsBound: false,
   deleteCallback: null,
 
+  // Returns array of term numbers that are currently due for a student.
+  // A student only owes fees from their enrolment term up to _currentTerm.
+  // e.g. enrolled Term 2, current Term 2 → [2]; current Term 3 → [2,3]
+  _activeFeeTerms(student){
+    const enroll = Math.min(3, Math.max(1, +(student.enrollTerm || 1)));
+    const curr   = Math.min(3, Math.max(1, +_currentTerm));
+    const terms  = [];
+    for(let t = enroll; t <= curr; t++) terms.push(t);
+    return terms;
+  },
+
+  // Returns total amount owed by a student for their active terms only.
+  _studentOwed(student, yearFilter){
+    const fs  = getYearStructure(student.classId, yearFilter);
+    if(!fs) return 0;
+    const yf  = getYearFees(student, yearFilter);
+    return this._activeFeeTerms(student).reduce((sum, t) =>
+      sum + Math.max(0, (+(fs['term'+t]||0)) - (+(yf['term'+t]||0))), 0);
+  },
+
   _kpiSvg(type){
     const S='width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
     const currSym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
@@ -388,6 +427,7 @@ const SMS = {
       _passMark=school.passMark||50;
       _gradeSystem=school.gradeSystem||'percentage';
       migrateToYearFees();
+      migrateEnrollTerm();
       const session=DB.get('session');
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
       this._afterLoad(()=>this.showLogin()); return;
@@ -427,6 +467,7 @@ const SMS = {
         _passMark=school.passMark||50;
         _gradeSystem=school.gradeSystem||'percentage';
         migrateToYearFees();
+        migrateEnrollTerm();
         const users=DB.get('users',[]);
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this._afterLoad(()=>this.boot());
@@ -1339,9 +1380,7 @@ const SMS = {
       const defList=document.getElementById('dash-defaulters');
       if(defList){
         defList.innerHTML=defaulters.slice(0,5).map(s=>{
-          const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
-          const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
-          const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
+          const owed=this._studentOwed(s,_academicYear);
           return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
             <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
             <div style="flex:1;min-width:0">
@@ -1350,7 +1389,7 @@ const SMS = {
             </div>
             <div class="mini-right" style="text-align:right">
               <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
-              <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">outstanding</div>
+              <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">Term ${_currentTerm} outstanding</div>
             </div>
           </div>`;
         }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
@@ -1660,11 +1699,9 @@ const SMS = {
     if(!tbody) return;
     const feeStructure=DB.get('feeStructure',[]);
     tbody.innerHTML=slice.map(s=>{
-      const fs=feeStructure.find(f=>f.classId===s.classId);
-      const termFee1=+(fs?.term1||0), termFee2=+(fs?.term2||0), termFee3=+(fs?.term3||0);
-      const _syf=getYearFees(s,_academicYear); const p1=+(_syf.term1||0), p2=+(_syf.term2||0), p3=+(_syf.term3||0);
-      const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
-      const noStructure=!fs||(termFee1===0&&termFee2===0&&termFee3===0);
+      const _sfs=getYearStructure(s.classId,_academicYear);
+      const owed=this._studentOwed(s,_academicYear);
+      const noStructure=!_sfs||(+((_sfs.term1)||0)===0&&+((_sfs.term2)||0)===0&&+((_sfs.term3)||0)===0);
       const feeStatus=noStructure?`<span style="color:var(--t4);font-size:.76rem;font-weight:600">—</span>`:owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.studentId}</td>
@@ -1838,7 +1875,11 @@ const SMS = {
     const existingId=document.getElementById('sf-id').value;
     const _maxId=students.reduce((mx,st)=>{ const n=parseInt((st.studentId||'').split('-').pop()||0); return n>mx?n:mx; },100);
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(_maxId+1).padStart(4,'0');
-    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
+    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,
+      // enrollTerm records which term was active when student was enrolled.
+      // Fees are only due from this term onwards — never back-charged for terms before enrolment.
+      enrollTerm: _currentTerm,
+      feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
       if(i>-1){ const old=students[i]; students[i]={...old,...data,id:existingId,studentId:old.studentId,feesPaid:old.feesPaid}; DB.set('students',students); this.audit('Edit Student','edit',`Updated student: ${fname} ${lname}`); this.toast('Student updated','success'); }
@@ -2576,21 +2617,18 @@ const SMS = {
     const payments=DB.get('feePayments',[]).filter(p=>!p.academicYear||p.academicYear===yearFilter);
     const students=DB.get('students',[]).filter(s=>s.status==='active');
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    // Outstanding = all 3 terms for selected year, active students only
+    // Outstanding = active terms only (enrollTerm → currentTerm) per student
     let outstanding=0, defaulterCount=0;
     students.forEach(s=>{
-      const fs=getYearStructure(s.classId,yearFilter);
-      if(!fs) return;
-      const yf=getYearFees(s,yearFilter);
-      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      const owed=Math.max(0,t1-(+(yf.term1||0)))+Math.max(0,t2-(+(yf.term2||0)))+Math.max(0,t3-(+(yf.term3||0)));
+      const owed=this._studentOwed(s,yearFilter);
       if(owed>0){ outstanding+=owed; defaulterCount++; }
     });
+    const termLabel=`Term ${_currentTerm}`;
     document.getElementById('fees-kpis').innerHTML=[
       {icon:'fees',val:fmt(totalCollected),lbl:'Total Collected',color:'teal'},
       {icon:'transactions',val:payments.length,lbl:'Transactions',color:'blue'},
       {icon:'warning',val:defaulterCount,lbl:'Defaulters',color:'amber'},
-      {icon:'outstanding',val:fmt(outstanding),lbl:'Outstanding Balance',color:'red'},
+      {icon:'outstanding',val:fmt(outstanding),lbl:`${termLabel} Outstanding`,color:'red'},
     ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
   },
 
@@ -2622,7 +2660,7 @@ const SMS = {
           ? `<span class="badge badge-success">Term ${p.term} Fully Paid</span>`
           : `<span class="badge badge-warn">Balance: ${fmt(termOwed)}</span>`;
       const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
-      const totalOwed=s&&fs?Math.max(0,t1-(+(sfyf.term1||0)))+Math.max(0,t2-(+(sfyf.term2||0)))+Math.max(0,t3-(+(sfyf.term3||0))):0;
+      const totalOwed=s&&fs?this._studentOwed(s,pYear):0;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3);white-space:nowrap">${p.receiptNo||'—'}</td>
         <td><div style="font-weight:600;color:var(--t1);white-space:nowrap">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
@@ -2660,32 +2698,46 @@ const SMS = {
   renderDefaulters(){
     const students=DB.get('students',[]); const classes=DB.get('classes',[]);
     const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
+    const curr=Math.min(3,Math.max(1,+_currentTerm));
+    // Only students who owe on at least one of their active terms
     const defaulters=students.filter(s=>{
       if(s.status!=='active') return false;
-      const fs=getYearStructure(s.classId,yearFilter); if(!fs) return false;
-      const yf=getYearFees(s,yearFilter);
-      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      return (+(yf.term1||0))<t1 || (+(yf.term2||0))<t2 || (+(yf.term3||0))<t3;
+      return this._studentOwed(s,yearFilter)>0;
     });
+    // Update table headers dynamically to reflect current term scope
+    const thead=document.querySelector('#fees-defaulters thead tr');
+    if(thead){
+      // Build headers: Student, Class, Phone, then one col per term 1→curr, then Total Owed, Actions
+      const termHeaders=Array.from({length:curr},(_,i)=>`<th>Term ${i+1}</th>`).join('');
+      thead.innerHTML=`<th>Student</th><th>Class</th><th>Parent Phone</th>${termHeaders}<th>Total Owed</th><th></th>`;
+    }
     document.getElementById('defaulters-tbody').innerHTML=defaulters.map(s=>{
       const fs=getYearStructure(s.classId,yearFilter);
       const yf=getYearFees(s,yearFilter);
-      const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-      const owed1=Math.max(0,t1-(+(yf.term1||0)));
-      const owed2=Math.max(0,t2-(+(yf.term2||0)));
-      const owed3=Math.max(0,t3-(+(yf.term3||0)));
+      const enrollTerm=Math.min(3,Math.max(1,+(s.enrollTerm||1)));
+      // Build one cell per term 1→curr
+      const termCells=Array.from({length:curr},(_,i)=>{
+        const t=i+1;
+        if(t<enrollTerm){
+          // Term before this student enrolled — not charged
+          return `<td style="color:var(--t4);font-size:.75rem;text-align:center">—</td>`;
+        }
+        const due=+(fs?fs['term'+t]||0:0);
+        const paid=+(yf['term'+t]||0);
+        const owed=Math.max(0,due-paid);
+        return `<td style="color:${owed>0?'var(--danger)':'var(--success)'};font-weight:600;text-align:center">${owed>0?fmt(owed):'Paid'}</td>`;
+      }).join('');
+      const totalOwed=this._studentOwed(s,yearFilter);
       return `<tr>
         <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
         <td>${s.dadPhone||'—'}</td>
-        <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'Paid'}</td>
-        <td style="color:${owed2>0?'var(--danger)':'var(--success)'};font-weight:600">${owed2>0?fmt(owed2):'Paid'}</td>
-        <td style="color:${owed3>0?'var(--danger)':'var(--success)'};font-weight:600">${owed3>0?fmt(owed3):'Paid'}</td>
-        <td style="font-weight:800;color:var(--danger)">${fmt(owed1+owed2+owed3)}</td>
+        ${termCells}
+        <td style="font-weight:800;color:var(--danger);text-align:center">${fmt(totalOwed)}</td>
         <td>
           <div style="display:flex;gap:.3rem">
             <button class="btn btn-primary btn-sm" onclick="SMS.openFeeModal('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem">Pay Now</button>
-            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder"><svg style="width:13px;height:13px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
           </div>
         </td>
       </tr>`;

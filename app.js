@@ -65,6 +65,32 @@ const getYearFees=(s,year)=>{
   return s.feesPaid[year]||{term1:0,term2:0,term3:0};
 };
 // Get fee structure for a class+year combo (backward-compatible)
+// ── Derive enrollTerm from admitDate vs a year's exact term date ranges ──
+// Returns '1','2','3' — or falls back to _currentTerm if no term dates set.
+// admitDate: 'YYYY-MM-DD' string. yearStr: '2025/2026' string.
+const getEnrollTermFromDate=(admitDate,yearStr)=>{
+  if(!admitDate) return String(_currentTerm);
+  const school=DB.get('school',{});
+  const yEntry=(school.academicYears||[]).find(y=>y.year===yearStr)||{};
+  const admit=new Date(admitDate+'T00:00:00');
+  // Check each term's range — return the term the admitDate falls in
+  for(let t=1;t<=3;t++){
+    const key=`t${t}`;
+    const ts=yEntry[`${key}Start`]?new Date(yEntry[`${key}Start`]+'T00:00:00'):null;
+    const te=yEntry[`${key}End`]?new Date(yEntry[`${key}End`]+'T23:59:59'):null;
+    if(ts&&te&&admit>=ts&&admit<=te) return String(t);
+  }
+  // Not inside any defined range — place in earliest term that starts after or at admitDate
+  for(let t=1;t<=3;t++){
+    const ts=yEntry[`t${t}Start`]?new Date(yEntry[`t${t}Start`]+'T00:00:00'):null;
+    if(ts&&admit<=ts) return String(t);
+  }
+  // Fallback: if all term dates exist but admit is before T1, return '1'
+  if(yEntry.t1Start) return '1';
+  // No term dates configured — use _currentTerm as before
+  return String(_currentTerm);
+};
+
 const getYearStructure=(classId,year)=>{
   const all=DB.get('feeStructure',[]);
   return all.find(f=>f.classId===classId&&f.year===year)
@@ -108,6 +134,25 @@ function migrateToYearFees(){
     DB.set('school',school);
   }
 }
+
+// One-time migration: stamp enrollTerm on every student that is missing it.
+// Uses _currentTerm at the time the migration first runs as a conservative
+// default — existing students are assumed to have been enrolled from Term 1
+// of their first academic year, so '1' is the safest fallback.
+function migrateEnrollTerm(){
+  const students = DB.get('students', []);
+  let changed = false;
+  students.forEach(s => {
+    if(!s.enrollTerm){
+      // Default to '1' — they were here before the system tracked enrol terms.
+      // This means they may owe Term 1 if it's unpaid, which is correct behaviour.
+      s.enrollTerm = '1';
+      changed = true;
+    }
+  });
+  if(changed) DB.set('students', students);
+}
+
 function seedData(){
   if(DB.get('seeded')) return;
   DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12',
@@ -337,6 +382,26 @@ const SMS = {
   _formsBound: false,
   deleteCallback: null,
 
+  // Returns array of term numbers that are currently due for a student.
+  // A student only owes fees from their enrolment term up to _currentTerm.
+  // e.g. enrolled Term 2, current Term 2 → [2]; current Term 3 → [2,3]
+  _activeFeeTerms(student){
+    const enroll = Math.min(3, Math.max(1, +(student.enrollTerm || 1)));
+    const curr   = Math.min(3, Math.max(1, +_currentTerm));
+    const terms  = [];
+    for(let t = enroll; t <= curr; t++) terms.push(t);
+    return terms;
+  },
+
+  // Returns total amount owed by a student for their active terms only.
+  _studentOwed(student, yearFilter){
+    const fs  = getYearStructure(student.classId, yearFilter);
+    if(!fs) return 0;
+    const yf  = getYearFees(student, yearFilter);
+    return this._activeFeeTerms(student).reduce((sum, t) =>
+      sum + Math.max(0, (+(fs['term'+t]||0)) - (+(yf['term'+t]||0))), 0);
+  },
+
   _kpiSvg(type){
     const S='width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
     const currSym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
@@ -365,6 +430,8 @@ const SMS = {
   _studPage: 1,
   _staffPage: 1,
   _auditPage: 1,
+  _dashRefreshTimer: null,   // auto-refresh interval handle
+  _syncStatus: 'idle',       // 'idle' | 'syncing' | 'synced' | 'offline'
 
   // Minimum ms the loading screen stays visible — ensures it's seen on fast/cached loads
   _loadStart: 0,
@@ -386,6 +453,7 @@ const SMS = {
       _passMark=school.passMark||50;
       _gradeSystem=school.gradeSystem||'percentage';
       migrateToYearFees();
+      migrateEnrollTerm();
       const session=DB.get('session');
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
       this._afterLoad(()=>this.showLogin()); return;
@@ -425,6 +493,7 @@ const SMS = {
         _passMark=school.passMark||50;
         _gradeSystem=school.gradeSystem||'percentage';
         migrateToYearFees();
+        migrateEnrollTerm();
         const users=DB.get('users',[]);
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this._afterLoad(()=>this.boot());
@@ -606,6 +675,11 @@ const SMS = {
     const schoolName=DB.get('school',{}).name||'Eduformium SMS';
     const pageName=ne?.textContent.trim()||page.charAt(0).toUpperCase()+page.slice(1);
     document.title=`${pageName} — ${schoolName}`;
+    // Stop dashboard auto-refresh when leaving the dashboard page
+    if(page !== 'dashboard' && this._dashRefreshTimer){
+      clearInterval(this._dashRefreshTimer);
+      this._dashRefreshTimer = null;
+    }
     this.currentPage=page;
     document.getElementById('sidebar')?.classList.remove('open');
     document.getElementById('sidebar-overlay')?.classList.remove('show');
@@ -784,7 +858,7 @@ const SMS = {
     document.getElementById('save-pw-btn')?.addEventListener('click',()=>this.changePassword());
     document.getElementById('save-academic-btn')?.addEventListener('click',()=>this.saveAcademic());
     document.getElementById('apply-custom-theme')?.addEventListener('click',()=>this.applyCustomTheme());
-    document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; });
+    document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; this._dashDataFingerprint=null; });
     document.querySelectorAll('.swatch[data-primary]').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); this.applyThemeColors(s.dataset.primary,s.dataset.teal); }));
     document.getElementById('custom-primary')?.addEventListener('input',e=>{ document.getElementById('custom-primary-hex').value=e.target.value; });
     document.getElementById('custom-teal')?.addEventListener('input',e=>{ document.getElementById('custom-teal-hex').value=e.target.value; });
@@ -1136,7 +1210,26 @@ const SMS = {
   },
 
   // ══ DASHBOARD ══
+  // ── Inline SVG sparkline from array of values (W×H viewBox) ──
+  _sparkline(values, W=80, H=36){
+    if(!values||values.length<2) return '';
+    const max=Math.max(...values), min=Math.min(...values);
+    const range=max-min||1;
+    const pad=3;
+    const pts=values.map((v,i)=>{
+      const x=pad+(i/(values.length-1))*(W-pad*2);
+      const y=H-pad-(((v-min)/range)*(H-pad*2));
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const trend=values[values.length-1]>=values[0]?'up':values[values.length-1]<values[0]?'down':'flat';
+    return `<svg class="kpi-sparkline kpi-sparkline-${trend}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="M${pts.join('L')}"/></svg>`;
+  },
+
   loadDashboard(){
+    const role = this.currentUser?.role || 'staff';
+    const isAdmin   = role === 'admin';
+    const isFinance = role === 'admin' || role === 'accountant';
+
     const students=DB.get('students',[]);
     const staff=DB.get('staff',[]);
     const classes=DB.get('classes',[]);
@@ -1144,50 +1237,144 @@ const SMS = {
     const school=DB.get('school',{});
     const exams=DB.get('exams',[]);
     const leaves=DB.get('leaves',[]);
-    const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
+    const yearPayments=payments.filter(p=>!p.academicYear||p.academicYear===_academicYear);
+    const totalRevenue=yearPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
     const todayStr=localDateStr();
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
     const now=new Date();
-    // Attendance rate
-    let attRate='—', attSub='No data yet', attNum=null;
-    if(todayAtt.length>0){
-      attNum=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100);
-      attRate=attNum+'%'; attSub="Today's average";
-    } else {
-      // Fix: require d<=n (exclude future records) AND within last 7 days
-      const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)>=0&&(n-d)<=7*864e5; });
-      if(week.length>0){ attNum=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100); attRate=attNum+'%'; attSub='7-day average'; }
-    }
-    // Defaulters: only current term of current year
-    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
-    // Attendance colour helper
-    const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
 
-    // ── TODAY AT A GLANCE strip ──
+    // ── Term Attendance ──
+    // Prefer field-based filter (accurate: uses term+academicYear saved on each record).
+    // Fall back to splitting the academic year into thirds for older records without those fields.
+    let attRate='—', attSub='No data yet', attNum=null;
+    const _ayInfo=(school.academicYears||[]).find(y=>y.year===_academicYear);
+    const _ayStart=_ayInfo?.startDate?new Date(_ayInfo.startDate):null;
+    const _ayEnd=_ayInfo?.endDate?new Date(_ayInfo.endDate):null;
+    const _termIdx=Math.min(3,Math.max(1,+_currentTerm))-1; // 0,1,2
+    let termRecs=[];
+    const fieldBased=attRecords.filter(a=>a.academicYear===_academicYear&&String(a.term)===String(_currentTerm));
+    if(fieldBased.length>0){
+      termRecs=fieldBased;
+      attSub=`Term ${_currentTerm} students`;
+    } else {
+      // Use exact term dates if set, otherwise fall back to equal thirds
+      const _tKey=['t1','t2','t3'][_termIdx];
+      const _exactStart=_ayInfo?.[`${_tKey}Start`]?new Date(_ayInfo[`${_tKey}Start`]):null;
+      const _exactEnd=_ayInfo?.[`${_tKey}End`]?new Date(_ayInfo[`${_tKey}End`]+'T23:59:59'):null;
+      if(_exactStart&&_exactEnd&&_exactEnd>_exactStart){
+        termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_exactStart&&d<=_exactEnd; });
+        attSub=`Term ${_currentTerm} students`;
+      } else if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
+        const span=_ayEnd-_ayStart;
+        const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
+        const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
+        termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
+        attSub=`Term ${_currentTerm} students`;
+      } else {
+        termRecs=attRecords;
+        attSub=`Term ${_currentTerm} students`;
+      }
+    }
+    if(termRecs.length>0){
+      const termPresent=termRecs.reduce((s,a)=>s+(+a.present||0),0);
+      const termTotal=termRecs.reduce((s,a)=>s+(+a.total||0),0);
+      attNum=termTotal>0?Math.round(termPresent/termTotal*100):null;
+      attRate=termTotal>0?`${termPresent}/${termTotal}`:'—';
+    }
+
+    // ── Defaulters: current term of current year ──
+    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
+
+    // ── Outstanding fees total ──
+    let totalOutstanding=0;
+    students.filter(s=>s.status==='active').forEach(s=>{
+      const yfs=getYearStructure(s.classId,_academicYear);
+      if(!yfs) return;
+      const yf=getYearFees(s,_academicYear);
+      // Only current term — matches what is shown in the hero term pill
+      totalOutstanding+=Math.max(0,(+(yfs['term'+_currentTerm]||0))-(+(yf['term'+_currentTerm]||0)));
+    });
+
+    // Attendance colour — always renders on dark hero (#071830), use coral not flat red
+    const attColor=n=>n===null?'rgba(255,255,255,.38)':n>=90?'#14b8a6':n>=75?'#fbbf24':'#ff6b6b';
+
+    // ── KPI Trend helper: returns HTML badge ──
+    const trendBadge=(current,previous,isCurrency=false,higherIsBetter=true)=>{
+      if(previous===null||previous===undefined||isNaN(previous)||isNaN(current)) return '';
+      const diff=current-previous;
+      if(diff===0) return '<span class="kpi-trend kpi-trend-flat">→ No change</span>';
+      const pct=previous>0?Math.abs(Math.round(diff/previous*100)):'—';
+      const up=diff>0;
+      const isGood=(up&&higherIsBetter)||(!up&&!higherIsBetter);
+      const arrow=up?'↑':'↓';
+      const cls=isGood?'kpi-trend-up':'kpi-trend-down';
+      const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff):pct+'%');
+      return `<span class="kpi-trend ${cls}">${arrow} ${label} vs last month</span>`;
+    };
+
+    // ── Compute prior-month data for trends ──
+    const prevMStart=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const prevMKey=`${prevMStart.getFullYear()}-${String(prevMStart.getMonth()+1).padStart(2,'0')}`;
+    const currMKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const feeThisMonth=yearPayments.filter(p=>p.date&&p.date.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const feePrevMonth=yearPayments.filter(p=>p.date&&p.date.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const studThisMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(currMKey)).length;
+    const studPrevMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(prevMKey)).length;
+    // Attendance trend: this week avg vs last week avg
+    const _dow=now.getDay();
+    const _thisMonday=new Date(now); _thisMonday.setDate(now.getDate()-(_dow===0?6:_dow-1)); _thisMonday.setHours(0,0,0,0);
+    const _lastMonday=new Date(_thisMonday); _lastMonday.setDate(_thisMonday.getDate()-7);
+    const _lastSunday=new Date(_thisMonday); _lastSunday.setDate(_thisMonday.getDate()-1);
+    const thisWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_thisMonday&&d<=now; });
+    const lastWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_lastMonday&&d<=_lastSunday; });
+    const avgRateOf=recs=>recs.length?Math.round(recs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/recs.length*100):null;
+    const attThisWeek=avgRateOf(thisWeekRecs);
+    const attLastWeek=avgRateOf(lastWeekRecs);
+    const attTrend=(attThisWeek!==null&&attLastWeek!==null)?trendBadge(attThisWeek,attLastWeek,false,true):'';
+
+    // ── Hero: third stat (outstanding fees — finance roles only) ──
+    const heroOutEl=document.getElementById('dash-hero-outstanding');
+    if(heroOutEl){
+      if(isFinance){
+        heroOutEl.closest('.dash-hero-stat').style.display='';
+        heroOutEl.textContent=fmt(totalOutstanding);
+        // Use a warm coral (#ff6b6b) on dark navy hero — more legible and professional than flat #dc2626
+        heroOutEl.style.color=totalOutstanding>0?'#ff6b6b':'#14b8a6';
+      } else {
+        heroOutEl.closest('.dash-hero-stat').style.display='none';
+      }
+    }
+
+    // ── TODAY AT A GLANCE strip (role-filtered) ──
     const todayPayments=payments.filter(p=>p.date===todayStr);
     const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const attClassesToday=todayAtt.length;
+    const todayPresent=todayAtt.reduce((s,a)=>s+(+a.present||0),0);
+    const todayTotal=todayAtt.reduce((s,a)=>s+(+a.total||0),0);
+    const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
     const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
-    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=now&&(d-now)<=7*864e5; }).length;
+    const _todayStart=new Date(todayStr+'T00:00:00');
+    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=_todayStart&&(d-_todayStart)<=7*864e5; }).length;
     const stripEl=document.getElementById('dash-today-strip');
     if(stripEl){
-      const tiles=[
+      const allTiles=[
         {icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
           label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
-          color:'#0d9488',page:'fees'},
+          color:'#0d9488',page:'fees',roles:['admin','accountant']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
-          label:'Attendance Today',val:attClassesToday>0?attRate:'—',sub:attClassesToday>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked`:'No sessions marked',
-          color:'#0d9488',page:'attendance'},
+          label:'Attendance Today',val:todayAttVal,sub:todayTotal>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked · ${Math.round(todayPresent/todayTotal*100)}% avg`:'No sessions marked',
+          color:'#0d9488',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
           label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
-          color:'#1a3a6b',page:'exams'},
+          color:'#05295f',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
           label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
-          color:'#1a3a6b',page:'leave'},
+          color:'#05295f',page:'leave',roles:['admin','accountant']},
       ];
-      stripEl.innerHTML=tiles.map(t=>`
+      const visibleTiles=allTiles.filter(t=>t.roles.includes(role));
+      stripEl.innerHTML=visibleTiles.map(t=>`
         <div class="dash-today-tile dash-tile-${t.color==='#0d9488'?'teal':'navy'}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
           <div class="dash-today-icon">${t.icon}</div>
           <div class="dash-today-body">
@@ -1198,32 +1385,65 @@ const SMS = {
         </div>`).join('');
     }
 
-    // KPI cards — with trend context line
-    const kpis=[
-      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue',page:'students'},
-      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'blue',page:'staff'},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'blue',page:'classes'},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'teal',warn:defaulters.length>0,featured:true,page:'fees'},
-      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal',featured:true,page:'attendance'},
-      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue',page:'library'},
+    // ── KPI cards (role-filtered + trend arrows) ──
+    const books=DB.get('books',[]);
+    const subjects=DB.get('subjects',[]);
+    const allKpis=[
+      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:trendBadge(studThisMonth,studPrevMonth,false,true),color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
+      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
+      {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?attSub+' · '+attNum+'% avg':attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
+      {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
-    document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
+    // ── Sparkline data: fee totals for last 6 months ──
+    const _sparkKeys=[]; const _sparkData=[];
+    for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); _sparkKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); _sparkData.push(0); }
+    yearPayments.forEach(p=>{ if(!p.date) return; const idx=_sparkKeys.indexOf(p.date.substring(0,7)); if(idx>-1) _sparkData[idx]+=(+p.amount||0); });
+    const visibleKpis=allKpis.filter(k=>k.roles.includes(role));
+    document.getElementById('dash-kpis').innerHTML=visibleKpis.map(k=>`
       <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>
         <div class="kpi-label">${k.label}</div>
         <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
+        ${k.trend||''}
+        ${k.sparkline?SMS._sparkline(_sparkData):''}
       </div>`).join('');
-    // Hero stats — live numbers
+
+    // ── Hero stats: live numbers ──
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
-    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); heroAtt.className='dash-hero-stat-val'; }
-    this.renderDashCharts(students,classes,payments,attRecords);
-    // Recent students — two-color class pills (navy / teal), no rainbow
-    const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
+    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attNum!==null?'#14b8a6':'rgba(255,255,255,.38)'; heroAtt.className='dash-hero-stat-val'; }
+    // ── Hero date dimming: subtle signal when viewing a historical year or term ──
+    const _htfEl=document.getElementById('dash-hero-today-full');
+    if(_htfEl){
+      const _todayMs=Date.now();
+      const _allYrs=school.academicYears||[];
+      // Find which year's range contains today
+      const _liveYr=_allYrs.find(y=>y.startDate&&y.endDate&&_todayMs>=new Date(y.startDate).getTime()&&_todayMs<=new Date(y.endDate).getTime())?.year
+        ||[..._allYrs].sort((a,b)=>a.year>b.year?-1:1)[0]?.year
+        ||_academicYear;
+      const _viewingHistoricalYear=_academicYear!==_liveYr;
+      // Also dim if viewing a different term than what today falls in (using exact term dates)
+      const _curYrAyInfo=_allYrs.find(y=>y.year===_academicYear)||{};
+      const _termKey=['t1','t2','t3'][Math.min(3,Math.max(1,+_currentTerm))-1];
+      const _termStart=_curYrAyInfo[`${_termKey}Start`]?new Date(_curYrAyInfo[`${_termKey}Start`]):null;
+      const _termEnd=_curYrAyInfo[`${_termKey}End`]?new Date(_curYrAyInfo[`${_termKey}End`]+'T23:59:59'):null;
+      const _todayInTerm=_termStart&&_termEnd?(_todayMs>=_termStart.getTime()&&_todayMs<=_termEnd.getTime()):null;
+      const _isLive=!_viewingHistoricalYear&&(_todayInTerm===null||_todayInTerm);
+      _htfEl.style.opacity=_isLive?'1':'0.42';
+      _htfEl.title=_isLive?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
+    }
+    // Only re-render charts if underlying data has actually changed
+    const _fp=`${students.length}|${payments.length}|${attRecords.length}|${_academicYear}|${_currentTerm}`;
+    if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(students,classes,payments,attRecords,role); }
+
+    // ── Recent students ──
+    const clsPalette=['#05295f','#0d9488','#05295f','#0d9488','#05295f','#0d9488','#05295f','#0d9488'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
       const ci=classes.findIndex(c=>c.id===s.classId);
-      const clsColor=clsPalette[ci%clsPalette.length]||'#1a3a6b';
+      const clsColor=clsPalette[ci%clsPalette.length]||'#05295f';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
         <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -1233,13 +1453,14 @@ const SMS = {
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`;
     }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
-    // Events
+
+    // ── Upcoming Events ──
     const events=DB.get('events',[]);
-    const upcomingEv=[...events].filter(e=>new Date(e.start)>=now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
-    const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
+    const upcomingEv=[...events].filter(e=>new Date(e.start)>=_todayStart).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
+    const evColors={exam:'#05295f',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
     const evIcons={exam:'📝',academic:'🎓',sports:'⚽',holiday:'🏖️',meeting:'📅',cultural:'🎭'};
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
-      const col=evColors[e.type]||'#1a3a6b';
+      const col=evColors[e.type]||'#05295f';
       const daysLeft=Math.ceil((new Date(e.start)-now)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('events')">
@@ -1251,28 +1472,40 @@ const SMS = {
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
     }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
-    // Defaulters — with actual amount owed
-    const defBadge=document.getElementById('dash-defaulters-count');
-    if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
-    document.getElementById('dash-defaulters').innerHTML=defaulters.slice(0,5).map(s=>{
-      const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
-      const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
-      const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
-      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
-        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
-        <div style="flex:1;min-width:0">
-          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub">${this.className(s.classId)}</div>
-        </div>
-        <div class="mini-right" style="text-align:right">
-          <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
-          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">outstanding</div>
-        </div>
-      </div>`;
-    }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
-    // Upcoming Exams panel
+
+    // ── Fee Defaulters panel (finance roles only) ──
+    const defPanel=document.getElementById('dash-defaulters-panel');
+    if(defPanel) defPanel.style.display=isFinance?'':'none';
+    if(isFinance){
+      const defBadge=document.getElementById('dash-defaulters-count');
+      if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
+      const defList=document.getElementById('dash-defaulters');
+      if(defList){
+        defList.innerHTML=defaulters.slice(0,5).map(s=>{
+          const owed=this._studentOwed(s,_academicYear);
+          return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
+            <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
+            <div style="flex:1;min-width:0">
+              <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+              <div class="mini-sub">${this.className(s.classId)}</div>
+            </div>
+            <div class="mini-right" style="text-align:right">
+              <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
+              <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">Term ${_currentTerm} outstanding</div>
+            </div>
+          </div>`;
+        }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
+        // "and X more" footer
+        if(defaulters.length>5){
+          const extra=defaulters.length-5;
+          defList.innerHTML+=`<div class="dash-panel-more" onclick="SMS.nav('fees')" title="View all defaulters in Fees module">+${extra} more defaulter${extra!==1?'s':''} — <span>View all</span></div>`;
+        }
+      }
+    }
+
+    // ── Upcoming Exams panel ──
     const _parseExamDate=d=>new Date(d.includes('T')?d:d+'T00:00:00');
-    const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=now).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
+    const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=_todayStart).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
     if(examEl){ examEl.innerHTML=upcomingExams.map(e=>{
       const daysLeft=Math.ceil((_parseExamDate(e.date)-now)/(1000*60*60*24));
@@ -1287,9 +1520,111 @@ const SMS = {
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgColor}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
     }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>'; }
+
+    // ── Absent Today panel ──
+    const absentEl=document.getElementById('dash-absent-today');
+    const absentBadge=document.getElementById('dash-absent-count');
+    if(absentEl){
+      const totalAbsent=todayAtt.reduce((s,a)=>s+(+a.absent||0),0);
+      if(absentBadge){ absentBadge.textContent=totalAbsent; absentBadge.style.display=totalAbsent>0?'inline-flex':'none'; }
+      if(todayAtt.length===0){
+        absentEl.innerHTML='<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No attendance taken yet today</div></div>';
+      } else if(totalAbsent===0){
+        absentEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No absences today — full house!</div></div>';
+      } else {
+        absentEl.innerHTML=todayAtt.filter(a=>a.absent>0).map(a=>{
+          const cls=classes.find(c=>c.id===a.classId);
+          const lateStr=a.late>0?` · ${a.late} late`:'';
+          return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('attendance')">
+            <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${a.absent}</div>
+            <div style="flex:1;min-width:0">
+              <div class="mini-name">${sanitize(cls?.name||'Unknown Class')}</div>
+              <div class="mini-sub">${a.present} present${lateStr} · ${a.total} total</div>
+            </div>
+            <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:var(--danger);background:var(--danger-bg);padding:.2rem .5rem;border-radius:5px">absent</span></div>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    // ── Staff on Leave Today panel (admin/accountant only) ──
+    const onLeavePanel=document.getElementById('dash-on-leave-panel');
+    if(onLeavePanel) onLeavePanel.style.display=isFinance?'':'none';
+    if(isFinance){
+      const onLeaveEl=document.getElementById('dash-on-leave');
+      const onLeaveBadge=document.getElementById('dash-on-leave-count');
+      const onLeaveToday=leaves.filter(l=>{
+        if(l.status!=='approved') return false;
+        const from=new Date(l.from+'T00:00:00'), to=new Date(l.to+'T23:59:59');
+        return now>=from&&now<=to;
+      });
+      if(onLeaveBadge){ onLeaveBadge.textContent=onLeaveToday.length; onLeaveBadge.style.display=onLeaveToday.length>0?'inline-flex':'none'; }
+      if(onLeaveEl){
+        if(onLeaveToday.length===0){
+          onLeaveEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All staff present today</div></div>';
+        } else {
+          onLeaveEl.innerHTML=onLeaveToday.map(l=>{
+            const s=staff.find(x=>x.id===l.staffId);
+            const leaveColors={Annual:'#0d9488',Sick:'#dc2626',Maternity:'#7c3aed',Paternity:'#05295f',Emergency:'#d97706',Casual:'#16a34a'};
+            const col=leaveColors[l.type]||'#05295f';
+            const toDate=new Date(l.to+'T00:00:00');
+            const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
+            return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
+              <div class="mini-av" style="background:${col}18;color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
+              <div style="flex:1;min-width:0">
+                <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
+                <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
+              </div>
+              <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
+            </div>`;
+          }).join('');
+        }
+      }
+    }
+
+    // ── Sync status indicator ──
+    this._updateSyncStatus();
+
+    // ── Auto-refresh: start 60-second interval if not already running ──
+    if(!this._dashRefreshTimer){
+      this._dashRefreshTimer=setInterval(()=>{
+        if(document.getElementById('page-dashboard')?.classList.contains('active')){
+          this.loadDashboard();
+        } else {
+          clearInterval(this._dashRefreshTimer);
+          this._dashRefreshTimer=null;
+        }
+      }, 60000);
+    }
   },
 
-  renderDashCharts(students,classes,payments,attRecords){
+  // ── Sync status helper ──
+  _updateSyncStatus(){
+    const el=document.getElementById('dash-sync-status');
+    if(!el) return;
+    const isOnline=navigator.onLine;
+    const hasFirebase=!!window.FAuth;
+    let icon,label,cls;
+    if(!isOnline){
+      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>';
+      label='Offline — local data'; cls='sync-offline';
+    } else if(!hasFirebase){
+      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>';
+      label='Local mode'; cls='sync-local';
+    } else {
+      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>';
+      label='Synced'; cls='sync-ok';
+    }
+    el.className=`dash-sync-pill ${cls}`;
+    el.innerHTML=`${icon}<span>${label}</span>`;
+  },
+
+
+  renderDashCharts(students,classes,payments,attRecords,role='admin'){
+    const isFinance=(role==='admin'||role==='accountant');
+    // Hide fee collection chart panel for non-finance roles
+    const feeChartCard=document.getElementById('dash-fee-chart-card');
+    if(feeChartCard) feeChartCard.style.display=isFinance?'':'none';
     const isDark=document.documentElement.getAttribute('data-theme')==='dark';
     const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
     const tickColor=isDark?'#64748b':'#94a3b8';
@@ -1369,8 +1704,8 @@ const SMS = {
       const total=data.reduce((a,b)=>a+b,0);
       const enrollStatEl=document.getElementById('dash-enroll-total-stat');
       if(enrollStatEl) enrollStatEl.textContent=total||'—';
-      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(26,58,107,0.8)';
-      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(26,58,107,1)';
+      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
+      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
       this._charts.enrollment=new Chart(ctx1,{
         type:'bar',
         data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
@@ -1400,7 +1735,7 @@ const SMS = {
       });
     }
 
-    // ── Attendance Rate — Mon–Fri school week, future days dimmed ──
+    // ── Attendance — Mon–Fri school week, future days dimmed, headcount format ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
       const recs=attRecords||DB.get('attendance',[]);
@@ -1411,7 +1746,7 @@ const SMS = {
       if(_dow===0)      _monday.setDate(_today.getDate()-6);   // Sun → last Mon
       else if(_dow===6) _monday.setDate(_today.getDate()-5);   // Sat → last Mon
       else              _monday.setDate(_today.getDate()-(_dow-1)); // Mon–Fri → this Mon
-      const attAxisLabels=[],attTooltipLabels=[],attData=[],attColors=[],attHover=[];
+      const attAxisLabels=[],attTooltipLabels=[],attData=[],attTotals=[],attColors=[],attHover=[];
       for(let i=0;i<5;i++){
         const d=new Date(_monday); d.setDate(_monday.getDate()+i);
         const key=localDateStr(d);
@@ -1421,31 +1756,37 @@ const SMS = {
         attTooltipLabels.push(d.toLocaleString('default',{weekday:'long',day:'numeric',month:'short'}));
         const dayRecs=recs.filter(a=>a.date===key);
         if(isFuture){
-          attData.push(0);
+          attData.push(0); attTotals.push(0);
           attColors.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
           attHover.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
         } else if(dayRecs.length>0){
-          const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
-          attData.push(rate);
+          const dayPresent=dayRecs.reduce((s,a)=>s+(+a.present||0),0);
+          const dayTotal=dayRecs.reduce((s,a)=>s+(+a.total||0),0);
+          const rate=dayTotal>0?Math.round(dayPresent/dayTotal*100):0;
+          attData.push(dayPresent);
+          attTotals.push(dayTotal);
           const alpha=isToday?1:0.82;
           if(isDark){
-            attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(248,113,113,${alpha})`);
-            attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(248,113,113,1)');
+            attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(252,129,129,${alpha})`);
+            attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(252,129,129,1)');
           } else {
-            attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(220,38,38,${alpha===1?0.95:0.78})`);
-            attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(220,38,38,1)');
+            attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(224,82,82,${alpha===1?0.95:0.78})`);
+            attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(224,82,82,1)');
           }
         } else {
-          attData.push(0);
+          attData.push(0); attTotals.push(0);
           attColors.push(isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)');
           attHover.push(isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)');
         }
       }
-      const validRates=attData.filter((v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return v>0&&d<=_today; });
-      const avgRate=validRates.length?Math.round(validRates.reduce((a,b)=>a+b,0)/validRates.length):null;
+      // Avg stat: total present / total possible this week (headcount)
+      const weekTotalPresent=attData.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
+      const weekTotalPossible=attTotals.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
+      const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
       const attAvgEl=document.getElementById('dash-att-avg-stat');
-      if(attAvgEl) attAvgEl.textContent=avgRate!==null?avgRate+'%':'—';
+      if(attAvgEl) attAvgEl.textContent=weekTotalPossible>0?`${weekTotalPresent}/${weekTotalPossible}`:'—';
       const isLastWeek=(_dow===0||_dow===6);
+      const maxTotal=Math.max(...attTotals,1);
       this._charts.att=new Chart(ctx3,{
         type:'bar',
         data:{labels:attAxisLabels,datasets:[{
@@ -1468,14 +1809,17 @@ const SMS = {
                 label:(ctx)=>{
                   const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
                   if(d>_today) return '  No school yet';
-                  return ctx.parsed.y>0?`  ${ctx.parsed.y}%  attendance`:'  Not recorded';
+                  const tot=attTotals[ctx.dataIndex];
+                  if(!ctx.parsed.y&&!tot) return '  Not recorded';
+                  const r=tot>0?Math.round(ctx.parsed.y/tot*100):0;
+                  return `  ${ctx.parsed.y}/${tot} present · ${r}%`;
                 },
                 title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
               }
             }
           },
           scales:{
-            y:{min:0,max:100,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{callback:v=>v+'%',color:tickColor,font:{size:11},maxTicksLimit:5}},
+            y:{min:0,suggestedMax:maxTotal,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11},maxTicksLimit:5}},
             x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
           },
         }
@@ -1525,11 +1869,9 @@ const SMS = {
     if(!tbody) return;
     const feeStructure=DB.get('feeStructure',[]);
     tbody.innerHTML=slice.map(s=>{
-      const fs=feeStructure.find(f=>f.classId===s.classId);
-      const termFee1=+(fs?.term1||0), termFee2=+(fs?.term2||0), termFee3=+(fs?.term3||0);
-      const _syf=getYearFees(s,_academicYear); const p1=+(_syf.term1||0), p2=+(_syf.term2||0), p3=+(_syf.term3||0);
-      const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
-      const noStructure=!fs||(termFee1===0&&termFee2===0&&termFee3===0);
+      const _sfs=getYearStructure(s.classId,_academicYear);
+      const owed=this._studentOwed(s,_academicYear);
+      const noStructure=!_sfs||(+((_sfs.term1)||0)===0&&+((_sfs.term2)||0)===0&&+((_sfs.term3)||0)===0);
       const feeStatus=noStructure?`<span style="color:var(--t4);font-size:.76rem;font-weight:600">—</span>`:owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.studentId}</td>
@@ -1703,7 +2045,11 @@ const SMS = {
     const existingId=document.getElementById('sf-id').value;
     const _maxId=students.reduce((mx,st)=>{ const n=parseInt((st.studentId||'').split('-').pop()||0); return n>mx?n:mx; },100);
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(_maxId+1).padStart(4,'0');
-    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
+    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,
+      // enrollTerm: derived from admitDate vs term date ranges of current academic year.
+      // Fees are only due from this term onwards — never back-charged for terms before enrolment.
+      enrollTerm: getEnrollTermFromDate(admitDate, _academicYear),
+      feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
       if(i>-1){ const old=students[i]; students[i]={...old,...data,id:existingId,studentId:old.studentId,feesPaid:old.feesPaid}; DB.set('students',students); this.audit('Edit Student','edit',`Updated student: ${fname} ${lname}`); this.toast('Student updated','success'); }
@@ -1983,7 +2329,7 @@ const SMS = {
     let present=0,absent=0,late=0;
     students.forEach(s=>{ const v=document.querySelector(`input[name="att_${s.id}"]:checked`)?.value||'present'; if(v==='present') present++; else if(v==='absent') absent++; else late++; });
     const att=DB.get('attendance',[]); const existIdx=att.findIndex(a=>a.date===date&&a.classId===classId);
-    const rec={id:uid('a'),date,classId,present,absent,late,total:students.length};
+    const rec={id:uid('a'),date,classId,present,absent,late,total:students.length,term:_currentTerm,academicYear:_academicYear};
     if(existIdx>-1) att[existIdx]=rec; else att.push(rec);
     DB.set('attendance',att); formCard.style.display='none';
     this.audit('Attendance','create',`Attendance saved: ${this.className(classId)} on ${date}`);
@@ -2440,23 +2786,35 @@ const SMS = {
     const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
     const payments=DB.get('feePayments',[]).filter(p=>!p.academicYear||p.academicYear===yearFilter);
     const students=DB.get('students',[]).filter(s=>s.status==='active');
+    // Total collected for the selected year
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    // Outstanding = all 3 terms for selected year, active students only
-    let outstanding=0, defaulterCount=0;
+    // Term X collected = only payments recorded against current term
+    const termCollected=payments.filter(p=>String(p.term)===String(_currentTerm)).reduce((s,p)=>s+(+p.amount||0),0);
+    // Term Outstanding = current term only (matches dashboard hero exactly)
+    let termOutstanding=0, defaulterCount=0;
+    // Full Year Outstanding = all 3 terms
+    let totalYearOutstanding=0;
     students.forEach(s=>{
       const fs=getYearStructure(s.classId,yearFilter);
       if(!fs) return;
       const yf=getYearFees(s,yearFilter);
-      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      const owed=Math.max(0,t1-(+(yf.term1||0)))+Math.max(0,t2-(+(yf.term2||0)))+Math.max(0,t3-(+(yf.term3||0)));
-      if(owed>0){ outstanding+=owed; defaulterCount++; }
+      // Current term only
+      const termOwed=Math.max(0,(+(fs['term'+_currentTerm]||0))-(+(yf['term'+_currentTerm]||0)));
+      if(termOwed>0){ termOutstanding+=termOwed; defaulterCount++; }
+      // All 3 terms from enrollTerm
+      const enrollTerm=Math.min(3,Math.max(1,+(s.enrollTerm||1)));
+      for(let t=enrollTerm;t<=3;t++){
+        totalYearOutstanding+=Math.max(0,(+(fs['term'+t]||0))-(+(yf['term'+t]||0)));
+      }
     });
     document.getElementById('fees-kpis').innerHTML=[
-      {icon:'fees',val:fmt(totalCollected),lbl:'Total Collected',color:'teal'},
+      {icon:'fees',val:fmt(totalCollected),lbl:`Total Collected (${yearFilter})`,color:'teal'},
+      {icon:'fees',val:fmt(termCollected),lbl:`Term ${_currentTerm} Collected`,color:'teal'},
       {icon:'transactions',val:payments.length,lbl:'Transactions',color:'blue'},
       {icon:'warning',val:defaulterCount,lbl:'Defaulters',color:'amber'},
-      {icon:'outstanding',val:fmt(outstanding),lbl:'Outstanding Balance',color:'red'},
-    ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
+      {icon:'outstanding',val:fmt(termOutstanding),lbl:`Term ${_currentTerm} Outstanding`,color:'red'},
+      {icon:'warning',val:fmt(totalYearOutstanding),lbl:'Full Year Outstanding',color:'red'},
+    ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val" style="font-size:${k.val.toString().length>9?'1.1rem':'1.5rem'}">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
   },
 
   renderFees(){
@@ -2487,7 +2845,7 @@ const SMS = {
           ? `<span class="badge badge-success">Term ${p.term} Fully Paid</span>`
           : `<span class="badge badge-warn">Balance: ${fmt(termOwed)}</span>`;
       const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
-      const totalOwed=s&&fs?Math.max(0,t1-(+(sfyf.term1||0)))+Math.max(0,t2-(+(sfyf.term2||0)))+Math.max(0,t3-(+(sfyf.term3||0))):0;
+      const totalOwed=s&&fs?this._studentOwed(s,pYear):0;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3);white-space:nowrap">${p.receiptNo||'—'}</td>
         <td><div style="font-weight:600;color:var(--t1);white-space:nowrap">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
@@ -2525,32 +2883,46 @@ const SMS = {
   renderDefaulters(){
     const students=DB.get('students',[]); const classes=DB.get('classes',[]);
     const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
+    const curr=Math.min(3,Math.max(1,+_currentTerm));
+    // Only students who owe on at least one of their active terms
     const defaulters=students.filter(s=>{
       if(s.status!=='active') return false;
-      const fs=getYearStructure(s.classId,yearFilter); if(!fs) return false;
-      const yf=getYearFees(s,yearFilter);
-      const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      return (+(yf.term1||0))<t1 || (+(yf.term2||0))<t2 || (+(yf.term3||0))<t3;
+      return this._studentOwed(s,yearFilter)>0;
     });
+    // Update table headers dynamically to reflect current term scope
+    const thead=document.querySelector('#fees-defaulters thead tr');
+    if(thead){
+      // Build headers: Student, Class, Phone, then one col per term 1→curr, then Total Owed, Actions
+      const termHeaders=Array.from({length:curr},(_,i)=>`<th>Term ${i+1}</th>`).join('');
+      thead.innerHTML=`<th>Student</th><th>Class</th><th>Parent Phone</th>${termHeaders}<th>Total Owed</th><th></th>`;
+    }
     document.getElementById('defaulters-tbody').innerHTML=defaulters.map(s=>{
       const fs=getYearStructure(s.classId,yearFilter);
       const yf=getYearFees(s,yearFilter);
-      const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-      const owed1=Math.max(0,t1-(+(yf.term1||0)));
-      const owed2=Math.max(0,t2-(+(yf.term2||0)));
-      const owed3=Math.max(0,t3-(+(yf.term3||0)));
+      const enrollTerm=Math.min(3,Math.max(1,+(s.enrollTerm||1)));
+      // Build one cell per term 1→curr
+      const termCells=Array.from({length:curr},(_,i)=>{
+        const t=i+1;
+        if(t<enrollTerm){
+          // Term before this student enrolled — not charged
+          return `<td style="color:var(--t4);font-size:.75rem;text-align:center">—</td>`;
+        }
+        const due=+(fs?fs['term'+t]||0:0);
+        const paid=+(yf['term'+t]||0);
+        const owed=Math.max(0,due-paid);
+        return `<td style="color:${owed>0?'var(--danger)':'var(--success)'};font-weight:600;text-align:center">${owed>0?fmt(owed):'Paid'}</td>`;
+      }).join('');
+      const totalOwed=this._studentOwed(s,yearFilter);
       return `<tr>
         <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
         <td>${s.dadPhone||'—'}</td>
-        <td style="color:${owed1>0?'var(--danger)':'var(--success)'};font-weight:600">${owed1>0?fmt(owed1):'Paid'}</td>
-        <td style="color:${owed2>0?'var(--danger)':'var(--success)'};font-weight:600">${owed2>0?fmt(owed2):'Paid'}</td>
-        <td style="color:${owed3>0?'var(--danger)':'var(--success)'};font-weight:600">${owed3>0?fmt(owed3):'Paid'}</td>
-        <td style="font-weight:800;color:var(--danger)">${fmt(owed1+owed2+owed3)}</td>
+        ${termCells}
+        <td style="font-weight:800;color:var(--danger);text-align:center">${fmt(totalOwed)}</td>
         <td>
           <div style="display:flex;gap:.3rem">
             <button class="btn btn-primary btn-sm" onclick="SMS.openFeeModal('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem">Pay Now</button>
-            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder"><svg style="width:13px;height:13px;vertical-align:middle;margin-right:0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.sendFeeReminder('${s.id}')" style="font-size:.73rem;padding:.3rem .6rem" title="Send SMS Reminder"><svg style="width:13px;height:13px;vertical-align:middle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>
           </div>
         </td>
       </tr>`;
@@ -2560,30 +2932,36 @@ const SMS = {
   // ══ FEE REMINDER (Alert/Simulate SMS) ══
   sendFeeReminder(studentId){
     const s=DB.get('students',[]).find(x=>x.id===studentId); if(!s) return;
-    const feeStructure=DB.get('feeStructure',[]);
     const fs=getYearStructure(s.classId,_academicYear);
-    const _ryf=getYearFees(s,_academicYear);
-    const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-    const owed1=Math.max(0,t1-(+(_ryf.term1||0)));
-    const owed2=Math.max(0,t2-(+(_ryf.term2||0)));
-    const owed3=Math.max(0,t3-(+(_ryf.term3||0)));
-    const total=owed1+owed2+owed3;
+    const yf=getYearFees(s,_academicYear);
+    // Use _studentOwed: only active terms (enrollTerm → _currentTerm) — matches defaulters table exactly
+    const total=this._studentOwed(s,_academicYear);
+    // Build per-active-term breakdown
+    const enrollTerm=Math.min(3,Math.max(1,+(s.enrollTerm||1)));
+    const curr=Math.min(3,Math.max(1,+_currentTerm));
+    const termRows=[];
+    for(let t=enrollTerm;t<=curr;t++){
+      const due=+(fs?fs['term'+t]||0:0);
+      const paid=+(yf['term'+t]||0);
+      const owed=Math.max(0,due-paid);
+      if(due>0) termRows.push(`<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--border);font-size:.82rem"><span style="color:var(--t2)">Term ${t}</span><span style="font-weight:700;color:${owed>0?'var(--danger)':'var(--success)'}">${owed>0?fmt(owed):'Paid'}</span></div>`);
+    }
     const school=DB.get('school',{});
-    const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
-    // Show simulated reminder modal
+    const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)} for Term ${_currentTerm}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
     document.getElementById('receipt-title').textContent='Fee Reminder Preview';
     document.getElementById('receipt-body').innerHTML=`
       <div style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:10px;padding:1rem;margin-bottom:1rem">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem">SMS Message to ${s.dadPhone||'No phone on record'}</div>
         <div style="font-size:.88rem;color:var(--t1);line-height:1.6">${msg}</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem;margin-bottom:.75rem">
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">AMOUNT OWED</div><div style="font-weight:700;color:var(--danger)">${fmt(total)}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">TOTAL OWED</div><div style="font-weight:800;color:var(--danger);font-size:.95rem">${fmt(total)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||s.momPhone||'Not on record'}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
       </div>
-      <div style="margin-top:1rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
+      ${termRows.length?`<div style="margin-bottom:.75rem"><div style="font-size:.7rem;color:var(--t4);font-weight:700;margin-bottom:.35rem">TERM BREAKDOWN (up to Term ${_currentTerm})</div>${termRows.join('')}</div>`:''}
+      <div style="margin-top:.5rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
         <svg style="width:13px;height:13px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Configure your SMS gateway in Settings → SMS Notifications to send real messages. This preview shows what will be sent.
       </div>`;
     this.audit('Fee Reminder','create',`Fee reminder sent to parent of ${sanitize(s.fname)} ${sanitize(s.lname)}`);
@@ -2815,6 +3193,7 @@ const SMS = {
   // ══ DASHBOARD REFRESH ══
   refreshDashboard(){
     const btn=document.getElementById('dash-refresh-btn'); if(btn){ btn.style.animation='spin .6s linear'; setTimeout(()=>btn.style.animation='',700); }
+    this._dashDataFingerprint=null; // force chart redraw on manual refresh
     this.loadDashboard(); this.toast('Dashboard refreshed','success');
   },
 
@@ -3010,12 +3389,13 @@ const SMS = {
     const p=payments.find(x=>x.id===paymentId); if(!p){ this.toast('Payment not found','error'); return; }
     const students=DB.get('students',[]);
     const si=students.findIndex(s=>s.id===p.studentId);
-    // Subtract amount from student feesPaid for that term
+    // Subtract amount from student feesPaid for that term — use year-keyed path
     if(si>-1){
-      const current=+(students[si].feesPaid?.['term'+p.term]||0);
-      const newPaid=Math.max(0, current - p.amount);
-      if(!students[si].feesPaid) students[si].feesPaid={};
-      students[si].feesPaid['term'+p.term]=newPaid;
+      const pYear=p.academicYear||_academicYear;
+      if(!students[si].feesPaid||typeof students[si].feesPaid.term1==='number') students[si].feesPaid={};
+      if(!students[si].feesPaid[pYear]) students[si].feesPaid[pYear]={term1:0,term2:0,term3:0};
+      const current=+(students[si].feesPaid[pYear]['term'+p.term]||0);
+      students[si].feesPaid[pYear]['term'+p.term]=Math.max(0, current - p.amount);
       DB.set('students',students);
     }
     // Delete payment record from local + Firestore
@@ -3067,7 +3447,7 @@ const SMS = {
 
   renderExpenseCharts(bycat,expenses){
     const ctx1=document.getElementById('chart-expenses'); if(ctx1){ if(this._charts.exp) this._charts.exp.destroy(); const labels=Object.keys(bycat); const data=labels.map(k=>bycat[k]); const colors=['#1a3a6b','#0d9488','#d97706','#dc2626','#7c3aed','#16a34a']; this._charts.exp=new Chart(ctx1,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}}); }
-    const ctx2=document.getElementById('chart-expense-trend'); if(ctx2){ if(this._charts.expTrend) this._charts.expTrend.destroy(); const months=['Jan','Feb','Mar','Apr','May']; const mData=months.map((_,i)=>expenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+(+e.amount||0),0)); this._charts.expTrend=new Chart(ctx2,{type:'bar',data:{labels:months,datasets:[{data:mData,backgroundColor:'rgba(220,38,38,0.7)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}}); }
+    const ctx2=document.getElementById('chart-expense-trend'); if(ctx2){ if(this._charts.expTrend) this._charts.expTrend.destroy(); const months=['Jan','Feb','Mar','Apr','May']; const mData=months.map((_,i)=>expenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+(+e.amount||0),0)); this._charts.expTrend=new Chart(ctx2,{type:'bar',data:{labels:months,datasets:[{data:mData,backgroundColor:'rgba(224,82,82,0.75)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}}); }
   },
 
   // ══ MESSAGES ══
@@ -3375,6 +3755,13 @@ const SMS = {
     document.getElementById('ac-pass').value=school.passMark||50;
     document.getElementById('ac-currency').value=school.currency||'GHS';
     document.getElementById('ac-type').value=school.type||'k12';
+    // Populate term dates from current year's academicYears entry
+    const _curYrEntry=(school.academicYears||[]).find(y=>y.year===(school.academicYear||_academicYear))||{};
+    ['t1','t2','t3'].forEach(t=>{
+      const s=document.getElementById(`ac-${t}-start`); const e=document.getElementById(`ac-${t}-end`);
+      if(s) s.value=_curYrEntry[`${t}Start`]||'';
+      if(e) e.value=_curYrEntry[`${t}End`]||'';
+    });
     this.renderAcademicYearHistory();
   },
 
@@ -3398,6 +3785,16 @@ const SMS = {
     }
     // Mark current year
     school.academicYears.forEach(y=>y.isCurrent=(y.year===school.academicYear));
+    // Save term dates into the current year's academicYears entry
+    const _ayEntry=school.academicYears.find(y=>y.year===school.academicYear);
+    if(_ayEntry){
+      ['t1','t2','t3'].forEach(t=>{
+        const sv=document.getElementById(`ac-${t}-start`)?.value||'';
+        const ev=document.getElementById(`ac-${t}-end`)?.value||'';
+        if(sv) _ayEntry[`${t}Start`]=sv; else delete _ayEntry[`${t}Start`];
+        if(ev) _ayEntry[`${t}End`]=ev; else delete _ayEntry[`${t}End`];
+      });
+    }
     DB.set('school',school);
     // Ensure fee structure exists for new year
     const fs=DB.get('feeStructure',[]);
@@ -3430,21 +3827,32 @@ const SMS = {
       const payments=DB.get('feePayments',[]).filter(p=>p.academicYear===y.year);
       const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
       const structCount=DB.get('feeStructure',[]).filter(f=>f.year===y.year).length;
+      const _termRows=[1,2,3].filter(t=>y[`t${t}Start`]||y[`t${t}End`]).map(t=>`<div class="ay-meta-item"><svg class="ay-meta-icon ay-meta-icon--term" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="ay-term-tag">T${t}</span>${y[`t${t}Start`]?fmtDate(y[`t${t}Start`]):'?'} &rarr; ${y[`t${t}End`]?fmtDate(y[`t${t}End`]):'?'}</div>`).join('');
       return `<div class="ay-card${isCurrent?' ay-card-current':''}">
-        <div class="ay-card-left">
-          <div class="ay-year-badge${isCurrent?' ay-year-badge-current':''}">${y.year}</div>
-          ${isCurrent?'<span class="badge badge-success" style="font-size:.62rem">Current Year</span>':''}
+        <div class="ay-card-header">
+          <div class="ay-card-left">
+            <div class="ay-year-badge${isCurrent?' ay-year-badge-current':''}">${y.year}</div>
+            ${isCurrent?'<span class="badge badge-success ay-current-badge">Current</span>':''}
+          </div>
+          <div class="ay-card-actions">
+            ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')" title="Set as active year">Set Current</button>`:''}
+            <button class="btn btn-secondary btn-sm" onclick="SMS.openEditTermDatesModal('${y.year}')" title="Set term start and end dates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Term Dates</button>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')" title="Edit fee structure">Fee Structure</button>
+            <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')" title="Enter or review payments">Enter Fee Data</button>
+            ${!isCurrent?`<button class="btn btn-ghost btn-sm ay-delete-btn" onclick="SMS.deleteAcademicYear('${y.year}')" title="Delete this year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
+          </div>
         </div>
-        <div class="ay-card-meta">
-          <div class="ay-meta-item"><span>📅</span> ${y.startDate?fmtDate(y.startDate):'—'} → ${y.endDate?fmtDate(y.endDate):'—'}</div>
-          <div class="ay-meta-item"><span>🏫</span> ${structCount}/${classes.length} class fee structures set</div>
-          <div class="ay-meta-item"><span>💰</span> ${fmt(totalCollected)} collected (${payments.length} payments)</div>
-        </div>
-        <div class="ay-card-actions">
-          ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')">Set as Current</button>`:''}
-          <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')">Fee Structure</button>
-          <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')">Enter Fee Data</button>
-          ${!isCurrent?`<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="SMS.deleteAcademicYear('${y.year}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
+        <div class="ay-card-body">
+          <div class="ay-meta-group">
+            <div class="ay-meta-item"><svg class="ay-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> <span class="ay-meta-label">Academic Year</span>${y.startDate?fmtDate(y.startDate):'—'} &rarr; ${y.endDate?fmtDate(y.endDate):'—'}</div>
+          </div>
+          <div class="ay-meta-group">
+            ${_termRows||`<div class="ay-meta-item ay-meta-warn"><svg class="ay-meta-icon ay-meta-icon--warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Term dates not set &mdash; using estimated thirds</div>`}
+          </div>
+          <div class="ay-meta-group ay-meta-stats">
+            <div class="ay-stat-chip"><svg class="ay-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> ${structCount}/${classes.length} fee structures</div>
+            <div class="ay-stat-chip"><svg class="ay-meta-icon ay-meta-icon--fee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> ${fmt(totalCollected)} collected (${payments.length} payment${payments.length!==1?'s':''})</div>
+          </div>
         </div>
       </div>`;
     }).join('')||'<div style="color:var(--t4);font-size:.85rem;padding:1rem">No academic years configured yet.</div>';
@@ -3468,6 +3876,107 @@ const SMS = {
     if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
     this.audit('Settings','settings','Academic year switched to '+year);
   },
+  openEditTermDatesModal(year){
+    const school=DB.get('school',{});
+    const yEntry=(school.academicYears||[]).find(y=>y.year===year)||{};
+    document.getElementById('etd-year-title').textContent=year;
+    document.getElementById('etd-year-key').value=year;
+    // Populate existing term dates
+    ['t1','t2','t3'].forEach(t=>{
+      const si=document.getElementById(`etd-${t}-start`);
+      const ei=document.getElementById(`etd-${t}-end`);
+      if(si) si.value=yEntry[`${t}Start`]||'';
+      if(ei) ei.value=yEntry[`${t}End`]||'';
+    });
+    this.openModal('m-edit-term-dates');
+  },
+
+  saveTermDates(){
+    const year=document.getElementById('etd-year-key').value;
+    const errEl=document.getElementById('etd-err');
+    errEl.style.display='none';
+    if(!year){ errEl.style.display='block'; errEl.textContent='Invalid academic year. Please close and reopen.'; return; }
+    // Read all 6 date inputs
+    const dates={};
+    ['t1','t2','t3'].forEach(t=>{
+      dates[`${t}Start`]=document.getElementById(`etd-${t}-start`)?.value||'';
+      dates[`${t}End`]=document.getElementById(`etd-${t}-end`)?.value||'';
+    });
+    // Validate: if both dates given for a term, start must be before end
+    for(let t=1;t<=3;t++){
+      const s=dates[`t${t}Start`], e=dates[`t${t}End`];
+      if(s&&e&&new Date(s)>=new Date(e)){
+        errEl.style.display='block';
+        errEl.textContent=`Term ${t}: Start date must be before End date.`;
+        return;
+      }
+    }
+    // Validate: terms must not overlap
+    const ranges=[];
+    for(let t=1;t<=3;t++){
+      const s=dates[`t${t}Start`], e=dates[`t${t}End`];
+      if(s&&e) ranges.push({t,s:new Date(s),e:new Date(e+'T23:59:59')});
+    }
+    for(let i=0;i<ranges.length;i++){
+      for(let j=i+1;j<ranges.length;j++){
+        if(ranges[i].s<=ranges[j].e&&ranges[j].s<=ranges[i].e){
+          errEl.style.display='block';
+          errEl.textContent=`Term ${ranges[i].t} and Term ${ranges[j].t} dates overlap. Please fix before saving.`;
+          return;
+        }
+      }
+    }
+    // Save into academicYears entry
+    const school=DB.get('school',{});
+    if(!school.academicYears) school.academicYears=[];
+    let yEntry=school.academicYears.find(y=>y.year===year);
+    if(!yEntry){ yEntry={year,label:year,isCurrent:false}; school.academicYears.push(yEntry); }
+    ['t1','t2','t3'].forEach(t=>{
+      if(dates[`${t}Start`]) yEntry[`${t}Start`]=dates[`${t}Start`]; else delete yEntry[`${t}Start`];
+      if(dates[`${t}End`]) yEntry[`${t}End`]=dates[`${t}End`]; else delete yEntry[`${t}End`];
+    });
+    DB.set('school',school);
+    // ── Re-derive enrollTerm for every student admitted in this academic year ──
+    // Only re-derive students admitted within the year's overall date range (or all if no range set)
+    const yearStart=yEntry.startDate?new Date(yEntry.startDate+'T00:00:00'):null;
+    const yearEnd=yEntry.endDate?new Date(yEntry.endDate+'T23:59:59'):null;
+    const students=DB.get('students',[]);
+    let rederived=0;
+    students.forEach(s=>{
+      if(!s.admitDate) return;
+      const admitMs=new Date(s.admitDate+'T00:00:00');
+      // Only re-derive students whose admit date falls within this academic year's range
+      const inYear=(!yearStart||admitMs>=yearStart)&&(!yearEnd||admitMs<=yearEnd);
+      if(!inYear) return;
+      const newTerm=getEnrollTermFromDate(s.admitDate,year);
+      if(String(s.enrollTerm)!==String(newTerm)){
+        s.enrollTerm=newTerm;
+        rederived++;
+      }
+    });
+    if(rederived>0) DB.set('students',students);
+    // Update settings form if this is the active year
+    if(year===school.academicYear||year===_academicYear){
+      ['t1','t2','t3'].forEach(t=>{
+        const si=document.getElementById(`ac-${t}-start`);
+        const ei=document.getElementById(`ac-${t}-end`);
+        if(si) si.value=yEntry[`${t}Start`]||'';
+        if(ei) ei.value=yEntry[`${t}End`]||'';
+      });
+    }
+    this.closeModal('m-edit-term-dates');
+    this.renderAcademicYearHistory();
+    this.audit('Settings','settings',`Term dates updated for ${year} — ${rederived} student enrol terms recalculated`);
+    if(rederived>0){
+      this.toast(`Term dates saved. ${rederived} student enrolment term${rederived!==1?'s':''} recalculated based on admission dates.`,'success');
+      // Refresh dashboard and fees if visible
+      if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
+      if(document.getElementById('page-fees')?.classList.contains('active')) this.loadFees();
+    } else {
+      this.toast(`Term dates saved for ${year}.`,'success');
+    }
+  },
+
 
   openAddYearModal(){
     const school=DB.get('school',{});
@@ -3496,7 +4005,17 @@ const SMS = {
     if(school.academicYears.find(y=>y.year===year)){
       errEl.style.display='block'; errEl.textContent=`${year} already exists.`; return;
     }
-    school.academicYears.push({year,isCurrent:false,label:year,startDate,endDate});
+    const _nt1s=document.getElementById('new-t1-start')?.value||'';
+    const _nt1e=document.getElementById('new-t1-end')?.value||'';
+    const _nt2s=document.getElementById('new-t2-start')?.value||'';
+    const _nt2e=document.getElementById('new-t2-end')?.value||'';
+    const _nt3s=document.getElementById('new-t3-start')?.value||'';
+    const _nt3e=document.getElementById('new-t3-end')?.value||'';
+    const _newYrEntry={year,isCurrent:false,label:year,startDate,endDate};
+    if(_nt1s) _newYrEntry.t1Start=_nt1s; if(_nt1e) _newYrEntry.t1End=_nt1e;
+    if(_nt2s) _newYrEntry.t2Start=_nt2s; if(_nt2e) _newYrEntry.t2End=_nt2e;
+    if(_nt3s) _newYrEntry.t3Start=_nt3s; if(_nt3e) _newYrEntry.t3End=_nt3e;
+    school.academicYears.push(_newYrEntry);
     DB.set('school',school);
     // Auto-create fee structure for this year based on current year's rates
     const fs=DB.get('feeStructure',[]); const classes=DB.get('classes',[]);
@@ -3854,11 +4373,12 @@ const SMS = {
     document.documentElement.style.setProperty('--brand-lt2',this.hexToRgba(primary,0.15));
     document.documentElement.style.setProperty('--brand-teal-lt',this.hexToRgba(teal,0.08));
     if(save) DB.set('themeColors',{primary,teal});
+    this._dashDataFingerprint=null;
   },
 
   applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value; const t=document.getElementById('custom-teal-hex')?.value; if(p&&t){ this.applyThemeColors(p,t); this.toast('Custom theme applied!','success'); } },
 
-  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog) tog.checked=!isDark; },
+  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog) tog.checked=!isDark; this._dashDataFingerprint=null; if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard(); },
 
   darken(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.max(0,Math.floor(r*(1-pct))); g=Math.max(0,Math.floor(g*(1-pct))); b=Math.max(0,Math.floor(b*(1-pct))); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
 

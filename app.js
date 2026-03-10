@@ -432,7 +432,6 @@ const SMS = {
   _auditPage: 1,
   _dashRefreshTimer: null,   // auto-refresh interval handle
   _freshTimer: null,         // freshness label interval handle
-  _readNotifIds: null,       // Set of dismissed notification IDs (session)
   _syncStatus: 'idle',       // 'idle' | 'syncing' | 'synced' | 'offline'
 
   // Minimum ms the loading screen stays visible — ensures it's seen on fast/cached loads
@@ -1250,7 +1249,6 @@ const SMS = {
     this._renderDashExams(d);
     this._renderDashAbsent(d);
     this._renderDashOnLeave(d);
-    this._renderDashAlerts(d);
     this._renderDashGettingStarted(d);
     this._updateSyncStatus();
     // ── Freshness timestamp ──
@@ -1691,36 +1689,6 @@ const SMS = {
   },
 
   // ── Dismissible alert banners ──
-  _renderDashAlerts(d){
-    const alertsEl=document.getElementById('dash-alerts');
-    if(!alertsEl) return;
-    if(!this._dismissedAlerts) this._dismissedAlerts=new Set();
-    const {isAdmin,isFinance,defaulters,attNum,pendingLeaves,role}=d;
-    const alerts=[];
-    if(isFinance&&defaulters.length>5&&!this._dismissedAlerts.has('def')){
-      alerts.push({id:'def',cls:'danger',icon:'⚠️',msg:`<strong>${defaulters.length} students</strong> have outstanding fees this term.`,link:'View in Fees',page:'fees'});
-    }
-    if(isAdmin&&pendingLeaves>0&&!this._dismissedAlerts.has('leave')){
-      alerts.push({id:'leave',cls:'warn',icon:'📋',msg:`<strong>${pendingLeaves} leave request${pendingLeaves>1?'s':''}</strong> pending your approval.`,link:'Review now',page:'leave'});
-    }
-    if(attNum!==null&&attNum<75&&!this._dismissedAlerts.has('att')){
-      alerts.push({id:'att',cls:'warn',icon:'📉',msg:`Term attendance is <strong>${attNum}%</strong> — below the recommended 75% threshold.`,link:'View Attendance',page:'attendance'});
-    }
-    alertsEl.innerHTML=alerts.map(a=>`
-      <div class="dash-alert dash-alert-${a.cls}" id="dalert-${a.id}">
-        <span>${a.icon}</span>
-        <div class="dash-alert-body">${a.msg} <span class="dash-alert-link" onclick="SMS.nav('${a.page}')">${a.link}</span></div>
-        <button class="dash-alert-dismiss" onclick="SMS._dismissAlert('${a.id}')" title="Dismiss">✕</button>
-      </div>`).join('');
-  },
-
-  _dismissAlert(id){
-    if(!this._dismissedAlerts) this._dismissedAlerts=new Set();
-    this._dismissedAlerts.add(id);
-    const el=document.getElementById('dalert-'+id);
-    if(el){ el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(()=>el.remove(),220); }
-  },
-
   // ── Getting Started guide (shows only for fresh/empty schools) ──
   _renderDashGettingStarted(d){
     const el=document.getElementById('dash-getting-started');
@@ -4367,13 +4335,19 @@ const SMS = {
   },
 
   // ══ NOTIFICATIONS ══
+  // Dismissed notification IDs are stored in localStorage so they survive page refreshes
+  _getReadIds(){ try{ return new Set(JSON.parse(localStorage.getItem('sms_readNotifIds')||'[]')); }catch{ return new Set(); } },
+  _saveReadIds(set){ try{ localStorage.setItem('sms_readNotifIds',JSON.stringify([...set])); }catch{} },
+
   loadNotifications(){
-    if(!this._readNotifIds) this._readNotifIds = new Set();
+    const readIds=this._getReadIds();
     const log=DB.get('auditLog',[]);
-    const recent=[...log].reverse().slice(0,50); // pull more so dismissed ones still leave 15 visible
     const list=document.getElementById('notif-list');
     const badge=document.getElementById('notif-badge');
     if(!list||!badge) return;
+
+    // Actions that should NEVER appear in the notification bell
+    const HIDDEN_ACTIONS=new Set(['Login','Logout']);
 
     const pageMap={
       'Enroll Student':'students','Edit Student':'students','Delete Student':'students','Student Promotion':'students','Bulk Import':'students',
@@ -4387,37 +4361,40 @@ const SMS = {
       'Send Message':'messages',
       'Leave':'leave',
       'Add Expense':'expenses','Edit Expense':'expenses',
-      'Login':'dashboard','Logout':'dashboard','Backup':'settings',
-      'Add User':'settings','Delete User':'settings',
+      'Backup':'settings','Add User':'settings','Delete User':'settings',
       'Add Book':'library','Edit Book':'library',
       'Add Homework':'homework','Edit Homework':'homework','Delete Homework':'homework',
     };
 
-    // SVG icons keyed by audit type
     const iconSvg={
-      create:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
-      edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-      delete:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
-      login:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>`,
-      settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+      create:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+      edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      delete:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
+      settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
     };
-    const iconColors={create:'#16a34a',edit:'#2563eb',delete:'#dc2626',login:'#0d9488',settings:'#7c3aed',default:'#6b7280'};
+    const iconColors={create:'#16a34a',edit:'#2563eb',delete:'#dc2626',settings:'#7c3aed',default:'#0d9488'};
+    const iconBg={create:'rgba(22,163,74,.1)',edit:'rgba(37,99,235,.1)',delete:'rgba(220,38,38,.1)',settings:'rgba(124,58,237,.1)',default:'rgba(13,148,136,.1)'};
 
     function timeAgo(t){
       const s=Math.floor((Date.now()-new Date(t))/1000);
       if(s<60) return 'just now';
       if(s<3600) return Math.floor(s/60)+'m ago';
       if(s<86400) return Math.floor(s/3600)+'h ago';
-      return Math.floor(s/86400)+'d ago';
+      if(s<7*86400) return Math.floor(s/86400)+'d ago';
+      return new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     }
 
-    // Filter out dismissed, show up to 15
-    const visible=recent.filter(l=>!this._readNotifIds.has(l.id)).slice(0,15);
-    // Unread = not dismissed AND within 3 days
-    const unreadCount=visible.filter(l=>Date.now()-new Date(l.time)<3*86400000).length;
+    // Filter: exclude hidden actions + dismissed, take 20
+    const eligible=[...log].reverse().filter(l=>!HIDDEN_ACTIONS.has(l.action));
+    const visible=eligible.filter(l=>!readIds.has(l.id)).slice(0,20);
+    const unreadCount=visible.filter(l=>Date.now()-new Date(l.time)<7*86400000).length;
 
     if(visible.length===0){
-      list.innerHTML='<div class="notif-empty">No new notifications</div>';
+      list.innerHTML=`<div class="notif-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-empty-title">All caught up!</div>
+        <div class="notif-empty-sub">No new notifications right now.</div>
+      </div>`;
       badge.style.display='none'; return;
     }
 
@@ -4426,20 +4403,19 @@ const SMS = {
       const type=l.type||'default';
       const svg=iconSvg[type]||iconSvg.create;
       const color=iconColors[type]||iconColors.default;
-      const isNew=Date.now()-new Date(l.time)<3*86400000;
-      return `<div class="notif-item" id="ni-${l.id}" onclick="SMS.clickNotif('${l.id}','${page}')"
-        style="display:flex;align-items:flex-start;gap:.65rem;padding:.8rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;position:relative"
-        onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
-        ${isNew?`<span style="position:absolute;top:.7rem;left:.4rem;width:5px;height:5px;border-radius:50%;background:var(--brand);flex-shrink:0"></span>`:''}
-        <div style="width:32px;height:32px;border-radius:8px;background:${color}18;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${color}">${svg}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:.8rem;font-weight:600;color:var(--t1);margin-bottom:.1rem">${sanitize(l.action)}</div>
-          <div style="font-size:.74rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sanitize(l.details||'')}</div>
-          <div style="font-size:.67rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${sanitize(l.user)}</div>
+      const bg=iconBg[type]||iconBg.default;
+      const isNew=!readIds.has(l.id)&&Date.now()-new Date(l.time)<7*86400000;
+      return `<div class="notif-item${isNew?' notif-item-unread':''}" id="ni-${l.id}" onclick="SMS.clickNotif('${l.id}','${page}')">
+        ${isNew?'<span class="notif-unread-dot"></span>':''}
+        <div class="notif-icon" style="background:${bg};color:${color}">${svg}</div>
+        <div class="notif-body">
+          <div class="notif-action">${sanitize(l.action)}</div>
+          <div class="notif-detail">${sanitize(l.details||'')}</div>
+          <div class="notif-meta">${timeAgo(l.time)}<span class="notif-dot">·</span>${sanitize(l.user)}</div>
         </div>
-        <button onclick="event.stopPropagation();SMS.clickNotif('${l.id}',null)"
-          style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--t4);padding:.2rem .35rem;border-radius:4px;font-size:.75rem;line-height:1;opacity:.5"
-          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'" title="Dismiss">✕</button>
+        <button class="notif-dismiss" onclick="event.stopPropagation();SMS.clickNotif('${l.id}',null)" title="Dismiss">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>`;
     }).join('');
 
@@ -4447,42 +4423,54 @@ const SMS = {
     badge.textContent=unreadCount>9?'9+':unreadCount;
   },
 
-  // Click a notification: navigate (if page given) + dismiss it
   clickNotif(id, page){
-    if(!this._readNotifIds) this._readNotifIds=new Set();
-    this._readNotifIds.add(id);
-    // Animate out
+    const readIds=this._getReadIds();
+    readIds.add(id);
+    this._saveReadIds(readIds);
     const el=document.getElementById('ni-'+id);
-    if(el){ el.style.transition='opacity .18s, transform .18s'; el.style.opacity='0'; el.style.transform='translateX(12px)'; setTimeout(()=>{ el.remove(); this._refreshNotifBadge(); },200); }
+    if(el){
+      el.style.transition='opacity .15s, transform .15s';
+      el.style.opacity='0'; el.style.transform='translateX(16px)';
+      setTimeout(()=>{ el.remove(); this._refreshNotifBadge(); },160);
+    }
     if(page){ this.nav(page); document.getElementById('notif-panel').style.display='none'; }
     else { this._refreshNotifBadge(); }
   },
 
-  // Clear all: dismiss every currently visible notification
   clearAllNotifs(){
-    if(!this._readNotifIds) this._readNotifIds=new Set();
     const log=DB.get('auditLog',[]);
-    log.forEach(l=>this._readNotifIds.add(l.id));
+    const readIds=this._getReadIds();
+    log.forEach(l=>readIds.add(l.id));
+    this._saveReadIds(readIds);
     const list=document.getElementById('notif-list');
-    if(list) list.innerHTML='<div class="notif-empty">No new notifications</div>';
+    if(list) list.innerHTML=`<div class="notif-empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div class="notif-empty-title">All caught up!</div>
+      <div class="notif-empty-sub">No new notifications right now.</div>
+    </div>`;
     const badge=document.getElementById('notif-badge');
     if(badge) badge.style.display='none';
     document.getElementById('notif-panel').style.display='none';
   },
 
-  // Recalculate badge after a dismiss without full re-render
   _refreshNotifBadge(){
-    if(!this._readNotifIds) return;
+    const readIds=this._getReadIds();
     const log=DB.get('auditLog',[]);
-    const unread=[...log].reverse().slice(0,50)
-      .filter(l=>!this._readNotifIds.has(l.id)&&Date.now()-new Date(l.time)<3*86400000).length;
+    const HIDDEN_ACTIONS=new Set(['Login','Logout']);
+    const unread=[...log].reverse()
+      .filter(l=>!HIDDEN_ACTIONS.has(l.action)&&!readIds.has(l.id)&&Date.now()-new Date(l.time)<7*86400000).length;
     const badge=document.getElementById('notif-badge');
     if(!badge) return;
     badge.style.display=unread>0?'flex':'none';
     badge.textContent=unread>9?'9+':unread;
-    // If no visible items remain, show empty state
     const list=document.getElementById('notif-list');
-    if(list&&!list.querySelector('.notif-item')){ list.innerHTML='<div class="notif-empty">No new notifications</div>'; }
+    if(list&&!list.querySelector('.notif-item')){
+      list.innerHTML=`<div class="notif-empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div class="notif-empty-title">All caught up!</div>
+        <div class="notif-empty-sub">No new notifications right now.</div>
+      </div>`;
+    }
   },
 
   // ══ HELPERS ══

@@ -1225,11 +1225,34 @@ const SMS = {
     return `<svg class="kpi-sparkline kpi-sparkline-${trend}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="M${pts.join('L')}"/></svg>`;
   },
 
+  // ── Dashboard orchestrator ──
   loadDashboard(){
-    const role = this.currentUser?.role || 'staff';
-    const isAdmin   = role === 'admin';
-    const isFinance = role === 'admin' || role === 'accountant';
+    const d=this._dashComputeCore();
+    this._renderDashHero(d);
+    this._renderDashTodayStrip(d);
+    this._renderDashKpis(d);
+    this._renderDashRecentStudents(d);
+    this._renderDashEvents(d);
+    this._renderDashDefaulters(d);
+    this._renderDashExams(d);
+    this._renderDashAbsent(d);
+    this._renderDashOnLeave(d);
+    this._updateSyncStatus();
+    const _fp=`${d.students.length}|${d.payments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
+    if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.payments,d.attRecords,d.role); }
+    if(!this._dashRefreshTimer){
+      this._dashRefreshTimer=setInterval(()=>{
+        if(document.getElementById('page-dashboard')?.classList.contains('active')){ this.loadDashboard(); }
+        else { clearInterval(this._dashRefreshTimer); this._dashRefreshTimer=null; }
+      },60000);
+    }
+  },
 
+  // ── Compute all shared dashboard data once ──
+  _dashComputeCore(){
+    const role=this.currentUser?.role||'staff';
+    const isAdmin=role==='admin';
+    const isFinance=role==='admin'||role==='accountant';
     const students=DB.get('students',[]);
     const staff=DB.get('staff',[]);
     const classes=DB.get('classes',[]);
@@ -1237,44 +1260,40 @@ const SMS = {
     const school=DB.get('school',{});
     const exams=DB.get('exams',[]);
     const leaves=DB.get('leaves',[]);
+    const books=DB.get('books',[]);
+    const subjects=DB.get('subjects',[]);
+    const events=DB.get('events',[]);
+    const attRecords=DB.get('attendance',[]);
+    const now=new Date();
+    const todayStr=localDateStr();
+    const todayAtt=attRecords.filter(a=>a.date===todayStr);
     const yearPayments=payments.filter(p=>!p.academicYear||p.academicYear===_academicYear);
     const totalRevenue=yearPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
-    const attRecords=DB.get('attendance',[]);
-    const todayStr=localDateStr();
-    const todayAtt=attRecords.filter(a=>a.date===todayStr);
-    const now=new Date();
 
-    // ── Term Attendance ──
-    // Prefer field-based filter (accurate: uses term+academicYear saved on each record).
-    // Fall back to splitting the academic year into thirds for older records without those fields.
-    let attRate='—', attSub='No data yet', attNum=null;
+    // ── Term Attendance (field-based first, fallback to date-range, then thirds) ──
+    let attRate='—', attSub=`Term ${_currentTerm} students`, attNum=null;
     const _ayInfo=(school.academicYears||[]).find(y=>y.year===_academicYear);
     const _ayStart=_ayInfo?.startDate?new Date(_ayInfo.startDate):null;
     const _ayEnd=_ayInfo?.endDate?new Date(_ayInfo.endDate):null;
-    const _termIdx=Math.min(3,Math.max(1,+_currentTerm))-1; // 0,1,2
+    const _termIdx=Math.min(3,Math.max(1,+_currentTerm))-1;
     let termRecs=[];
     const fieldBased=attRecords.filter(a=>a.academicYear===_academicYear&&String(a.term)===String(_currentTerm));
     if(fieldBased.length>0){
       termRecs=fieldBased;
-      attSub=`Term ${_currentTerm} students`;
     } else {
-      // Use exact term dates if set, otherwise fall back to equal thirds
       const _tKey=['t1','t2','t3'][_termIdx];
       const _exactStart=_ayInfo?.[`${_tKey}Start`]?new Date(_ayInfo[`${_tKey}Start`]):null;
       const _exactEnd=_ayInfo?.[`${_tKey}End`]?new Date(_ayInfo[`${_tKey}End`]+'T23:59:59'):null;
       if(_exactStart&&_exactEnd&&_exactEnd>_exactStart){
         termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_exactStart&&d<=_exactEnd; });
-        attSub=`Term ${_currentTerm} students`;
       } else if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
         const span=_ayEnd-_ayStart;
         const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
         const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
         termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
-        attSub=`Term ${_currentTerm} students`;
       } else {
         termRecs=attRecords;
-        attSub=`Term ${_currentTerm} students`;
       }
     }
     if(termRecs.length>0){
@@ -1284,23 +1303,22 @@ const SMS = {
       attRate=termTotal>0?`${termPresent}/${termTotal}`:'—';
     }
 
-    // ── Defaulters: current term of current year ──
-    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
-
-    // ── Outstanding fees total ──
+    // ── Defaulters & outstanding (current term) ──
+    const defaulters=students.filter(s=>{
+      if(s.status!=='active') return false;
+      const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false;
+      const due=+(fs['term'+_currentTerm]||0); if(!due) return false;
+      const yf=getYearFees(s,_academicYear);
+      return (+(yf['term'+_currentTerm]||0))<due;
+    });
     let totalOutstanding=0;
     students.filter(s=>s.status==='active').forEach(s=>{
-      const yfs=getYearStructure(s.classId,_academicYear);
-      if(!yfs) return;
+      const yfs=getYearStructure(s.classId,_academicYear); if(!yfs) return;
       const yf=getYearFees(s,_academicYear);
-      // Only current term — matches what is shown in the hero term pill
       totalOutstanding+=Math.max(0,(+(yfs['term'+_currentTerm]||0))-(+(yf['term'+_currentTerm]||0)));
     });
 
-    // Attendance colour — always renders on dark hero (#071830), use coral not flat red
-    const attColor=n=>n===null?'rgba(255,255,255,.38)':n>=90?'#14b8a6':n>=75?'#fbbf24':'#ff6b6b';
-
-    // ── KPI Trend helper: returns HTML badge ──
+    // ── Trend helper ──
     const trendBadge=(current,previous,isCurrency=false,higherIsBetter=true)=>{
       if(previous===null||previous===undefined||isNaN(previous)||isNaN(current)) return '';
       const diff=current-previous;
@@ -1308,21 +1326,21 @@ const SMS = {
       const pct=previous>0?Math.abs(Math.round(diff/previous*100)):'—';
       const up=diff>0;
       const isGood=(up&&higherIsBetter)||(!up&&!higherIsBetter);
-      const arrow=up?'↑':'↓';
-      const cls=isGood?'kpi-trend-up':'kpi-trend-down';
       const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff):pct+'%');
-      return `<span class="kpi-trend ${cls}">${arrow} ${label} vs last month</span>`;
+      return `<span class="kpi-trend ${isGood?'kpi-trend-up':'kpi-trend-down'}">${up?'↑':'↓'} ${label} vs last month</span>`;
     };
 
-    // ── Compute prior-month data for trends ──
+    // ── Prior-month data for trends ──
     const prevMStart=new Date(now.getFullYear(),now.getMonth()-1,1);
     const prevMKey=`${prevMStart.getFullYear()}-${String(prevMStart.getMonth()+1).padStart(2,'0')}`;
     const currMKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    const feeThisMonth=yearPayments.filter(p=>p.date&&p.date.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
-    const feePrevMonth=yearPayments.filter(p=>p.date&&p.date.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
-    const studThisMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(currMKey)).length;
-    const studPrevMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(prevMKey)).length;
-    // Attendance trend: this week avg vs last week avg
+    const feeThisMonth=yearPayments.filter(p=>p.date?.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const feePrevMonth=yearPayments.filter(p=>p.date?.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    // Enrollment trend: only show when there's meaningful monthly activity
+    const studThisMonth=students.filter(s=>s.admitDate?.startsWith(currMKey)).length;
+    const studPrevMonth=students.filter(s=>s.admitDate?.startsWith(prevMKey)).length;
+
+    // ── Attendance week-over-week trend ──
     const _dow=now.getDay();
     const _thisMonday=new Date(now); _thisMonday.setDate(now.getDate()-(_dow===0?6:_dow-1)); _thisMonday.setHours(0,0,0,0);
     const _lastMonday=new Date(_thisMonday); _lastMonday.setDate(_thisMonday.getDate()-7);
@@ -1332,99 +1350,62 @@ const SMS = {
     const avgRateOf=recs=>recs.length?Math.round(recs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/recs.length*100):null;
     const attThisWeek=avgRateOf(thisWeekRecs);
     const attLastWeek=avgRateOf(lastWeekRecs);
-    const attTrend=(attThisWeek!==null&&attLastWeek!==null)?trendBadge(attThisWeek,attLastWeek,false,true):'';
 
-    // ── Hero: third stat (outstanding fees — finance roles only) ──
+    // ── Today figures ──
+    const todayPayments=payments.filter(p=>p.date===todayStr);
+    const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
+    const todayPresent=todayAtt.reduce((s,a)=>s+(+a.present||0),0);
+    const todayTotal=todayAtt.reduce((s,a)=>s+(+a.total||0),0);
+    const attClassesToday=todayAtt.length;
+    const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
+    const _todayStart=new Date(todayStr+'T00:00:00');
+    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=_todayStart&&(d-_todayStart)<=7*864e5; }).length;
+
+    // ── Sparkline data (last 6 months of fee collections) ──
+    const _sparkKeys=[], _sparkData=[];
+    for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); _sparkKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); _sparkData.push(0); }
+    yearPayments.forEach(p=>{ if(!p.date) return; const idx=_sparkKeys.indexOf(p.date.substring(0,7)); if(idx>-1) _sparkData[idx]+=(+p.amount||0); });
+
+    return {
+      role,isAdmin,isFinance,students,staff,classes,payments,school,exams,leaves,books,subjects,events,attRecords,
+      now,todayStr,todayAtt,yearPayments,totalRevenue,active,
+      attRate,attNum,attSub,defaulters,totalOutstanding,trendBadge,
+      prevMKey,currMKey,feeThisMonth,feePrevMonth,studThisMonth,studPrevMonth,
+      attThisWeek,attLastWeek,
+      todayPayments,todayRevenue,todayPresent,todayTotal,attClassesToday,pendingLeaves,
+      examsThisWeek,_todayStart,_sparkData
+    };
+  },
+
+  // ── Hero stats + date dimming ──
+  _renderDashHero(d){
+    const {active,attRate,attNum,school,isFinance,totalOutstanding} = d;
+    const heroActive=document.getElementById('dash-hero-active');
+    if(heroActive) heroActive.textContent=active;
+    // Hero always renders on dark navy — use fixed high-contrast colours (not CSS vars which target light bg)
+    const heroAtt=document.getElementById('dash-hero-att');
+    if(heroAtt){
+      heroAtt.textContent=attRate;
+      heroAtt.style.color=attNum===null?'rgba(255,255,255,.38)':attNum>=90?'#14b8a6':attNum>=75?'#fbbf24':'#ff6b6b';
+    }
     const heroOutEl=document.getElementById('dash-hero-outstanding');
     if(heroOutEl){
       if(isFinance){
         heroOutEl.closest('.dash-hero-stat').style.display='';
         heroOutEl.textContent=fmt(totalOutstanding);
-        // Use a warm coral (#ff6b6b) on dark navy hero — more legible and professional than flat #dc2626
         heroOutEl.style.color=totalOutstanding>0?'#ff6b6b':'#14b8a6';
       } else {
         heroOutEl.closest('.dash-hero-stat').style.display='none';
       }
     }
-
-    // ── TODAY AT A GLANCE strip (role-filtered) ──
-    const todayPayments=payments.filter(p=>p.date===todayStr);
-    const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
-    const attClassesToday=todayAtt.length;
-    const todayPresent=todayAtt.reduce((s,a)=>s+(+a.present||0),0);
-    const todayTotal=todayAtt.reduce((s,a)=>s+(+a.total||0),0);
-    const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
-    const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
-    const _todayStart=new Date(todayStr+'T00:00:00');
-    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=_todayStart&&(d-_todayStart)<=7*864e5; }).length;
-    const stripEl=document.getElementById('dash-today-strip');
-    if(stripEl){
-      const allTiles=[
-        {icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
-          label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
-          color:'#0d9488',page:'fees',roles:['admin','accountant']},
-        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
-          label:'Attendance Today',val:todayAttVal,sub:todayTotal>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked · ${Math.round(todayPresent/todayTotal*100)}% avg`:'No sessions marked',
-          color:'#0d9488',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
-        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-          label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
-          color:'#05295f',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
-        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
-          label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
-          color:'#05295f',page:'leave',roles:['admin','accountant']},
-      ];
-      const visibleTiles=allTiles.filter(t=>t.roles.includes(role));
-      stripEl.innerHTML=visibleTiles.map(t=>`
-        <div class="dash-today-tile dash-tile-${t.color==='#0d9488'?'teal':'navy'}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
-          <div class="dash-today-icon">${t.icon}</div>
-          <div class="dash-today-body">
-            <div class="dash-today-val">${t.val}</div>
-            <div class="dash-today-label">${t.label}</div>
-            <div class="dash-today-sub">${t.sub}</div>
-          </div>
-        </div>`).join('');
-    }
-
-    // ── KPI cards (role-filtered + trend arrows) ──
-    const books=DB.get('books',[]);
-    const subjects=DB.get('subjects',[]);
-    const allKpis=[
-      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:trendBadge(studThisMonth,studPrevMonth,false,true),color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
-      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
-      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
-      {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?attSub+' · '+attNum+'% avg':attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
-      {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
-    ];
-    // ── Sparkline data: fee totals for last 6 months ──
-    const _sparkKeys=[]; const _sparkData=[];
-    for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); _sparkKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); _sparkData.push(0); }
-    yearPayments.forEach(p=>{ if(!p.date) return; const idx=_sparkKeys.indexOf(p.date.substring(0,7)); if(idx>-1) _sparkData[idx]+=(+p.amount||0); });
-    const visibleKpis=allKpis.filter(k=>k.roles.includes(role));
-    document.getElementById('dash-kpis').innerHTML=visibleKpis.map(k=>`
-      <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
-        <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
-        <div class="kpi-val">${k.val}</div>
-        <div class="kpi-label">${k.label}</div>
-        <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
-        ${k.trend||''}
-        ${k.sparkline?SMS._sparkline(_sparkData):''}
-      </div>`).join('');
-
-    // ── Hero stats: live numbers ──
-    const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
-    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attNum!==null?'#14b8a6':'rgba(255,255,255,.38)'; heroAtt.className='dash-hero-stat-val'; }
-    // ── Hero date dimming: subtle signal when viewing a historical year or term ──
+    // Dim date when viewing historical year/term
     const _htfEl=document.getElementById('dash-hero-today-full');
     if(_htfEl){
       const _todayMs=Date.now();
       const _allYrs=school.academicYears||[];
-      // Find which year's range contains today
       const _liveYr=_allYrs.find(y=>y.startDate&&y.endDate&&_todayMs>=new Date(y.startDate).getTime()&&_todayMs<=new Date(y.endDate).getTime())?.year
-        ||[..._allYrs].sort((a,b)=>a.year>b.year?-1:1)[0]?.year
-        ||_academicYear;
+        ||[..._allYrs].sort((a,b)=>a.year>b.year?-1:1)[0]?.year||_academicYear;
       const _viewingHistoricalYear=_academicYear!==_liveYr;
-      // Also dim if viewing a different term than what today falls in (using exact term dates)
       const _curYrAyInfo=_allYrs.find(y=>y.year===_academicYear)||{};
       const _termKey=['t1','t2','t3'][Math.min(3,Math.max(1,+_currentTerm))-1];
       const _termStart=_curYrAyInfo[`${_termKey}Start`]?new Date(_curYrAyInfo[`${_termKey}Start`]):null;
@@ -1434,30 +1415,96 @@ const SMS = {
       _htfEl.style.opacity=_isLive?'1':'0.42';
       _htfEl.title=_isLive?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
     }
-    // Only re-render charts if underlying data has actually changed
-    const _fp=`${students.length}|${payments.length}|${attRecords.length}|${_academicYear}|${_currentTerm}`;
-    if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(students,classes,payments,attRecords,role); }
+  },
 
-    // ── Recent students ──
-    const clsPalette=['#05295f','#0d9488','#05295f','#0d9488','#05295f','#0d9488','#05295f','#0d9488'];
+  // ── Today at a Glance strip ──
+  _renderDashTodayStrip(d){
+    const {role,todayPayments,todayRevenue,todayTotal,todayPresent,attClassesToday,examsThisWeek,pendingLeaves} = d;
+    const stripEl=document.getElementById('dash-today-strip');
+    if(!stripEl) return;
+    const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
+    // Safe avg — guard division even though val is already guarded, belt-and-suspenders
+    const todayAvgPct=todayTotal>0?`${Math.round((todayPresent/todayTotal)*100)}% avg`:'';
+    const allTiles=[
+      {icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+        label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
+        cls:'teal',page:'fees',roles:['admin','accountant']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
+        label:'Attendance Today',val:todayAttVal,
+        sub:todayTotal>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked · ${todayAvgPct}`:'No sessions marked',
+        cls:'teal',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+        label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
+        cls:'navy',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+        label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
+        cls:'navy',page:'leave',roles:['admin','accountant']},
+    ];
+    stripEl.innerHTML=allTiles.filter(t=>t.roles.includes(role)).map(t=>`
+      <div class="dash-today-tile dash-tile-${t.cls}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
+        <div class="dash-today-icon">${t.icon}</div>
+        <div class="dash-today-body">
+          <div class="dash-today-val">${t.val}</div>
+          <div class="dash-today-label">${t.label}</div>
+          <div class="dash-today-sub">${t.sub}</div>
+        </div>
+      </div>`).join('');
+  },
+
+  // ── KPI cards ──
+  _renderDashKpis(d){
+    const {role,students,staff,classes,books,subjects,active,totalRevenue,defaulters,attRate,attNum,attSub,trendBadge,feeThisMonth,feePrevMonth,studThisMonth,studPrevMonth,attThisWeek,attLastWeek,_sparkData} = d;
+    // Show enrollment trend only when there's actual monthly activity to compare
+    const enrollTrend=(studThisMonth>0||studPrevMonth>0)?trendBadge(studThisMonth,studPrevMonth,false,true):'';
+    const attTrend=(attThisWeek!==null&&attLastWeek!==null)?trendBadge(attThisWeek,attLastWeek,false,true):'';
+    const allKpis=[
+      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:enrollTrend,color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
+      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
+      {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?`${attSub} · ${attNum}% avg`:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
+      {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
+    ];
+    document.getElementById('dash-kpis').innerHTML=allKpis.filter(k=>k.roles.includes(role)).map(k=>`
+      <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
+        <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
+        <div class="kpi-val">${k.val}</div>
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
+        ${k.trend||''}
+        ${k.sparkline?SMS._sparkline(_sparkData):''}
+      </div>`).join('');
+  },
+
+  // ── Recent students panel ──
+  _renderDashRecentStudents(d){
+    const {students,classes} = d;
+    // Alternate between brand and teal using CSS variables — theme-aware
+    const clsPalette=['var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)'];
+    const clsAlphaPalette=['var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
       const ci=classes.findIndex(c=>c.id===s.classId);
-      const clsColor=clsPalette[ci%clsPalette.length]||'#05295f';
+      const col=clsPalette[ci%clsPalette.length]||'var(--brand)';
+      const colLt=clsAlphaPalette[ci%clsAlphaPalette.length]||'var(--brand-lt)';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
-        <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
+        <div class="mini-av" style="background:${colLt};color:${col}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub"><span style="background:${clsColor}18;color:${clsColor};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${this.className(s.classId)}</span> · ${s.studentId}</div>
+          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${this.className(s.classId)}</span> · ${s.studentId}</div>
         </div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`;
-    }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
+    }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
+  },
 
-    // ── Upcoming Events ──
-    const events=DB.get('events',[]);
+  // ── Upcoming Events panel ──
+  _renderDashEvents(d){
+    const {events,now,_todayStart} = d;
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=_todayStart).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
-    const evColors={exam:'#05295f',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
+    // Use CSS variables for event type colours — theme-aware where possible; purple has no CSS var so kept literal
+    const evColors={exam:'var(--brand)',academic:'var(--brand-teal)',sports:'var(--success)',holiday:'var(--warn)',meeting:'#7c3aed',cultural:'var(--danger)'};
+    const evBg={exam:'var(--brand-lt)',academic:'var(--brand-teal-lt)',sports:'var(--success-bg)',holiday:'var(--warn-bg)',meeting:'rgba(124,58,237,.1)',cultural:'var(--danger-bg)'};
     const _evSvg={
       exam:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
       academic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg>',
@@ -1468,142 +1515,139 @@ const SMS = {
     };
     const _evFallback='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
-      const col=evColors[e.type]||'#05295f';
+      const col=evColors[e.type]||'var(--brand)';
+      const bg=evBg[e.type]||'var(--brand-lt)';
       const daysLeft=Math.ceil((new Date(e.start)-now)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('events')">
-        <div class="mini-av" style="background:${col}18;color:${col}">${_evSvg[e.type]||_evFallback}</div>
+        <div class="mini-av" style="background:${bg};color:${col}">${_evSvg[e.type]||_evFallback}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.title)}</div>
           <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
         </div>
-        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
-    }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
+    }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
+  },
 
-    // ── Fee Defaulters panel (finance roles only) ──
+  // ── Fee Defaulters panel ──
+  _renderDashDefaulters(d){
+    const {isFinance,defaulters} = d;
     const defPanel=document.getElementById('dash-defaulters-panel');
     if(defPanel) defPanel.style.display=isFinance?'':'none';
-    if(isFinance){
-      const defBadge=document.getElementById('dash-defaulters-count');
-      if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
-      const defList=document.getElementById('dash-defaulters');
-      if(defList){
-        defList.innerHTML=defaulters.slice(0,5).map(s=>{
-          const owed=this._studentOwed(s,_academicYear);
-          return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
-            <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
-            <div style="flex:1;min-width:0">
-              <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-              <div class="mini-sub">${this.className(s.classId)}</div>
-            </div>
-            <div class="mini-right" style="text-align:right">
-              <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
-              <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">Term ${_currentTerm} outstanding</div>
-            </div>
-          </div>`;
-        }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
-        // "and X more" footer
-        if(defaulters.length>5){
-          const extra=defaulters.length-5;
-          defList.innerHTML+=`<div class="dash-panel-more" onclick="SMS.nav('fees')" title="View all defaulters in Fees module">+${extra} more defaulter${extra!==1?'s':''} — <span>View all</span></div>`;
-        }
-      }
+    if(!isFinance) return;
+    const defBadge=document.getElementById('dash-defaulters-count');
+    if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
+    const defList=document.getElementById('dash-defaulters');
+    if(!defList) return;
+    defList.innerHTML=defaulters.slice(0,5).map(s=>{
+      const owed=this._studentOwed(s,_academicYear);
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
+        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div class="mini-sub">${this.className(s.classId)}</div>
+        </div>
+        <div class="mini-right" style="text-align:right">
+          <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
+          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">Term ${_currentTerm} outstanding</div>
+        </div>
+      </div>`;
+    }).join('')||'<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
+    if(defaulters.length>5){
+      const extra=defaulters.length-5;
+      defList.innerHTML+=`<div class="dash-panel-more" onclick="SMS.nav('fees')" title="View all defaulters in Fees module">+${extra} more defaulter${extra!==1?'s':''} — <span>View all</span></div>`;
     }
+  },
 
-    // ── Upcoming Exams panel ──
-    const _parseExamDate=d=>new Date(d.includes('T')?d:d+'T00:00:00');
+  // ── Upcoming Exams panel ──
+  _renderDashExams(d){
+    const {exams,now,_todayStart} = d;
+    const _parseExamDate=dt=>new Date(dt.includes('T')?dt:dt+'T00:00:00');
     const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=_todayStart).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
-    if(examEl){ examEl.innerHTML=upcomingExams.map(e=>{
+    if(!examEl) return;
+    examEl.innerHTML=upcomingExams.map(e=>{
       const daysLeft=Math.ceil((_parseExamDate(e.date)-now)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
       const urgColor=daysLeft<=2?'var(--danger)':daysLeft<=7?'var(--warn)':'var(--brand)';
+      const urgBg=daysLeft<=2?'var(--danger-bg)':daysLeft<=7?'var(--warn-bg)':'var(--brand-lt)';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('exams')">
         <div class="mini-av" style="background:var(--brand-lt);color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.name)}</div>
           <div class="mini-sub">${this.className(e.classId)||'All Classes'} · ${fmtDate(e.date)}</div>
         </div>
-        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgColor}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgBg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
-    }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>'; }
+    }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>';
+  },
 
-    // ── Absent Today panel ──
+  // ── Absent Today panel ──
+  _renderDashAbsent(d){
+    const {todayAtt,classes} = d;
     const absentEl=document.getElementById('dash-absent-today');
     const absentBadge=document.getElementById('dash-absent-count');
-    if(absentEl){
-      const totalAbsent=todayAtt.reduce((s,a)=>s+(+a.absent||0),0);
-      if(absentBadge){ absentBadge.textContent=totalAbsent; absentBadge.style.display=totalAbsent>0?'inline-flex':'none'; }
-      if(todayAtt.length===0){
-        absentEl.innerHTML='<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No attendance taken yet today</div></div>';
-      } else if(totalAbsent===0){
-        absentEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No absences today — full house!</div></div>';
-      } else {
-        absentEl.innerHTML=todayAtt.filter(a=>a.absent>0).map(a=>{
-          const cls=classes.find(c=>c.id===a.classId);
-          const lateStr=a.late>0?` · ${a.late} late`:'';
-          return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('attendance')">
-            <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${a.absent}</div>
-            <div style="flex:1;min-width:0">
-              <div class="mini-name">${sanitize(cls?.name||'Unknown Class')}</div>
-              <div class="mini-sub">${a.present} present${lateStr} · ${a.total} total</div>
-            </div>
-            <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:var(--danger);background:var(--danger-bg);padding:.2rem .5rem;border-radius:5px">absent</span></div>
-          </div>`;
-        }).join('');
-      }
+    if(!absentEl) return;
+    const totalAbsent=todayAtt.reduce((s,a)=>s+(+a.absent||0),0);
+    if(absentBadge){ absentBadge.textContent=totalAbsent; absentBadge.style.display=totalAbsent>0?'inline-flex':'none'; }
+    if(todayAtt.length===0){
+      absentEl.innerHTML='<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No attendance taken yet today</div></div>';
+    } else if(totalAbsent===0){
+      absentEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No absences today — full house!</div></div>';
+    } else {
+      absentEl.innerHTML=todayAtt.filter(a=>+a.absent>0).map(a=>{
+        const cls=classes.find(c=>c.id===a.classId);
+        const lateStr=+a.late>0?` · ${a.late} late`:'';
+        return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('attendance')">
+          <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${a.absent}</div>
+          <div style="flex:1;min-width:0">
+            <div class="mini-name">${sanitize(cls?.name||'Unknown Class')}</div>
+            <div class="mini-sub">${a.present} present${lateStr} · ${a.total} total</div>
+          </div>
+          <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:var(--danger);background:var(--danger-bg);padding:.2rem .5rem;border-radius:5px">absent</span></div>
+        </div>`;
+      }).join('');
     }
+  },
 
-    // ── Staff on Leave Today panel (admin/accountant only) ──
+  // ── Staff on Leave Today panel ──
+  _renderDashOnLeave(d){
+    const {isFinance,leaves,staff,now} = d;
     const onLeavePanel=document.getElementById('dash-on-leave-panel');
     if(onLeavePanel) onLeavePanel.style.display=isFinance?'':'none';
-    if(isFinance){
-      const onLeaveEl=document.getElementById('dash-on-leave');
-      const onLeaveBadge=document.getElementById('dash-on-leave-count');
-      const onLeaveToday=leaves.filter(l=>{
-        if(l.status!=='approved') return false;
-        const from=new Date(l.from+'T00:00:00'), to=new Date(l.to+'T23:59:59');
-        return now>=from&&now<=to;
-      });
-      if(onLeaveBadge){ onLeaveBadge.textContent=onLeaveToday.length; onLeaveBadge.style.display=onLeaveToday.length>0?'inline-flex':'none'; }
-      if(onLeaveEl){
-        if(onLeaveToday.length===0){
-          onLeaveEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All staff present today</div></div>';
-        } else {
-          onLeaveEl.innerHTML=onLeaveToday.map(l=>{
-            const s=staff.find(x=>x.id===l.staffId);
-            const leaveColors={Annual:'#0d9488',Sick:'#dc2626',Maternity:'#7c3aed',Paternity:'#05295f',Emergency:'#d97706',Casual:'#16a34a'};
-            const col=leaveColors[l.type]||'#05295f';
-            const toDate=new Date(l.to+'T00:00:00');
-            const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
-            return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
-              <div class="mini-av" style="background:${col}18;color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
-              <div style="flex:1;min-width:0">
-                <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
-                <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
-              </div>
-              <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
-            </div>`;
-          }).join('');
-        }
-      }
+    if(!isFinance) return;
+    const onLeaveEl=document.getElementById('dash-on-leave');
+    const onLeaveBadge=document.getElementById('dash-on-leave-count');
+    const onLeaveToday=leaves.filter(l=>{
+      if(l.status!=='approved') return false;
+      const from=new Date(l.from+'T00:00:00'), to=new Date(l.to+'T23:59:59');
+      return now>=from&&now<=to;
+    });
+    if(onLeaveBadge){ onLeaveBadge.textContent=onLeaveToday.length; onLeaveBadge.style.display=onLeaveToday.length>0?'inline-flex':'none'; }
+    if(!onLeaveEl) return;
+    if(onLeaveToday.length===0){
+      onLeaveEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All staff present today</div></div>';
+      return;
     }
-
-    // ── Sync status indicator ──
-    this._updateSyncStatus();
-
-    // ── Auto-refresh: start 60-second interval if not already running ──
-    if(!this._dashRefreshTimer){
-      this._dashRefreshTimer=setInterval(()=>{
-        if(document.getElementById('page-dashboard')?.classList.contains('active')){
-          this.loadDashboard();
-        } else {
-          clearInterval(this._dashRefreshTimer);
-          this._dashRefreshTimer=null;
-        }
-      }, 60000);
-    }
+    // Leave type colours using CSS variables where available (purple has no var)
+    const leaveColors={Annual:'var(--brand-teal)',Sick:'var(--danger)',Maternity:'#7c3aed',Paternity:'var(--brand)',Emergency:'var(--warn)',Casual:'var(--success)'};
+    const leaveBg={Annual:'var(--brand-teal-lt)',Sick:'var(--danger-bg)',Maternity:'rgba(124,58,237,.1)',Paternity:'var(--brand-lt)',Emergency:'var(--warn-bg)',Casual:'var(--success-bg)'};
+    onLeaveEl.innerHTML=onLeaveToday.map(l=>{
+      const s=staff.find(x=>x.id===l.staffId);
+      const col=leaveColors[l.type]||'var(--brand)';
+      const bg=leaveBg[l.type]||'var(--brand-lt)';
+      const toDate=new Date(l.to+'T00:00:00');
+      const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
+        <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
+          <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
+        </div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
+      </div>`;
+    }).join('');
   },
 
   // ── Sync status helper ──

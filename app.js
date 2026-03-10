@@ -1219,15 +1219,17 @@ const SMS = {
       const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
       const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
       termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
-      attSub=`Term ${_currentTerm} average`;
+      attSub=`Term ${_currentTerm} students`;
     } else {
       // No year dates set — fall back to all records in the year
       termRecs=attRecords;
-      attSub=`Term ${_currentTerm} (all records)`;
+      attSub=`Term ${_currentTerm} students`;
     }
     if(termRecs.length>0){
-      attNum=Math.round(termRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/termRecs.length*100);
-      attRate=attNum+'%';
+      const termPresent=termRecs.reduce((s,a)=>s+(+a.present||0),0);
+      const termTotal=termRecs.reduce((s,a)=>s+(+a.total||0),0);
+      attNum=termTotal>0?Math.round(termPresent/termTotal*100):null;
+      attRate=termTotal>0?`${termPresent}/${termTotal}`:'—';
     }
 
     // ── Defaulters: current term of current year ──
@@ -1297,6 +1299,9 @@ const SMS = {
     const todayPayments=payments.filter(p=>p.date===todayStr);
     const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const attClassesToday=todayAtt.length;
+    const todayPresent=todayAtt.reduce((s,a)=>s+(+a.present||0),0);
+    const todayTotal=todayAtt.reduce((s,a)=>s+(+a.total||0),0);
+    const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
     const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
     const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=now&&(d-now)<=7*864e5; }).length;
     const stripEl=document.getElementById('dash-today-strip');
@@ -1306,7 +1311,7 @@ const SMS = {
           label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
           color:'#0d9488',page:'fees',roles:['admin','accountant']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
-          label:'Attendance Today',val:attClassesToday>0?attRate:'—',sub:attClassesToday>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked`:'No sessions marked',
+          label:'Attendance Today',val:todayAttVal,sub:todayTotal>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked · ${Math.round(todayPresent/todayTotal*100)}% avg`:'No sessions marked',
           color:'#0d9488',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
           label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
@@ -1333,7 +1338,7 @@ const SMS = {
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
       {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant']},
-      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
+      {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?attSub+' · '+attNum+'% avg':attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
     const visibleKpis=allKpis.filter(k=>k.roles.includes(role));

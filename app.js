@@ -1472,7 +1472,9 @@ const SMS = {
         label:'Messages',val:unreadMessages||0,sub:unreadMessages===0?'All read':`${unreadMessages} unread`,
         cls:'teal',page:'messages',roles:['admin','teacher','staff','accountant','librarian']},
     ];
-    stripEl.innerHTML=allTiles.filter(t=>t.roles.includes(role)).map(t=>`
+    const visibleTiles=allTiles.filter(t=>t.roles.includes(role));
+    stripEl.dataset.cols=visibleTiles.length;
+    stripEl.innerHTML=visibleTiles.map(t=>`
       <div class="dash-today-tile dash-tile-${t.cls}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
         <div class="dash-today-icon">${t.icon}</div>
         <div class="dash-today-body">

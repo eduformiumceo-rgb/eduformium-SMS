@@ -1904,6 +1904,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   gap:.75rem;
   margin-bottom:0;
 }
+.dash-today-strip[data-cols="2"] { grid-template-columns:repeat(2,1fr); }
+.dash-today-strip[data-cols="3"] { grid-template-columns:repeat(3,1fr); }
+.dash-today-strip[data-cols="4"] { grid-template-columns:repeat(4,1fr); }
 .dash-today-tile {
   background:var(--surface); border:1px solid var(--border);
   border-radius:var(--radius-lg);
@@ -2770,10 +2773,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 [data-theme="dark"] .dash-section-label { color: var(--t3); }
 
-/* ── Today strip — 4-tile layout ── */
-.dash-today-strip {
-  grid-template-columns: repeat(4, 1fr);
-}
+/* ── Today strip — adaptive layout ── */
+.dash-today-strip { grid-template-columns: repeat(4,1fr); }
 
 /* ── Today tile — premium hover glow per color ── */
 .dash-tile-teal:hover {

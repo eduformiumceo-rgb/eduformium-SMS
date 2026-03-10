@@ -2273,3 +2273,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .dash-panel-more span { color: var(--brand); text-decoration: underline; text-decoration-style: dotted; }
 [data-theme="dark"] .dash-panel-more:hover { color: #93c5fd; }
 [data-theme="dark"] .dash-panel-more span  { color: #93c5fd; }
+
+/* ── Hero Outstanding stat — warm coral on dark navy ── */
+#dash-hero-outstanding { color: #ff6b6b; }

@@ -1229,7 +1229,8 @@ const SMS = {
       if(isFinance){
         heroOutEl.closest('.dash-hero-stat').style.display='';
         heroOutEl.textContent=totalOutstanding>0?fmt(totalOutstanding):'₵0.00';
-        heroOutEl.style.color=totalOutstanding>0?'var(--danger)':'var(--success)';
+        // Use a warm coral (#ff6b6b) on dark navy hero — more legible and professional than flat #dc2626
+        heroOutEl.style.color=totalOutstanding>0?'#ff6b6b':'#14b8a6';
       } else {
         heroOutEl.closest('.dash-hero-stat').style.display='none';
       }

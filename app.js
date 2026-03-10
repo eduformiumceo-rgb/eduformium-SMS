@@ -1205,14 +1205,29 @@ const SMS = {
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
     const now=new Date();
 
-    // ── Attendance rate ──
+    // ── Term Attendance rate ──
+    // Compute the date boundaries of the current term by splitting the
+    // academic year's startDate → endDate into 3 equal thirds.
     let attRate='—', attSub='No data yet', attNum=null;
-    if(todayAtt.length>0){
-      attNum=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100);
-      attRate=attNum+'%'; attSub="Today's average";
+    const _ayInfo=(DB.get('school',{}).academicYears||[]).find(y=>y.year===_academicYear);
+    const _ayStart=_ayInfo?.startDate?new Date(_ayInfo.startDate):null;
+    const _ayEnd=_ayInfo?.endDate?new Date(_ayInfo.endDate):null;
+    const _termIdx=Math.min(3,Math.max(1,+_currentTerm))-1; // 0,1,2
+    let termRecs=[];
+    if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
+      const span=_ayEnd-_ayStart;
+      const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
+      const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
+      termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
+      attSub=`Term ${_currentTerm} average`;
     } else {
-      const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)>=0&&(n-d)<=7*864e5; });
-      if(week.length>0){ attNum=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100); attRate=attNum+'%'; attSub='7-day average'; }
+      // No year dates set — fall back to all records in the year
+      termRecs=attRecords;
+      attSub=`Term ${_currentTerm} (all records)`;
+    }
+    if(termRecs.length>0){
+      attNum=Math.round(termRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/termRecs.length*100);
+      attRate=attNum+'%';
     }
 
     // ── Defaulters: current term of current year ──

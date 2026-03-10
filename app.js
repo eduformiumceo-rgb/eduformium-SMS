@@ -1379,6 +1379,17 @@ const SMS = {
     // ── Hero stats: live numbers ──
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
     const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attNum!==null?'#14b8a6':'rgba(255,255,255,.38)'; heroAtt.className='dash-hero-stat-val'; }
+    // ── Hero date dimming: subtle signal when viewing a historical year ──
+    const _htfEl=document.getElementById('dash-hero-today-full');
+    if(_htfEl){
+      const _todayMs=Date.now();
+      const _allYrs=school.academicYears||[];
+      const _liveYr=_allYrs.find(y=>y.startDate&&y.endDate&&_todayMs>=new Date(y.startDate).getTime()&&_todayMs<=new Date(y.endDate).getTime())?.year
+        ||[..._allYrs].sort((a,b)=>a.year>b.year?-1:1)[0]?.year
+        ||_academicYear;
+      _htfEl.style.opacity=_academicYear===_liveYr?'1':'0.42';
+      _htfEl.title=_academicYear===_liveYr?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
+    }
     // Only re-render charts if underlying data has actually changed
     const _fp=`${students.length}|${payments.length}|${attRecords.length}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(students,classes,payments,attRecords,role); }

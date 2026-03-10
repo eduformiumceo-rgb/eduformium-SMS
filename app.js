@@ -2732,19 +2732,29 @@ const SMS = {
     const payments=DB.get('feePayments',[]).filter(p=>!p.academicYear||p.academicYear===yearFilter);
     const students=DB.get('students',[]).filter(s=>s.status==='active');
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    // Outstanding = active terms only (enrollTerm → currentTerm) per student
+    // Term outstanding = enrollTerm → currentTerm per student
     let outstanding=0, defaulterCount=0;
+    // Full-year outstanding = all 3 terms regardless of current term
+    let totalYearOutstanding=0;
     students.forEach(s=>{
       const owed=this._studentOwed(s,yearFilter);
       if(owed>0){ outstanding+=owed; defaulterCount++; }
+      const fs=getYearStructure(s.classId,yearFilter);
+      if(fs){
+        const yf=getYearFees(s,yearFilter);
+        const enrollTerm=Math.min(3,Math.max(1,+(s.enrollTerm||1)));
+        for(let t=enrollTerm;t<=3;t++){
+          totalYearOutstanding+=Math.max(0,(+(fs['term'+t]||0))-(+(yf['term'+t]||0)));
+        }
+      }
     });
-    const termLabel=`Term ${_currentTerm}`;
     document.getElementById('fees-kpis').innerHTML=[
       {icon:'fees',val:fmt(totalCollected),lbl:'Total Collected',color:'teal'},
       {icon:'transactions',val:payments.length,lbl:'Transactions',color:'blue'},
       {icon:'warning',val:defaulterCount,lbl:'Defaulters',color:'amber'},
-      {icon:'outstanding',val:fmt(outstanding),lbl:`${termLabel} Outstanding`,color:'red'},
-    ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
+      {icon:'outstanding',val:fmt(outstanding),lbl:'Term Outstanding',color:'red'},
+      {icon:'warning',val:fmt(totalYearOutstanding),lbl:'Full Year Outstanding',color:'red'},
+    ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val" style="font-size:${k.val.toString().length>9?'1.1rem':'1.5rem'}">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
   },
 
   renderFees(){

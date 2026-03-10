@@ -1232,15 +1232,24 @@ const SMS = {
     if(fieldBased.length>0){
       termRecs=fieldBased;
       attSub=`Term ${_currentTerm} students`;
-    } else if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
-      const span=_ayEnd-_ayStart;
-      const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
-      const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
-      termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
-      attSub=`Term ${_currentTerm} students`;
     } else {
-      termRecs=attRecords;
-      attSub=`Term ${_currentTerm} students`;
+      // Use exact term dates if set, otherwise fall back to equal thirds
+      const _tKey=['t1','t2','t3'][_termIdx];
+      const _exactStart=_ayInfo?.[`${_tKey}Start`]?new Date(_ayInfo[`${_tKey}Start`]):null;
+      const _exactEnd=_ayInfo?.[`${_tKey}End`]?new Date(_ayInfo[`${_tKey}End`]+'T23:59:59'):null;
+      if(_exactStart&&_exactEnd&&_exactEnd>_exactStart){
+        termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_exactStart&&d<=_exactEnd; });
+        attSub=`Term ${_currentTerm} students`;
+      } else if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
+        const span=_ayEnd-_ayStart;
+        const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
+        const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
+        termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
+        attSub=`Term ${_currentTerm} students`;
+      } else {
+        termRecs=attRecords;
+        attSub=`Term ${_currentTerm} students`;
+      }
     }
     if(termRecs.length>0){
       const termPresent=termRecs.reduce((s,a)=>s+(+a.present||0),0);
@@ -1379,16 +1388,25 @@ const SMS = {
     // ── Hero stats: live numbers ──
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
     const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attNum!==null?'#14b8a6':'rgba(255,255,255,.38)'; heroAtt.className='dash-hero-stat-val'; }
-    // ── Hero date dimming: subtle signal when viewing a historical year ──
+    // ── Hero date dimming: subtle signal when viewing a historical year or term ──
     const _htfEl=document.getElementById('dash-hero-today-full');
     if(_htfEl){
       const _todayMs=Date.now();
       const _allYrs=school.academicYears||[];
+      // Find which year's range contains today
       const _liveYr=_allYrs.find(y=>y.startDate&&y.endDate&&_todayMs>=new Date(y.startDate).getTime()&&_todayMs<=new Date(y.endDate).getTime())?.year
         ||[..._allYrs].sort((a,b)=>a.year>b.year?-1:1)[0]?.year
         ||_academicYear;
-      _htfEl.style.opacity=_academicYear===_liveYr?'1':'0.42';
-      _htfEl.title=_academicYear===_liveYr?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
+      const _viewingHistoricalYear=_academicYear!==_liveYr;
+      // Also dim if viewing a different term than what today falls in (using exact term dates)
+      const _curYrAyInfo=_allYrs.find(y=>y.year===_academicYear)||{};
+      const _termKey=['t1','t2','t3'][Math.min(3,Math.max(1,+_currentTerm))-1];
+      const _termStart=_curYrAyInfo[`${_termKey}Start`]?new Date(_curYrAyInfo[`${_termKey}Start`]):null;
+      const _termEnd=_curYrAyInfo[`${_termKey}End`]?new Date(_curYrAyInfo[`${_termKey}End`]+'T23:59:59'):null;
+      const _todayInTerm=_termStart&&_termEnd?(_todayMs>=_termStart.getTime()&&_todayMs<=_termEnd.getTime()):null;
+      const _isLive=!_viewingHistoricalYear&&(_todayInTerm===null||_todayInTerm);
+      _htfEl.style.opacity=_isLive?'1':'0.42';
+      _htfEl.title=_isLive?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
     }
     // Only re-render charts if underlying data has actually changed
     const _fp=`${students.length}|${payments.length}|${attRecords.length}|${_academicYear}|${_currentTerm}`;
@@ -3711,6 +3729,13 @@ const SMS = {
     document.getElementById('ac-pass').value=school.passMark||50;
     document.getElementById('ac-currency').value=school.currency||'GHS';
     document.getElementById('ac-type').value=school.type||'k12';
+    // Populate term dates from current year's academicYears entry
+    const _curYrEntry=(school.academicYears||[]).find(y=>y.year===(school.academicYear||_academicYear))||{};
+    ['t1','t2','t3'].forEach(t=>{
+      const s=document.getElementById(`ac-${t}-start`); const e=document.getElementById(`ac-${t}-end`);
+      if(s) s.value=_curYrEntry[`${t}Start`]||'';
+      if(e) e.value=_curYrEntry[`${t}End`]||'';
+    });
     this.renderAcademicYearHistory();
   },
 
@@ -3734,6 +3759,16 @@ const SMS = {
     }
     // Mark current year
     school.academicYears.forEach(y=>y.isCurrent=(y.year===school.academicYear));
+    // Save term dates into the current year's academicYears entry
+    const _ayEntry=school.academicYears.find(y=>y.year===school.academicYear);
+    if(_ayEntry){
+      ['t1','t2','t3'].forEach(t=>{
+        const sv=document.getElementById(`ac-${t}-start`)?.value||'';
+        const ev=document.getElementById(`ac-${t}-end`)?.value||'';
+        if(sv) _ayEntry[`${t}Start`]=sv; else delete _ayEntry[`${t}Start`];
+        if(ev) _ayEntry[`${t}End`]=ev; else delete _ayEntry[`${t}End`];
+      });
+    }
     DB.set('school',school);
     // Ensure fee structure exists for new year
     const fs=DB.get('feeStructure',[]);
@@ -3772,7 +3807,11 @@ const SMS = {
           ${isCurrent?'<span class="badge badge-success" style="font-size:.62rem">Current Year</span>':''}
         </div>
         <div class="ay-card-meta">
-          <div class="ay-meta-item"><span>📅</span> ${y.startDate?fmtDate(y.startDate):'—'} → ${y.endDate?fmtDate(y.endDate):'—'}</div>
+          <div class="ay-meta-item"><span>📅</span> Academic Year: ${y.startDate?fmtDate(y.startDate):'—'} → ${y.endDate?fmtDate(y.endDate):'—'}</div>
+          ${y.t1Start||y.t1End?`<div class="ay-meta-item"><span>📌</span> Term 1: ${y.t1Start?fmtDate(y.t1Start):'?'} → ${y.t1End?fmtDate(y.t1End):'?'}</div>`:''}
+          ${y.t2Start||y.t2End?`<div class="ay-meta-item"><span>📌</span> Term 2: ${y.t2Start?fmtDate(y.t2Start):'?'} → ${y.t2End?fmtDate(y.t2End):'?'}</div>`:''}
+          ${y.t3Start||y.t3End?`<div class="ay-meta-item"><span>📌</span> Term 3: ${y.t3Start?fmtDate(y.t3Start):'?'} → ${y.t3End?fmtDate(y.t3End):'?'}</div>`:''}
+          ${!y.t1Start&&!y.t2Start&&!y.t3Start?`<div class="ay-meta-item" style="color:var(--t4);font-style:italic"><span>⚠️</span> Term dates not set — using estimated thirds</div>`:''}
           <div class="ay-meta-item"><span>🏫</span> ${structCount}/${classes.length} class fee structures set</div>
           <div class="ay-meta-item"><span>💰</span> ${fmt(totalCollected)} collected (${payments.length} payments)</div>
         </div>
@@ -3832,7 +3871,17 @@ const SMS = {
     if(school.academicYears.find(y=>y.year===year)){
       errEl.style.display='block'; errEl.textContent=`${year} already exists.`; return;
     }
-    school.academicYears.push({year,isCurrent:false,label:year,startDate,endDate});
+    const _nt1s=document.getElementById('new-t1-start')?.value||'';
+    const _nt1e=document.getElementById('new-t1-end')?.value||'';
+    const _nt2s=document.getElementById('new-t2-start')?.value||'';
+    const _nt2e=document.getElementById('new-t2-end')?.value||'';
+    const _nt3s=document.getElementById('new-t3-start')?.value||'';
+    const _nt3e=document.getElementById('new-t3-end')?.value||'';
+    const _newYrEntry={year,isCurrent:false,label:year,startDate,endDate};
+    if(_nt1s) _newYrEntry.t1Start=_nt1s; if(_nt1e) _newYrEntry.t1End=_nt1e;
+    if(_nt2s) _newYrEntry.t2Start=_nt2s; if(_nt2e) _newYrEntry.t2End=_nt2e;
+    if(_nt3s) _newYrEntry.t3Start=_nt3s; if(_nt3e) _newYrEntry.t3End=_nt3e;
+    school.academicYears.push(_newYrEntry);
     DB.set('school',school);
     // Auto-create fee structure for this year based on current year's rates
     const fs=DB.get('feeStructure',[]); const classes=DB.get('classes',[]);

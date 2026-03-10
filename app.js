@@ -1261,7 +1261,7 @@ const SMS = {
       const fe=document.getElementById('dash-freshness');
       if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
     },30000);
-    const _fp=`${d.students.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
+    const _fp=`${d.students.length}|${d.classes.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role); }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
@@ -1287,7 +1287,6 @@ const SMS = {
     const subjects=DB.get('subjects',[]);
     const events=DB.get('events',[]);
     const attRecords=DB.get('attendance',[]);
-    const homework=DB.get('homework',[]);
     const messages=DB.get('messages',[]);
     const now=new Date();
     const todayStr=localDateStr();
@@ -3285,7 +3284,7 @@ const SMS = {
 
   // ══ DASHBOARD REFRESH ══
   refreshDashboard(){
-    const btn=document.getElementById('dash-refresh-btn'); if(btn){ btn.style.animation='spin .6s linear'; setTimeout(()=>btn.style.animation='',700); }
+    const btn=document.getElementById('dash-refresh-btn'); if(btn){ const ico=btn.querySelector('svg'); if(ico){ ico.style.animation='spin .6s linear'; setTimeout(()=>ico.style.animation='',700); } }
     this._dashDataFingerprint=null; // force chart redraw on manual refresh
     this.loadDashboard(); this.toast('Dashboard refreshed','success');
   },

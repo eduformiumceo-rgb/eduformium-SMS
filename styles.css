@@ -2118,8 +2118,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   margin-bottom:.75rem;
   background:var(--surface);
   transition:box-shadow .16s, border-color .16s;
-  overflow:hidden;
 }
+.ay-card > * { border-radius:0; }
 .ay-card:hover { box-shadow:0 2px 12px rgba(0,0,0,.08); }
 .ay-card-current {
   border-color:var(--brand);

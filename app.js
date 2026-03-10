@@ -1409,6 +1409,9 @@ const SMS = {
     const {active,attRate,attNum,school,isFinance,totalOutstanding} = d;
     const heroActive=document.getElementById('dash-hero-active');
     if(heroActive) heroActive.textContent=active;
+    // Keep year/term pills in sync with the currently selected academic year/term
+    const hyrEl=document.getElementById('dash-hero-year'); if(hyrEl) hyrEl.textContent=_academicYear||'—';
+    const htrEl=document.getElementById('dash-hero-term'); if(htrEl) htrEl.textContent=_currentTerm||'—';
     // Hero always renders on dark navy — use fixed high-contrast colours (not CSS vars which target light bg)
     const heroAtt=document.getElementById('dash-hero-att');
     if(heroAtt){
@@ -1667,11 +1670,13 @@ const SMS = {
       const bg=leaveBg[l.type]||'var(--brand-lt)';
       const toDate=new Date(l.to+'T00:00:00');
       const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
+      const _returnDate=new Date(toDate); _returnDate.setDate(_returnDate.getDate()+1);
+      const _returnStr=_returnDate.toISOString().split('T')[0];
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
-          <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
+          <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(_returnStr)}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
       </div>`;
@@ -4565,7 +4570,7 @@ const SMS = {
 
   applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value; const t=document.getElementById('custom-teal-hex')?.value; if(p&&t){ this.applyThemeColors(p,t); this.toast('Custom theme applied!','success'); } },
 
-  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog) tog.checked=!isDark; this._dashDataFingerprint=null; if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard(); },
+  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog){ tog.checked=!isDark; tog.dispatchEvent(new Event('change')); } },
 
   darken(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.max(0,Math.floor(r*(1-pct))); g=Math.max(0,Math.floor(g*(1-pct))); b=Math.max(0,Math.floor(b*(1-pct))); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
 

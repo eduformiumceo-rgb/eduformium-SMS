@@ -1378,19 +1378,16 @@ const SMS = {
     const attLastWeek=avgRateOf(lastWeekRecs);
 
     // ── Today figures ──
-    const todayPayments=payments.filter(p=>p.date===todayStr);
+    const todayPayments=yearPayments.filter(p=>p.date===todayStr);
     const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const todayPresent=todayAtt.reduce((s,a)=>s+(+a.present||0),0);
     const todayTotal=todayAtt.reduce((s,a)=>s+(+a.total||0),0);
     const attClassesToday=todayAtt.length;
     const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
     const _todayStart=new Date(todayStr+'T00:00:00');
-    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=_todayStart&&(d-_todayStart)<=7*864e5; }).length;
-
+    
     // ── Homework & messages ──
     const unreadMessages=messages.filter(m=>!m.read&&(!m.tab||m.tab==='inbox')).length;
-    const hwDueToday=homework.filter(h=>h.dueDate===todayStr&&h.status!=='submitted').length;
-    const hwOverdue=homework.filter(h=>h.dueDate&&h.dueDate<todayStr&&h.status!=='submitted').length;
 
     // ── Sparkline data (last 6 months of fee collections) ──
     const _sparkKeys=[], _sparkData=[];
@@ -1404,8 +1401,8 @@ const SMS = {
       prevMKey,currMKey,feeThisMonth,feePrevMonth,studThisMonth,studPrevMonth,
       attThisWeek,attLastWeek,
       todayPayments,todayRevenue,todayPresent,todayTotal,attClassesToday,pendingLeaves,
-      examsThisWeek,_todayStart,_sparkData,
-      unreadMessages,hwDueToday,hwOverdue
+      _todayStart,_sparkData,
+      unreadMessages
     };
   },
 
@@ -1451,7 +1448,7 @@ const SMS = {
 
   // ── Today at a Glance strip ──
   _renderDashTodayStrip(d){
-    const {role,todayPayments,todayRevenue,todayTotal,todayPresent,attClassesToday,examsThisWeek,pendingLeaves,hwDueToday,hwOverdue,unreadMessages} = d;
+    const {role,todayPayments,todayRevenue,todayTotal,todayPresent,attClassesToday,pendingLeaves,unreadMessages} = d;
     const stripEl=document.getElementById('dash-today-strip');
     if(!stripEl) return;
     const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
@@ -1549,7 +1546,7 @@ const SMS = {
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
       const col=evColors[e.type]||'var(--brand)';
       const bg=evBg[e.type]||'var(--brand-lt)';
-      const daysLeft=Math.ceil((new Date(e.start)-now)/(1000*60*60*24));
+      const daysLeft=Math.ceil((new Date(e.start)-_todayStart)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('events')">
         <div class="mini-av" style="background:${bg};color:${col}">${_evSvg[e.type]||_evFallback}</div>

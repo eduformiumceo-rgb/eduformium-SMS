@@ -1731,6 +1731,7 @@ const SMS = {
 
 
   renderDashCharts(students,classes,payments,attRecords,role='admin'){
+    if(typeof Chart==='undefined') return; // Chart.js not loaded yet (offline/CDN fail) — skip silently
     const isFinance=(role==='admin'||role==='accountant');
     // Hide fee collection chart panel for non-finance roles
     const feeChartCard=document.getElementById('dash-fee-chart-card');

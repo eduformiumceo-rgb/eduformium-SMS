@@ -3,13 +3,14 @@
 //  Cache-first strategy for offline use
 // ══════════════════════════════════════════
 
-const CACHE_NAME = 'eduformium-sms-v2.1.0';
+const CACHE_NAME = 'eduformium-sms-v2.1.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.json',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
 ];
 
 // ── INSTALL: cache all static assets ──

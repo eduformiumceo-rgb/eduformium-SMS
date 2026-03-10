@@ -2566,3 +2566,93 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 /* ── Hero Outstanding stat — warm coral on dark navy ── */
 #dash-hero-outstanding { color: #ff6b6b; }
+/* ═══════════════════════════════════════════
+   DASHBOARD IMPROVEMENTS v2
+═══════════════════════════════════════════ */
+
+/* ── Skeleton shimmer loader ── */
+@keyframes skel-shimmer {
+  0%   { background-position: -400px 0 }
+  100% { background-position:  400px 0 }
+}
+.skel {
+  background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%);
+  background-size: 400px 100%;
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px; display: block;
+}
+.skel-kpi { height: 110px; border-radius: 12px; }
+.skel-row { height: 52px; border-radius: 8px; margin-bottom: .5rem; }
+
+/* ── Dashboard alert banners ── */
+.dash-alerts { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .85rem; }
+.dash-alert {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .6rem 1rem; border-radius: .6rem; border: 1px solid;
+  font-size: .79rem; font-weight: 500;
+  animation: fadeIn .22s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.dash-alert-warn   { background: var(--warn-bg);   border-color: rgba(245,158,11,.3); color: #92400e; }
+.dash-alert-danger { background: var(--danger-bg); border-color: rgba(239,68,68,.25); color: #991b1b; }
+.dash-alert-info   { background: var(--brand-lt);  border-color: rgba(5,41,95,.12);   color: var(--brand); }
+[data-theme="dark"] .dash-alert-warn   { color: #fcd34d; border-color: rgba(251,191,36,.2); }
+[data-theme="dark"] .dash-alert-danger { color: #fca5a5; border-color: rgba(252,129,129,.2); }
+[data-theme="dark"] .dash-alert-info   { color: #93c5fd; border-color: rgba(59,130,246,.2); }
+.dash-alert-body { flex: 1; min-width: 0; }
+.dash-alert-link { font-weight: 700; text-decoration: underline; cursor: pointer; }
+.dash-alert-link:hover { opacity: .75; }
+.dash-alert-dismiss {
+  margin-left: auto; cursor: pointer; opacity: .45; padding: .15rem .4rem;
+  border-radius: 4px; line-height: 1; font-size: .85rem; flex-shrink: 0; border: none; background: none;
+}
+.dash-alert-dismiss:hover { opacity: 1; background: rgba(0,0,0,.07); }
+
+/* ── Getting Started guide ── */
+.dash-getting-started {
+  background: linear-gradient(135deg, var(--brand-lt) 0%, rgba(13,148,136,.07) 100%);
+  border: 1px solid rgba(5,41,95,.12); border-radius: 1rem;
+  padding: 1.35rem 1.5rem; margin-bottom: .85rem;
+}
+.dash-gs-title { font-size: 1rem; font-weight: 800; color: var(--brand); margin-bottom: .25rem; }
+.dash-gs-sub { font-size: .8rem; color: var(--t2); margin-bottom: 1rem; line-height: 1.5; }
+.dash-gs-steps { display: flex; flex-wrap: wrap; gap: .55rem; }
+.dash-gs-step {
+  display: flex; align-items: center; gap: .45rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: .55rem;
+  padding: .5rem .85rem; font-size: .78rem; font-weight: 600; color: var(--t1);
+  cursor: pointer; transition: border-color .15s, color .15s, transform .12s;
+}
+.dash-gs-step:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
+.dash-gs-step-num {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--brand); color: #fff;
+  font-size: .63rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+[data-theme="dark"] .dash-getting-started {
+  background: linear-gradient(135deg, rgba(59,130,246,.08) 0%, rgba(45,212,191,.05) 100%);
+  border-color: rgba(59,130,246,.18);
+}
+[data-theme="dark"] .dash-gs-title { color: #93c5fd; }
+
+/* ── Chart freshness timestamp ── */
+.dash-freshness { font-size: .61rem; color: var(--t4); font-weight: 500; white-space: nowrap; margin-left: auto; align-self: flex-end; padding-bottom: .1rem; }
+
+/* ── Sparkline hover tooltip ── */
+.kpi-sparkline-wrap {
+  position: absolute; bottom: 0; right: 0; cursor: default;
+}
+.kpi-sparkline-wrap .kpi-sparkline { position: static; display: block; opacity: .55; }
+.kpi-spark-tip {
+  display: block; opacity: 0; pointer-events: none;
+  position: absolute; bottom: calc(100% + 6px); right: 0;
+  background: var(--t1); color: var(--bg);
+  font-size: .61rem; font-weight: 600; padding: .45rem .7rem;
+  border-radius: 6px; white-space: pre; z-index: 20; line-height: 1.75;
+  transition: opacity .15s, transform .15s; transform: translateY(4px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.22);
+}
+.kpi-spark-tip::after {
+  content: ''; position: absolute; top: 100%; right: 14px;
+  border: 4px solid transparent; border-top-color: var(--t1);
+}
+.kpi-sparkline-wrap:hover .kpi-spark-tip { opacity: 1; transform: translateY(0); }

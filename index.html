@@ -992,6 +992,22 @@
       <!-- ── DASHBOARD ── -->
       <div id="page-dashboard" class="page active">
 
+        <!-- ── Alert Banners ── -->
+        <div id="dash-alerts" class="dash-alerts"></div>
+
+        <!-- ── Getting Started (shown only for new schools) ── -->
+        <div id="dash-getting-started" class="dash-getting-started" style="display:none">
+          <div class="dash-gs-title">👋 Welcome to Eduformium SMS — let's get you set up!</div>
+          <div class="dash-gs-sub">Your dashboard is ready. Complete these steps to start managing your school.</div>
+          <div class="dash-gs-steps">
+            <div class="dash-gs-step" onclick="SMS.nav('classes')"><span class="dash-gs-step-num">1</span> Add Classes</div>
+            <div class="dash-gs-step" onclick="SMS.nav('students');SMS.openStudentModal()"><span class="dash-gs-step-num">2</span> Enroll First Student</div>
+            <div class="dash-gs-step" onclick="SMS.nav('fees')"><span class="dash-gs-step-num">3</span> Set Fee Structure</div>
+            <div class="dash-gs-step" onclick="SMS.nav('staff')"><span class="dash-gs-step-num">4</span> Add Staff</div>
+            <div class="dash-gs-step" onclick="SMS.nav('attendance')"><span class="dash-gs-step-num">5</span> Take Attendance</div>
+          </div>
+        </div>
+
         <!-- ── Hero Banner ── -->
         <div class="dash-hero">
           <div class="dash-hero-left">
@@ -1076,6 +1092,7 @@
               <span class="dash-live-badge">
                 <span class="dash-live-dot"></span>Live
               </span>
+              <span class="dash-freshness" id="dash-freshness"></span>
             </div>
             <div class="dash-chart-box-tall"><canvas id="chart-fees"></canvas></div>
           </div>

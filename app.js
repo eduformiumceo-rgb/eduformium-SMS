@@ -431,6 +431,7 @@ const SMS = {
   _staffPage: 1,
   _auditPage: 1,
   _dashRefreshTimer: null,   // auto-refresh interval handle
+  _freshTimer: null,         // freshness label interval handle
   _syncStatus: 'idle',       // 'idle' | 'syncing' | 'synced' | 'offline'
 
   // Minimum ms the loading screen stays visible — ensures it's seen on fast/cached loads
@@ -679,6 +680,10 @@ const SMS = {
     if(page !== 'dashboard' && this._dashRefreshTimer){
       clearInterval(this._dashRefreshTimer);
       this._dashRefreshTimer = null;
+    }
+    if(page !== 'dashboard' && this._freshTimer){
+      clearInterval(this._freshTimer);
+      this._freshTimer = null;
     }
     this.currentPage=page;
     document.getElementById('sidebar')?.classList.remove('open');
@@ -1222,7 +1227,14 @@ const SMS = {
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
     const trend=values[values.length-1]>=values[0]?'up':values[values.length-1]<values[0]?'down':'flat';
-    return `<svg class="kpi-sparkline kpi-sparkline-${trend}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="M${pts.join('L')}"/></svg>`;
+    // Build tooltip lines showing last 6 months
+    const _now=new Date();
+    const tipLines=values.map((v,i)=>{
+      const d=new Date(_now.getFullYear(),_now.getMonth()-5+i,1);
+      const label=d.toLocaleString('default',{month:'short',year:'2-digit'});
+      return `${label}: ${fmt(v)}`;
+    }).join('\n');
+    return `<div class="kpi-sparkline-wrap"><svg class="kpi-sparkline kpi-sparkline-${trend}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="M${pts.join('L')}"/></svg><div class="kpi-spark-tip">${tipLines.replace(/\n/g,'<br>')}</div></div>`;
   },
 
   // ── Dashboard orchestrator ──
@@ -1237,7 +1249,20 @@ const SMS = {
     this._renderDashExams(d);
     this._renderDashAbsent(d);
     this._renderDashOnLeave(d);
+    this._renderDashAlerts(d);
+    this._renderDashGettingStarted(d);
     this._updateSyncStatus();
+    // ── Freshness timestamp ──
+    this._dashRefreshedAt=Date.now();
+    const _fEl=document.getElementById('dash-freshness');
+    if(_fEl) _fEl.textContent='Updated just now';
+    clearInterval(this._freshTimer);
+    this._freshTimer=setInterval(()=>{
+      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); return; }
+      const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
+      const fe=document.getElementById('dash-freshness');
+      if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
+    },30000);
     const _fp=`${d.students.length}|${d.payments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.payments,d.attRecords,d.role); }
     if(!this._dashRefreshTimer){
@@ -1264,6 +1289,8 @@ const SMS = {
     const subjects=DB.get('subjects',[]);
     const events=DB.get('events',[]);
     const attRecords=DB.get('attendance',[]);
+    const homework=DB.get('homework',[]);
+    const messages=DB.get('messages',[]);
     const now=new Date();
     const todayStr=localDateStr();
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
@@ -1361,6 +1388,11 @@ const SMS = {
     const _todayStart=new Date(todayStr+'T00:00:00');
     const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=_todayStart&&(d-_todayStart)<=7*864e5; }).length;
 
+    // ── Homework & messages ──
+    const unreadMessages=messages.filter(m=>!m.read&&(!m.tab||m.tab==='inbox')).length;
+    const hwDueToday=homework.filter(h=>h.dueDate===todayStr&&h.status!=='submitted').length;
+    const hwOverdue=homework.filter(h=>h.dueDate&&h.dueDate<todayStr&&h.status!=='submitted').length;
+
     // ── Sparkline data (last 6 months of fee collections) ──
     const _sparkKeys=[], _sparkData=[];
     for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); _sparkKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); _sparkData.push(0); }
@@ -1373,7 +1405,8 @@ const SMS = {
       prevMKey,currMKey,feeThisMonth,feePrevMonth,studThisMonth,studPrevMonth,
       attThisWeek,attLastWeek,
       todayPayments,todayRevenue,todayPresent,todayTotal,attClassesToday,pendingLeaves,
-      examsThisWeek,_todayStart,_sparkData
+      examsThisWeek,_todayStart,_sparkData,
+      unreadMessages,hwDueToday,hwOverdue
     };
   },
 
@@ -1419,7 +1452,7 @@ const SMS = {
 
   // ── Today at a Glance strip ──
   _renderDashTodayStrip(d){
-    const {role,todayPayments,todayRevenue,todayTotal,todayPresent,attClassesToday,examsThisWeek,pendingLeaves} = d;
+    const {role,todayPayments,todayRevenue,todayTotal,todayPresent,attClassesToday,examsThisWeek,pendingLeaves,hwDueToday,hwOverdue,unreadMessages} = d;
     const stripEl=document.getElementById('dash-today-strip');
     if(!stripEl) return;
     const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
@@ -1439,6 +1472,12 @@ const SMS = {
       {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
         label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
         cls:'navy',page:'leave',roles:['admin','accountant']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+        label:'Homework Due',val:hwDueToday+hwOverdue,sub:hwDueToday+hwOverdue===0?'Nothing pending':hwDueToday>0?`${hwDueToday} due today${hwOverdue>0?` · ${hwOverdue} overdue`:''}`:hwOverdue>0?`${hwOverdue} overdue`:'',
+        cls:'navy',page:'homework',roles:['admin','teacher','staff']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+        label:'Messages',val:unreadMessages||0,sub:unreadMessages===0?'All read':`${unreadMessages} unread`,
+        cls:'teal',page:'messages',roles:['admin','teacher','staff','accountant','librarian']},
     ];
     stripEl.innerHTML=allTiles.filter(t=>t.roles.includes(role)).map(t=>`
       <div class="dash-today-tile dash-tile-${t.cls}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
@@ -1487,7 +1526,7 @@ const SMS = {
       const ci=classes.findIndex(c=>c.id===s.classId);
       const col=clsPalette[ci%clsPalette.length]||'var(--brand)';
       const colLt=clsAlphaPalette[ci%clsAlphaPalette.length]||'var(--brand-lt)';
-      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.viewStudent('${s.id}')">
         <div class="mini-av" style="background:${colLt};color:${col}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
@@ -1542,7 +1581,7 @@ const SMS = {
     if(!defList) return;
     defList.innerHTML=defaulters.slice(0,5).map(s=>{
       const owed=this._studentOwed(s,_academicYear);
-      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees');SMS.openFeeModal('${s.id}')">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
@@ -1648,6 +1687,46 @@ const SMS = {
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
       </div>`;
     }).join('');
+  },
+
+  // ── Dismissible alert banners ──
+  _renderDashAlerts(d){
+    const alertsEl=document.getElementById('dash-alerts');
+    if(!alertsEl) return;
+    if(!this._dismissedAlerts) this._dismissedAlerts=new Set();
+    const {isAdmin,isFinance,defaulters,attNum,pendingLeaves,role}=d;
+    const alerts=[];
+    if(isFinance&&defaulters.length>5&&!this._dismissedAlerts.has('def')){
+      alerts.push({id:'def',cls:'danger',icon:'⚠️',msg:`<strong>${defaulters.length} students</strong> have outstanding fees this term.`,link:'View in Fees',page:'fees'});
+    }
+    if(isAdmin&&pendingLeaves>0&&!this._dismissedAlerts.has('leave')){
+      alerts.push({id:'leave',cls:'warn',icon:'📋',msg:`<strong>${pendingLeaves} leave request${pendingLeaves>1?'s':''}</strong> pending your approval.`,link:'Review now',page:'leave'});
+    }
+    if(attNum!==null&&attNum<75&&!this._dismissedAlerts.has('att')){
+      alerts.push({id:'att',cls:'warn',icon:'📉',msg:`Term attendance is <strong>${attNum}%</strong> — below the recommended 75% threshold.`,link:'View Attendance',page:'attendance'});
+    }
+    alertsEl.innerHTML=alerts.map(a=>`
+      <div class="dash-alert dash-alert-${a.cls}" id="dalert-${a.id}">
+        <span>${a.icon}</span>
+        <div class="dash-alert-body">${a.msg} <span class="dash-alert-link" onclick="SMS.nav('${a.page}')">${a.link}</span></div>
+        <button class="dash-alert-dismiss" onclick="SMS._dismissAlert('${a.id}')" title="Dismiss">✕</button>
+      </div>`).join('');
+  },
+
+  _dismissAlert(id){
+    if(!this._dismissedAlerts) this._dismissedAlerts=new Set();
+    this._dismissedAlerts.add(id);
+    const el=document.getElementById('dalert-'+id);
+    if(el){ el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(()=>el.remove(),220); }
+  },
+
+  // ── Getting Started guide (shows only for fresh/empty schools) ──
+  _renderDashGettingStarted(d){
+    const el=document.getElementById('dash-getting-started');
+    if(!el) return;
+    const {students,classes,isAdmin}=d;
+    const isEmpty=students.length===0&&classes.length===0;
+    el.style.display=(isEmpty&&isAdmin)?'':'none';
   },
 
   // ── Sync status helper ──

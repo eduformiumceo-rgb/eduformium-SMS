@@ -832,7 +832,7 @@ const SMS = {
     document.getElementById('save-pw-btn')?.addEventListener('click',()=>this.changePassword());
     document.getElementById('save-academic-btn')?.addEventListener('click',()=>this.saveAcademic());
     document.getElementById('apply-custom-theme')?.addEventListener('click',()=>this.applyCustomTheme());
-    document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; });
+    document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; this._dashDataFingerprint=null; });
     document.querySelectorAll('.swatch[data-primary]').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); this.applyThemeColors(s.dataset.primary,s.dataset.teal); }));
     document.getElementById('custom-primary')?.addEventListener('input',e=>{ document.getElementById('custom-primary-hex').value=e.target.value; });
     document.getElementById('custom-teal')?.addEventListener('input',e=>{ document.getElementById('custom-teal-hex').value=e.target.value; });
@@ -1186,10 +1186,8 @@ const SMS = {
   // ══ DASHBOARD ══
   loadDashboard(){
     const role = this.currentUser?.role || 'staff';
-    const isAdmin      = role === 'admin';
-    const isFinance    = role === 'admin' || role === 'accountant';
-    const isTeacherOnly = role === 'teacher';
-    const isLibrarianOnly = role === 'librarian';
+    const isAdmin   = role === 'admin';
+    const isFinance = role === 'admin' || role === 'accountant';
 
     const students=DB.get('students',[]);
     const staff=DB.get('staff',[]);
@@ -1198,30 +1196,34 @@ const SMS = {
     const school=DB.get('school',{});
     const exams=DB.get('exams',[]);
     const leaves=DB.get('leaves',[]);
-    const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
+    const yearPayments=payments.filter(p=>!p.academicYear||p.academicYear===_academicYear);
+    const totalRevenue=yearPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
     const todayStr=localDateStr();
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
     const now=new Date();
 
-    // ── Term Attendance rate ──
-    // Compute the date boundaries of the current term by splitting the
-    // academic year's startDate → endDate into 3 equal thirds.
+    // ── Term Attendance ──
+    // Prefer field-based filter (accurate: uses term+academicYear saved on each record).
+    // Fall back to splitting the academic year into thirds for older records without those fields.
     let attRate='—', attSub='No data yet', attNum=null;
-    const _ayInfo=(DB.get('school',{}).academicYears||[]).find(y=>y.year===_academicYear);
+    const _ayInfo=(school.academicYears||[]).find(y=>y.year===_academicYear);
     const _ayStart=_ayInfo?.startDate?new Date(_ayInfo.startDate):null;
     const _ayEnd=_ayInfo?.endDate?new Date(_ayInfo.endDate):null;
     const _termIdx=Math.min(3,Math.max(1,+_currentTerm))-1; // 0,1,2
     let termRecs=[];
-    if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
+    const fieldBased=attRecords.filter(a=>a.academicYear===_academicYear&&String(a.term)===String(_currentTerm));
+    if(fieldBased.length>0){
+      termRecs=fieldBased;
+      attSub=`Term ${_currentTerm} students`;
+    } else if(_ayStart&&_ayEnd&&_ayEnd>_ayStart){
       const span=_ayEnd-_ayStart;
       const tStart=new Date(_ayStart.getTime()+_termIdx*(span/3));
       const tEnd=new Date(_ayStart.getTime()+(_termIdx+1)*(span/3));
       termRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=tStart&&d<=tEnd; });
       attSub=`Term ${_currentTerm} students`;
     } else {
-      // No year dates set — fall back to all records in the year
       termRecs=attRecords;
       attSub=`Term ${_currentTerm} students`;
     }
@@ -1263,19 +1265,19 @@ const SMS = {
     };
 
     // ── Compute prior-month data for trends ──
-    const nowM=new Date(); const prevMStart=new Date(nowM.getFullYear(),nowM.getMonth()-1,1); const prevMEnd=new Date(nowM.getFullYear(),nowM.getMonth(),0);
+    const prevMStart=new Date(now.getFullYear(),now.getMonth()-1,1);
     const prevMKey=`${prevMStart.getFullYear()}-${String(prevMStart.getMonth()+1).padStart(2,'0')}`;
-    const currMKey=`${nowM.getFullYear()}-${String(nowM.getMonth()+1).padStart(2,'0')}`;
-    const feeThisMonth=payments.filter(p=>p.date&&p.date.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
-    const feePrevMonth=payments.filter(p=>p.date&&p.date.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const currMKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const feeThisMonth=yearPayments.filter(p=>p.date&&p.date.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const feePrevMonth=yearPayments.filter(p=>p.date&&p.date.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
     const studThisMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(currMKey)).length;
     const studPrevMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(prevMKey)).length;
     // Attendance trend: this week avg vs last week avg
-    const _now=new Date(); const _dow=_now.getDay();
-    const _thisMonday=new Date(_now); _thisMonday.setDate(_now.getDate()-(_dow===0?6:_dow-1)); _thisMonday.setHours(0,0,0,0);
+    const _dow=now.getDay();
+    const _thisMonday=new Date(now); _thisMonday.setDate(now.getDate()-(_dow===0?6:_dow-1)); _thisMonday.setHours(0,0,0,0);
     const _lastMonday=new Date(_thisMonday); _lastMonday.setDate(_thisMonday.getDate()-7);
     const _lastSunday=new Date(_thisMonday); _lastSunday.setDate(_thisMonday.getDate()-1);
-    const thisWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_thisMonday&&d<=_now; });
+    const thisWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_thisMonday&&d<=now; });
     const lastWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_lastMonday&&d<=_lastSunday; });
     const avgRateOf=recs=>recs.length?Math.round(recs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/recs.length*100):null;
     const attThisWeek=avgRateOf(thisWeekRecs);
@@ -1333,13 +1335,15 @@ const SMS = {
     }
 
     // ── KPI cards (role-filtered + trend arrows) ──
+    const books=DB.get('books',[]);
+    const subjects=DB.get('subjects',[]);
     const allKpis=[
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:trendBadge(studThisMonth,studPrevMonth,false,true),color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant']},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant']},
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?attSub+' · '+attNum+'% avg':attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
-      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
+      {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
     const visibleKpis=allKpis.filter(k=>k.roles.includes(role));
     document.getElementById('dash-kpis').innerHTML=visibleKpis.map(k=>`
@@ -1354,7 +1358,9 @@ const SMS = {
     // ── Hero stats: live numbers ──
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
     const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); heroAtt.className='dash-hero-stat-val'; }
-    this.renderDashCharts(students,classes,payments,attRecords,role);
+    // Only re-render charts if underlying data has actually changed
+    const _fp=`${students.length}|${payments.length}|${attRecords.length}|${_academicYear}|${_currentTerm}`;
+    if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(students,classes,payments,attRecords,role); }
 
     // ── Recent students ──
     const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
@@ -1592,7 +1598,7 @@ const SMS = {
       });
     }
 
-    // ── Attendance Rate — Mon–Fri school week, future days dimmed ──
+    // ── Attendance — Mon–Fri school week, future days dimmed, headcount format ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
       const recs=attRecords||DB.get('attendance',[]);
@@ -1603,7 +1609,7 @@ const SMS = {
       if(_dow===0)      _monday.setDate(_today.getDate()-6);   // Sun → last Mon
       else if(_dow===6) _monday.setDate(_today.getDate()-5);   // Sat → last Mon
       else              _monday.setDate(_today.getDate()-(_dow-1)); // Mon–Fri → this Mon
-      const attAxisLabels=[],attTooltipLabels=[],attData=[],attColors=[],attHover=[];
+      const attAxisLabels=[],attTooltipLabels=[],attData=[],attTotals=[],attColors=[],attHover=[];
       for(let i=0;i<5;i++){
         const d=new Date(_monday); d.setDate(_monday.getDate()+i);
         const key=localDateStr(d);
@@ -1613,33 +1619,37 @@ const SMS = {
         attTooltipLabels.push(d.toLocaleString('default',{weekday:'long',day:'numeric',month:'short'}));
         const dayRecs=recs.filter(a=>a.date===key);
         if(isFuture){
-          attData.push(0);
+          attData.push(0); attTotals.push(0);
           attColors.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
           attHover.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
         } else if(dayRecs.length>0){
-          const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
-          attData.push(rate);
+          const dayPresent=dayRecs.reduce((s,a)=>s+(+a.present||0),0);
+          const dayTotal=dayRecs.reduce((s,a)=>s+(+a.total||0),0);
+          const rate=dayTotal>0?Math.round(dayPresent/dayTotal*100):0;
+          attData.push(dayPresent);
+          attTotals.push(dayTotal);
           const alpha=isToday?1:0.82;
           if(isDark){
-            // Dark mode: coral (#fc8181) on dark chart surface — legible and professional
             attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(252,129,129,${alpha})`);
             attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(252,129,129,1)');
           } else {
-            // Light mode: deeper coral (#e05252) on white chart surface — more polished than #dc2626
             attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(224,82,82,${alpha===1?0.95:0.78})`);
             attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(224,82,82,1)');
           }
         } else {
-          attData.push(0);
+          attData.push(0); attTotals.push(0);
           attColors.push(isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)');
           attHover.push(isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)');
         }
       }
-      const validRates=attData.filter((v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return v>0&&d<=_today; });
-      const avgRate=validRates.length?Math.round(validRates.reduce((a,b)=>a+b,0)/validRates.length):null;
+      // Avg stat: total present / total possible this week (headcount)
+      const weekTotalPresent=attData.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
+      const weekTotalPossible=attTotals.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
+      const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
       const attAvgEl=document.getElementById('dash-att-avg-stat');
-      if(attAvgEl) attAvgEl.textContent=avgRate!==null?avgRate+'%':'—';
+      if(attAvgEl) attAvgEl.textContent=weekTotalPossible>0?`${weekTotalPresent}/${weekTotalPossible}`:'—';
       const isLastWeek=(_dow===0||_dow===6);
+      const maxTotal=Math.max(...attTotals,1);
       this._charts.att=new Chart(ctx3,{
         type:'bar',
         data:{labels:attAxisLabels,datasets:[{
@@ -1662,14 +1672,17 @@ const SMS = {
                 label:(ctx)=>{
                   const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
                   if(d>_today) return '  No school yet';
-                  return ctx.parsed.y>0?`  ${ctx.parsed.y}%  attendance`:'  Not recorded';
+                  const tot=attTotals[ctx.dataIndex];
+                  if(!ctx.parsed.y&&!tot) return '  Not recorded';
+                  const r=tot>0?Math.round(ctx.parsed.y/tot*100):0;
+                  return `  ${ctx.parsed.y}/${tot} present · ${r}%`;
                 },
                 title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
               }
             }
           },
           scales:{
-            y:{min:0,max:100,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{callback:v=>v+'%',color:tickColor,font:{size:11},maxTicksLimit:5}},
+            y:{min:0,suggestedMax:maxTotal,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11},maxTicksLimit:5}},
             x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
           },
         }
@@ -2179,7 +2192,7 @@ const SMS = {
     let present=0,absent=0,late=0;
     students.forEach(s=>{ const v=document.querySelector(`input[name="att_${s.id}"]:checked`)?.value||'present'; if(v==='present') present++; else if(v==='absent') absent++; else late++; });
     const att=DB.get('attendance',[]); const existIdx=att.findIndex(a=>a.date===date&&a.classId===classId);
-    const rec={id:uid('a'),date,classId,present,absent,late,total:students.length};
+    const rec={id:uid('a'),date,classId,present,absent,late,total:students.length,term:_currentTerm,academicYear:_academicYear};
     if(existIdx>-1) att[existIdx]=rec; else att.push(rec);
     DB.set('attendance',att); formCard.style.display='none';
     this.audit('Attendance','create',`Attendance saved: ${this.className(classId)} on ${date}`);
@@ -3022,6 +3035,7 @@ const SMS = {
   // ══ DASHBOARD REFRESH ══
   refreshDashboard(){
     const btn=document.getElementById('dash-refresh-btn'); if(btn){ btn.style.animation='spin .6s linear'; setTimeout(()=>btn.style.animation='',700); }
+    this._dashDataFingerprint=null; // force chart redraw on manual refresh
     this.loadDashboard(); this.toast('Dashboard refreshed','success');
   },
 
@@ -4061,11 +4075,12 @@ const SMS = {
     document.documentElement.style.setProperty('--brand-lt2',this.hexToRgba(primary,0.15));
     document.documentElement.style.setProperty('--brand-teal-lt',this.hexToRgba(teal,0.08));
     if(save) DB.set('themeColors',{primary,teal});
+    this._dashDataFingerprint=null;
   },
 
   applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value; const t=document.getElementById('custom-teal-hex')?.value; if(p&&t){ this.applyThemeColors(p,t); this.toast('Custom theme applied!','success'); } },
 
-  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog) tog.checked=!isDark; },
+  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog) tog.checked=!isDark; this._dashDataFingerprint=null; if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard(); },
 
   darken(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.max(0,Math.floor(r*(1-pct))); g=Math.max(0,Math.floor(g*(1-pct))); b=Math.max(0,Math.floor(b*(1-pct))); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
 

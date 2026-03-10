@@ -1706,6 +1706,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   position:absolute; inset:0;
   background-image: radial-gradient(circle, rgba(255,255,255,.05) 1px, transparent 1px);
   background-size: 28px 28px;
+  background-color: rgba(5,41,95,.18);
   pointer-events:none; z-index:0;
 }
 .dash-hero::after {

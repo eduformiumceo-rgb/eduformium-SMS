@@ -1320,7 +1320,8 @@ const SMS = {
     const todayTotal=todayAtt.reduce((s,a)=>s+(+a.total||0),0);
     const todayAttVal=todayTotal>0?`${todayPresent}/${todayTotal}`:'—';
     const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
-    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=now&&(d-now)<=7*864e5; }).length;
+    const _todayStart=new Date(todayStr+'T00:00:00');
+    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=_todayStart&&(d-_todayStart)<=7*864e5; }).length;
     const stripEl=document.getElementById('dash-today-strip');
     if(stripEl){
       const allTiles=[
@@ -1400,7 +1401,7 @@ const SMS = {
 
     // ── Upcoming Events ──
     const events=DB.get('events',[]);
-    const upcomingEv=[...events].filter(e=>new Date(e.start)>=now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
+    const upcomingEv=[...events].filter(e=>new Date(e.start)>=_todayStart).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
     const evIcons={exam:'📝',academic:'🎓',sports:'⚽',holiday:'🏖️',meeting:'📅',cultural:'🎭'};
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
@@ -1449,7 +1450,7 @@ const SMS = {
 
     // ── Upcoming Exams panel ──
     const _parseExamDate=d=>new Date(d.includes('T')?d:d+'T00:00:00');
-    const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=now).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
+    const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=_todayStart).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
     if(examEl){ examEl.innerHTML=upcomingExams.map(e=>{
       const daysLeft=Math.ceil((_parseExamDate(e.date)-now)/(1000*60*60*24));

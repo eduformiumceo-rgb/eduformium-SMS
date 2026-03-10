@@ -2734,11 +2734,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .kpi-sparkline-wrap:hover .kpi-spark-tip { opacity: 1; transform: translateY(0); }
 
+
 /* ═══════════════════════════════════════════════════════════════
    DASHBOARD 10/10 POLISH — Premium upgrades
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Section labels — more premium, with gradient accent ── */
+/* ── Section labels — gradient left accent, fading divider ── */
 .dash-section-label {
   display: flex;
   align-items: center;
@@ -2769,7 +2770,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 [data-theme="dark"] .dash-section-label { color: var(--t3); }
 
-/* ── Today strip — 4-tile layout, tighter on mobile ── */
+/* ── Today strip — 4-tile layout ── */
 .dash-today-strip {
   grid-template-columns: repeat(4, 1fr);
 }
@@ -2787,9 +2788,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .dash-tile-navy:hover {
   box-shadow: 0 6px 20px rgba(59,130,246,.15), 0 2px 6px rgba(0,0,0,.25);
 }
-
-/* ── Today tile sub-text — slightly more readable ── */
-.dash-today-sub { font-size: .62rem; color: var(--t4); margin-top: .12rem; line-height: 1.35; }
 
 /* ── Panel cards — per-card left border accent for visual identity ── */
 #page-dashboard .dash-panels .card {
@@ -2815,7 +2813,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(5) .card-title::before { background: #c4b5fd; }
 [data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(6) .card-title::before { background: #5eead4; }
 
-/* ── Panel card hover — refined per-card glow ── */
+/* ── Panel card per-card hover glow ── */
+#page-dashboard .dash-panels .card:hover { transform: translateY(-1px); }
 #page-dashboard .dash-panels .card:nth-child(1):hover { box-shadow: 0 6px 22px rgba(5,41,95,.1); }
 #page-dashboard .dash-panels .card:nth-child(2):hover { box-shadow: 0 6px 22px rgba(13,148,136,.1); }
 #page-dashboard .dash-panels .card:nth-child(3):hover { box-shadow: 0 6px 22px rgba(220,38,38,.1); }
@@ -2823,21 +2822,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 #page-dashboard .dash-panels .card:nth-child(5):hover { box-shadow: 0 6px 22px rgba(124,58,237,.1); }
 #page-dashboard .dash-panels .card:nth-child(6):hover { box-shadow: 0 6px 22px rgba(13,148,136,.1); }
 
-/* ── Panel card header — more polished ── */
-#page-dashboard .dash-panels .card-hd {
-  background: var(--surface);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-#page-dashboard .dash-panels .card-title {
-  font-size: .76rem;
-  font-weight: 700;
-  letter-spacing: .01em;
-  display: flex;
-  align-items: center;
-  gap: .42rem;
-}
-
-/* ── Panel "View all" ghost button — more polished ── */
+/* ── "View all" ghost button — polished ── */
 #page-dashboard .dash-panels .btn-ghost {
   font-size: .67rem;
   font-weight: 600;
@@ -2855,27 +2840,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background: rgba(59,130,246,.1);
 }
 
-/* ── Mini list items — richer hover + tighter spacing ── */
-#page-dashboard .mini-item {
-  padding: .58rem 1rem;
-  border-bottom: 1px solid var(--border);
-  transition: background .12s;
-}
-#page-dashboard .mini-item:last-of-type { border-bottom: none; }
-#page-dashboard .mini-item:hover { background: var(--surface-2); }
-#page-dashboard .mini-av {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  font-size: .66rem;
-  font-weight: 800;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ── Empty state panels — more refined look ── */
+/* ── Empty states ── */
 .dash-empty-panel {
   display: flex;
   flex-direction: column;
@@ -2887,7 +2852,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   font-size: .78rem;
   font-weight: 500;
   text-align: center;
-  border-radius: var(--radius);
 }
 .dash-empty-panel svg { opacity: .28; }
 .dash-empty-ok {
@@ -2898,7 +2862,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .dash-empty-ok svg { stroke: var(--success); opacity: .6 !important; }
 
-/* ── "X more" panel footer — premium style ── */
+/* ── "X more" panel footer ── */
 .dash-panel-more {
   display: flex;
   align-items: center;
@@ -2924,23 +2888,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .dash-panel-more span  { color: #5eead4; }
 [data-theme="dark"] .dash-panel-more:hover { color: #5eead4; }
 
-/* ── Sync pill — premium pill look ── */
-.dash-sync-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  font-size: .62rem;
-  font-weight: 700;
-  padding: .28rem .72rem;
-  border-radius: 99px;
-  border: 1px solid transparent;
-  letter-spacing: .02em;
-  margin-top: .55rem;
-  align-self: flex-start;
-  transition: opacity .2s;
-}
-
-/* ── KPI card — subtler hover lift ── */
+/* ── KPI card hover ── */
 #page-dashboard .kpi-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,.1);
@@ -2949,68 +2897,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   box-shadow: 0 8px 24px rgba(0,0,0,.35);
 }
 
-/* ── Hero — slightly richer gradient ── */
-.dash-hero {
-  background: linear-gradient(135deg, #05295f 0%, #0a3d6e 50%, #0d3d5c 100%);
-}
-[data-theme="dark"] .dash-hero {
-  background: linear-gradient(135deg, #040e1a 0%, #071828 60%, #061622 100%);
-}
-
-/* ── Hero stat pills — richer feel ── */
-.dash-hero-stat {
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 10px;
-  padding: .55rem .75rem;
-  text-align: center;
-  transition: background .18s, border-color .18s;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.dash-hero-stat:hover {
-  background: rgba(13,148,136,.14);
-  border-color: rgba(13,148,136,.32);
-}
-
-/* ── Hero action buttons — more prominent ── */
-.dash-hero .btn-white {
-  background: rgba(255,255,255,.1);
-  border-color: rgba(255,255,255,.18);
-  color: rgba(255,255,255,.9);
-  font-weight: 600;
-  letter-spacing: .01em;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  transition: background .16s, border-color .16s, transform .12s, box-shadow .16s;
-}
-.dash-hero .btn-white:hover {
-  background: rgba(13,148,136,.2);
-  border-color: rgba(13,148,136,.45);
-  color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13,148,136,.2);
-}
-
-/* ── Charts — premium card elevation ── */
+/* ── Chart card elevation ── */
 .dash-chart-main {
   box-shadow: 0 2px 12px rgba(0,0,0,.06);
   transition: box-shadow .18s;
 }
-.dash-chart-main:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,.09);
-}
+.dash-chart-main:hover { box-shadow: 0 6px 24px rgba(0,0,0,.09); }
 [data-theme="dark"] .dash-chart-main { box-shadow: 0 2px 12px rgba(0,0,0,.3); }
 [data-theme="dark"] .dash-chart-main:hover { box-shadow: 0 6px 24px rgba(0,0,0,.5); }
 
-/* ── Live badge — more premium pulse ── */
-.dash-live-badge {
-  font-size: .62rem;
-  font-weight: 700;
-  padding: .22rem .68rem;
-  border-radius: 99px;
-  letter-spacing: .03em;
-}
+/* ── Live badge pulse (ring ripple) ── */
 .dash-live-dot {
   width: 7px;
   height: 7px;
@@ -3031,7 +2927,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   50%       { opacity: .7; transform: scale(.85); box-shadow: 0 0 0 4px rgba(45,212,191,0); }
 }
 
-/* ── Responsive: today strip 2-col on tablet ── */
+/* ── Responsive: today strip ── */
 @media (max-width: 760px) {
   .dash-today-strip { grid-template-columns: 1fr 1fr; gap: .6rem; }
 }

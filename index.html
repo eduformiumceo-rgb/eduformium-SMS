@@ -1129,6 +1129,14 @@
             <div class="card-hd"><span class="card-title">Upcoming Exams</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('exams')">View all →</button></div>
             <div class="mini-list" id="dash-exams"></div>
           </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Absent Today <span class="badge badge-danger" id="dash-absent-count" style="display:none;margin-left:.3rem"></span></span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('attendance')">Take attendance →</button></div>
+            <div class="mini-list" id="dash-absent-today"></div>
+          </div>
+          <div class="card" id="dash-on-leave-panel">
+            <div class="card-hd"><span class="card-title">Staff on Leave Today <span class="badge badge-warn" id="dash-on-leave-count" style="display:none;margin-left:.3rem"></span></span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('leave')">View all →</button></div>
+            <div class="mini-list" id="dash-on-leave"></div>
+          </div>
         </div>
 
       </div>

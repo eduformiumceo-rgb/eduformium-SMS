@@ -1184,6 +1184,21 @@ const SMS = {
   },
 
   // ══ DASHBOARD ══
+  // ── Inline SVG sparkline from array of values (W×H viewBox) ──
+  _sparkline(values, W=80, H=36){
+    if(!values||values.length<2) return '';
+    const max=Math.max(...values), min=Math.min(...values);
+    const range=max-min||1;
+    const pad=3;
+    const pts=values.map((v,i)=>{
+      const x=pad+(i/(values.length-1))*(W-pad*2);
+      const y=H-pad-(((v-min)/range)*(H-pad*2));
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const trend=values[values.length-1]>=values[0]?'up':values[values.length-1]<values[0]?'down':'flat';
+    return `<svg class="kpi-sparkline kpi-sparkline-${trend}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="M${pts.join('L')}"/></svg>`;
+  },
+
   loadDashboard(){
     const role = this.currentUser?.role || 'staff';
     const isAdmin   = role === 'admin';
@@ -1341,10 +1356,14 @@ const SMS = {
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:trendBadge(studThisMonth,studPrevMonth,false,true),color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
-      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant']},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?attSub+' · '+attNum+'% avg':attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
+    // ── Sparkline data: fee totals for last 6 months ──
+    const _sparkKeys=[]; const _sparkData=[];
+    for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); _sparkKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); _sparkData.push(0); }
+    yearPayments.forEach(p=>{ if(!p.date) return; const idx=_sparkKeys.indexOf(p.date.substring(0,7)); if(idx>-1) _sparkData[idx]+=(+p.amount||0); });
     const visibleKpis=allKpis.filter(k=>k.roles.includes(role));
     document.getElementById('dash-kpis').innerHTML=visibleKpis.map(k=>`
       <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
@@ -1353,6 +1372,7 @@ const SMS = {
         <div class="kpi-label">${k.label}</div>
         <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
         ${k.trend||''}
+        ${k.sparkline?SMS._sparkline(_sparkData):''}
       </div>`).join('');
 
     // ── Hero stats: live numbers ──
@@ -1444,6 +1464,67 @@ const SMS = {
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgColor}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
     }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>'; }
+
+    // ── Absent Today panel ──
+    const absentEl=document.getElementById('dash-absent-today');
+    const absentBadge=document.getElementById('dash-absent-count');
+    if(absentEl){
+      const totalAbsent=todayAtt.reduce((s,a)=>s+(+a.absent||0),0);
+      if(absentBadge){ absentBadge.textContent=totalAbsent; absentBadge.style.display=totalAbsent>0?'inline-flex':'none'; }
+      if(todayAtt.length===0){
+        absentEl.innerHTML='<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No attendance taken yet today</div></div>';
+      } else if(totalAbsent===0){
+        absentEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>No absences today — full house!</div></div>';
+      } else {
+        absentEl.innerHTML=todayAtt.filter(a=>a.absent>0).map(a=>{
+          const cls=classes.find(c=>c.id===a.classId);
+          const lateStr=a.late>0?` · ${a.late} late`:'';
+          return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('attendance')">
+            <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${a.absent}</div>
+            <div style="flex:1;min-width:0">
+              <div class="mini-name">${sanitize(cls?.name||'Unknown Class')}</div>
+              <div class="mini-sub">${a.present} present${lateStr} · ${a.total} total</div>
+            </div>
+            <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:var(--danger);background:var(--danger-bg);padding:.2rem .5rem;border-radius:5px">absent</span></div>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    // ── Staff on Leave Today panel (admin/accountant only) ──
+    const onLeavePanel=document.getElementById('dash-on-leave-panel');
+    if(onLeavePanel) onLeavePanel.style.display=isFinance?'':'none';
+    if(isFinance){
+      const onLeaveEl=document.getElementById('dash-on-leave');
+      const onLeaveBadge=document.getElementById('dash-on-leave-count');
+      const onLeaveToday=leaves.filter(l=>{
+        if(l.status!=='approved') return false;
+        const from=new Date(l.from+'T00:00:00'), to=new Date(l.to+'T23:59:59');
+        return now>=from&&now<=to;
+      });
+      if(onLeaveBadge){ onLeaveBadge.textContent=onLeaveToday.length; onLeaveBadge.style.display=onLeaveToday.length>0?'inline-flex':'none'; }
+      if(onLeaveEl){
+        if(onLeaveToday.length===0){
+          onLeaveEl.innerHTML='<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All staff present today</div></div>';
+        } else {
+          onLeaveEl.innerHTML=onLeaveToday.map(l=>{
+            const s=staff.find(x=>x.id===l.staffId);
+            const leaveColors={Annual:'#0d9488',Sick:'#dc2626',Maternity:'#7c3aed',Paternity:'#1a3a6b',Emergency:'#d97706',Casual:'#16a34a'};
+            const col=leaveColors[l.type]||'#1a3a6b';
+            const toDate=new Date(l.to+'T00:00:00');
+            const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
+            return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
+              <div class="mini-av" style="background:${col}18;color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
+              <div style="flex:1;min-width:0">
+                <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
+                <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
+              </div>
+              <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
+            </div>`;
+          }).join('');
+        }
+      }
+    }
 
     // ── Sync status indicator ──
     this._updateSyncStatus();

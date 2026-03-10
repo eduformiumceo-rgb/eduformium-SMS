@@ -2239,6 +2239,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .kpi-trend-down { background: rgba(252,129,129,.12); color: #fc8181; }
 [data-theme="dark"] .kpi-trend-flat { background: rgba(255,255,255,.05); color: var(--t4); }
 
+/* ── KPI Sparkline ── */
+.kpi-sparkline { position:absolute; bottom:0; right:0; width:80px; height:36px; pointer-events:none; opacity:.55; }
+.kpi-sparkline path { fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.kpi-sparkline-up   path { stroke:#0d9488; }
+.kpi-sparkline-down path { stroke:var(--danger); }
+.kpi-sparkline-flat path { stroke:var(--t4); }
+[data-theme="dark"] .kpi-sparkline { opacity:.4; }
+
 /* ── Sync Status Pill (hero) ── */
 .dash-sync-pill {
   display: inline-flex;

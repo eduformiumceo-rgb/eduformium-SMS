@@ -2154,7 +2154,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 /* ── 1100px: panels go 2-col ── */
 @media (max-width:1100px) {
-  #page-dashboard .dash-panels { grid-template-columns:1fr 1fr; }
+  #page-dashboard .dash-panels,
+  #page-dashboard .dash-panels[data-cols="2"],
+  #page-dashboard .dash-panels[data-cols="3"] { grid-template-columns:1fr 1fr; }
 }
 
 /* ── 960px: charts stack ── */
@@ -2163,8 +2165,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-charts-side       { flex-direction:row; gap:.75rem; }
   .dash-charts-side .card { flex:1; }
   .dash-chart-box-sm      { height:162px; }
-  /* 6 cols too cramped on mid-size tablets — switch to 3 */
-  #page-dashboard .kpi-grid { grid-template-columns:repeat(3,1fr); }
+  /* 6 cols too cramped on mid-size tablets — switch to 3; include data-cols variants to beat specificity */
+  #page-dashboard .kpi-grid,
+  #page-dashboard .kpi-grid[data-cols="3"],
+  #page-dashboard .kpi-grid[data-cols="4"],
+  #page-dashboard .kpi-grid[data-cols="5"],
+  #page-dashboard .kpi-grid[data-cols="6"] { grid-template-columns:repeat(3,1fr); }
 }
 
 /* ── 760px: hero stacks, strip + KPIs go 2-col ── */
@@ -2182,14 +2188,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-hero-actions            { width:100%; }
   .dash-hero-actions .btn-white { flex:1; justify-content:center; font-size:.67rem; }
   .dash-sync-pill               { margin-top:.3rem; }
-  .dash-today-strip             { grid-template-columns:1fr 1fr; gap:.6rem; }
-  /* auto-fill naturally collapses; force 2-col below 760 */
-  #page-dashboard .kpi-grid     { grid-template-columns:1fr 1fr; gap:.65rem; }
+  .dash-today-strip,
+  .dash-today-strip[data-cols="2"],
+  .dash-today-strip[data-cols="3"],
+  .dash-today-strip[data-cols="4"]          { grid-template-columns:1fr 1fr; gap:.6rem; }
+  /* include data-cols variants to beat higher specificity */
+  #page-dashboard .kpi-grid,
+  #page-dashboard .kpi-grid[data-cols="3"],
+  #page-dashboard .kpi-grid[data-cols="4"],
+  #page-dashboard .kpi-grid[data-cols="5"],
+  #page-dashboard .kpi-grid[data-cols="6"]  { grid-template-columns:1fr 1fr; gap:.65rem; }
   #page-dashboard .kpi-val      { font-size:1.3rem; }
   .dash-charts-side             { flex-direction:column; }
   .dash-chart-box-tall          { height:210px; }
   .dash-chart-box-sm            { height:150px; }
-  #page-dashboard .dash-panels  { grid-template-columns:1fr 1fr; }
+  #page-dashboard .dash-panels,
+  #page-dashboard .dash-panels[data-cols="2"],
+  #page-dashboard .dash-panels[data-cols="3"] { grid-template-columns:1fr 1fr; }
   .page-wrap                    { padding:1rem; }
 }
 
@@ -2199,14 +2214,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-hero-stat               { padding:.4rem .35rem; }
   .dash-hero-stat-val           { font-size:.95rem; letter-spacing:-.03em; }
   .dash-hero-stat-lbl           { font-size:.46rem; letter-spacing:.03em; }
-  .dash-today-strip             { grid-template-columns:1fr 1fr; gap:.5rem; }
+  .dash-today-strip,
+  .dash-today-strip[data-cols="2"],
+  .dash-today-strip[data-cols="3"],
+  .dash-today-strip[data-cols="4"]          { grid-template-columns:1fr 1fr; gap:.5rem; }
   .dash-today-tile              { padding:.5rem .7rem; gap:.5rem; }
   .dash-today-val               { font-size:.95rem; }
   .dash-today-icon              { width:30px; height:30px; }
-  #page-dashboard .kpi-grid     { grid-template-columns:1fr 1fr; gap:.5rem; }
+  #page-dashboard .kpi-grid,
+  #page-dashboard .kpi-grid[data-cols="3"],
+  #page-dashboard .kpi-grid[data-cols="4"],
+  #page-dashboard .kpi-grid[data-cols="5"],
+  #page-dashboard .kpi-grid[data-cols="6"]  { grid-template-columns:1fr 1fr; gap:.5rem; }
   #page-dashboard .kpi-card     { padding:.85rem .9rem .8rem; }
   #page-dashboard .kpi-val      { font-size:1.2rem; }
-  #page-dashboard .dash-panels  { grid-template-columns:1fr; }
+  #page-dashboard .dash-panels,
+  #page-dashboard .dash-panels[data-cols="2"],
+  #page-dashboard .dash-panels[data-cols="3"] { grid-template-columns:1fr; }
   .dash-hero-actions .btn-white { padding:.3rem .5rem; font-size:.64rem; }
   .page-wrap                    { padding:.75rem; }
 }

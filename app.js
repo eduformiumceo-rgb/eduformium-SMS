@@ -365,6 +365,8 @@ const SMS = {
   _studPage: 1,
   _staffPage: 1,
   _auditPage: 1,
+  _dashRefreshTimer: null,   // auto-refresh interval handle
+  _syncStatus: 'idle',       // 'idle' | 'syncing' | 'synced' | 'offline'
 
   // Minimum ms the loading screen stays visible — ensures it's seen on fast/cached loads
   _loadStart: 0,
@@ -606,6 +608,11 @@ const SMS = {
     const schoolName=DB.get('school',{}).name||'Eduformium SMS';
     const pageName=ne?.textContent.trim()||page.charAt(0).toUpperCase()+page.slice(1);
     document.title=`${pageName} — ${schoolName}`;
+    // Stop dashboard auto-refresh when leaving the dashboard page
+    if(page !== 'dashboard' && this._dashRefreshTimer){
+      clearInterval(this._dashRefreshTimer);
+      this._dashRefreshTimer = null;
+    }
     this.currentPage=page;
     document.getElementById('sidebar')?.classList.remove('open');
     document.getElementById('sidebar-overlay')?.classList.remove('show');
@@ -1137,6 +1144,12 @@ const SMS = {
 
   // ══ DASHBOARD ══
   loadDashboard(){
+    const role = this.currentUser?.role || 'staff';
+    const isAdmin      = role === 'admin';
+    const isFinance    = role === 'admin' || role === 'accountant';
+    const isTeacherOnly = role === 'teacher';
+    const isLibrarianOnly = role === 'librarian';
+
     const students=DB.get('students',[]);
     const staff=DB.get('staff',[]);
     const classes=DB.get('classes',[]);
@@ -1150,22 +1163,79 @@ const SMS = {
     const todayStr=localDateStr();
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
     const now=new Date();
-    // Attendance rate
+
+    // ── Attendance rate ──
     let attRate='—', attSub='No data yet', attNum=null;
     if(todayAtt.length>0){
       attNum=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100);
       attRate=attNum+'%'; attSub="Today's average";
     } else {
-      // Fix: require d<=n (exclude future records) AND within last 7 days
       const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)>=0&&(n-d)<=7*864e5; });
       if(week.length>0){ attNum=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100); attRate=attNum+'%'; attSub='7-day average'; }
     }
-    // Defaulters: only current term of current year
+
+    // ── Defaulters: current term of current year ──
     const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
-    // Attendance colour helper
+
+    // ── Outstanding fees total ──
+    let totalOutstanding=0;
+    students.filter(s=>s.status==='active').forEach(s=>{
+      const yfs=getYearStructure(s.classId,_academicYear);
+      if(!yfs) return;
+      const yf=getYearFees(s,_academicYear);
+      [1,2,3].forEach(t=>{ totalOutstanding+=Math.max(0,(+(yfs['term'+t]||0))-(+(yf['term'+t]||0))); });
+    });
+
+    // ── Attendance colour helper ──
     const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
 
-    // ── TODAY AT A GLANCE strip ──
+    // ── KPI Trend helper: returns HTML badge ──
+    const trendBadge=(current,previous,isCurrency=false,higherIsBetter=true)=>{
+      if(previous===null||previous===undefined||isNaN(previous)||isNaN(current)) return '';
+      const diff=current-previous;
+      if(diff===0) return '<span class="kpi-trend kpi-trend-flat">→ No change</span>';
+      const pct=previous>0?Math.abs(Math.round(diff/previous*100)):'—';
+      const up=diff>0;
+      const isGood=(up&&higherIsBetter)||(!up&&!higherIsBetter);
+      const arrow=up?'↑':'↓';
+      const cls=isGood?'kpi-trend-up':'kpi-trend-down';
+      const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff):pct+'%');
+      return `<span class="kpi-trend ${cls}">${arrow} ${label} vs last month</span>`;
+    };
+
+    // ── Compute prior-month data for trends ──
+    const nowM=new Date(); const prevMStart=new Date(nowM.getFullYear(),nowM.getMonth()-1,1); const prevMEnd=new Date(nowM.getFullYear(),nowM.getMonth(),0);
+    const prevMKey=`${prevMStart.getFullYear()}-${String(prevMStart.getMonth()+1).padStart(2,'0')}`;
+    const currMKey=`${nowM.getFullYear()}-${String(nowM.getMonth()+1).padStart(2,'0')}`;
+    const feeThisMonth=payments.filter(p=>p.date&&p.date.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const feePrevMonth=payments.filter(p=>p.date&&p.date.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const studThisMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(currMKey)).length;
+    const studPrevMonth=students.filter(s=>s.admitDate&&s.admitDate.startsWith(prevMKey)).length;
+    // Attendance trend: this week avg vs last week avg
+    const _now=new Date(); const _dow=_now.getDay();
+    const _thisMonday=new Date(_now); _thisMonday.setDate(_now.getDate()-(_dow===0?6:_dow-1)); _thisMonday.setHours(0,0,0,0);
+    const _lastMonday=new Date(_thisMonday); _lastMonday.setDate(_thisMonday.getDate()-7);
+    const _lastSunday=new Date(_thisMonday); _lastSunday.setDate(_thisMonday.getDate()-1);
+    const thisWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_thisMonday&&d<=_now; });
+    const lastWeekRecs=attRecords.filter(a=>{ const d=new Date(a.date); return d>=_lastMonday&&d<=_lastSunday; });
+    const avgRateOf=recs=>recs.length?Math.round(recs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/recs.length*100):null;
+    const attThisWeek=avgRateOf(thisWeekRecs);
+    const attLastWeek=avgRateOf(lastWeekRecs);
+    const attTrend=(attThisWeek!==null&&attLastWeek!==null)?trendBadge(attThisWeek,attLastWeek,false,true):'';
+
+    // ── Hero: third stat (outstanding fees — finance roles only) ──
+    const heroOutEl=document.getElementById('dash-hero-outstanding');
+    if(heroOutEl){
+      if(isFinance){
+        heroOutEl.closest('.dash-hero-stat').style.display='';
+        heroOutEl.textContent=totalOutstanding>0?fmt(totalOutstanding):'₵0.00';
+        heroOutEl.style.color=totalOutstanding>0?'var(--danger)':'var(--success)';
+      } else {
+        heroOutEl.closest('.dash-hero-stat').style.display='none';
+      }
+    }
+
+    // ── TODAY AT A GLANCE strip (role-filtered) ──
     const todayPayments=payments.filter(p=>p.date===todayStr);
     const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const attClassesToday=todayAtt.length;
@@ -1173,21 +1243,22 @@ const SMS = {
     const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=now&&(d-now)<=7*864e5; }).length;
     const stripEl=document.getElementById('dash-today-strip');
     if(stripEl){
-      const tiles=[
+      const allTiles=[
         {icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
           label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
-          color:'#0d9488',page:'fees'},
+          color:'#0d9488',page:'fees',roles:['admin','accountant']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
           label:'Attendance Today',val:attClassesToday>0?attRate:'—',sub:attClassesToday>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked`:'No sessions marked',
-          color:'#0d9488',page:'attendance'},
+          color:'#0d9488',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
           label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
-          color:'#1a3a6b',page:'exams'},
+          color:'#1a3a6b',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
           label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
-          color:'#1a3a6b',page:'leave'},
+          color:'#1a3a6b',page:'leave',roles:['admin','accountant']},
       ];
-      stripEl.innerHTML=tiles.map(t=>`
+      const visibleTiles=allTiles.filter(t=>t.roles.includes(role));
+      stripEl.innerHTML=visibleTiles.map(t=>`
         <div class="dash-today-tile dash-tile-${t.color==='#0d9488'?'teal':'navy'}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
           <div class="dash-today-icon">${t.icon}</div>
           <div class="dash-today-body">
@@ -1198,27 +1269,31 @@ const SMS = {
         </div>`).join('');
     }
 
-    // KPI cards — with trend context line
-    const kpis=[
-      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue',page:'students'},
-      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'blue',page:'staff'},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'blue',page:'classes'},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'teal',warn:defaulters.length>0,featured:true,page:'fees'},
-      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal',featured:true,page:'attendance'},
-      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue',page:'library'},
+    // ── KPI cards (role-filtered + trend arrows) ──
+    const allKpis=[
+      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:trendBadge(studThisMonth,studPrevMonth,false,true),color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
+      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
+      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant']},
+      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
+      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
-    document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
+    const visibleKpis=allKpis.filter(k=>k.roles.includes(role));
+    document.getElementById('dash-kpis').innerHTML=visibleKpis.map(k=>`
       <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>
         <div class="kpi-label">${k.label}</div>
         <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
+        ${k.trend||''}
       </div>`).join('');
-    // Hero stats — live numbers
+
+    // ── Hero stats: live numbers ──
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
     const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); heroAtt.className='dash-hero-stat-val'; }
-    this.renderDashCharts(students,classes,payments,attRecords);
-    // Recent students — two-color class pills (navy / teal), no rainbow
+    this.renderDashCharts(students,classes,payments,attRecords,role);
+
+    // ── Recent students ──
     const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
@@ -1233,7 +1308,8 @@ const SMS = {
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`;
     }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
-    // Events
+
+    // ── Upcoming Events ──
     const events=DB.get('events',[]);
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
@@ -1251,26 +1327,40 @@ const SMS = {
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
     }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
-    // Defaulters — with actual amount owed
-    const defBadge=document.getElementById('dash-defaulters-count');
-    if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
-    document.getElementById('dash-defaulters').innerHTML=defaulters.slice(0,5).map(s=>{
-      const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
-      const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
-      const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
-      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
-        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
-        <div style="flex:1;min-width:0">
-          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub">${this.className(s.classId)}</div>
-        </div>
-        <div class="mini-right" style="text-align:right">
-          <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
-          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">outstanding</div>
-        </div>
-      </div>`;
-    }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
-    // Upcoming Exams panel
+
+    // ── Fee Defaulters panel (finance roles only) ──
+    const defPanel=document.getElementById('dash-defaulters-panel');
+    if(defPanel) defPanel.style.display=isFinance?'':'none';
+    if(isFinance){
+      const defBadge=document.getElementById('dash-defaulters-count');
+      if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
+      const defList=document.getElementById('dash-defaulters');
+      if(defList){
+        defList.innerHTML=defaulters.slice(0,5).map(s=>{
+          const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
+          const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
+          const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
+          return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
+            <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
+            <div style="flex:1;min-width:0">
+              <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+              <div class="mini-sub">${this.className(s.classId)}</div>
+            </div>
+            <div class="mini-right" style="text-align:right">
+              <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
+              <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">outstanding</div>
+            </div>
+          </div>`;
+        }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
+        // "and X more" footer
+        if(defaulters.length>5){
+          const extra=defaulters.length-5;
+          defList.innerHTML+=`<div class="dash-panel-more" onclick="SMS.nav('fees')" title="View all defaulters in Fees module">+${extra} more defaulter${extra!==1?'s':''} — <span>View all</span></div>`;
+        }
+      }
+    }
+
+    // ── Upcoming Exams panel ──
     const _parseExamDate=d=>new Date(d.includes('T')?d:d+'T00:00:00');
     const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=now).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
@@ -1287,9 +1377,50 @@ const SMS = {
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgColor}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
     }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>'; }
+
+    // ── Sync status indicator ──
+    this._updateSyncStatus();
+
+    // ── Auto-refresh: start 60-second interval if not already running ──
+    if(!this._dashRefreshTimer){
+      this._dashRefreshTimer=setInterval(()=>{
+        if(document.getElementById('page-dashboard')?.classList.contains('active')){
+          this.loadDashboard();
+        } else {
+          clearInterval(this._dashRefreshTimer);
+          this._dashRefreshTimer=null;
+        }
+      }, 60000);
+    }
   },
 
-  renderDashCharts(students,classes,payments,attRecords){
+  // ── Sync status helper ──
+  _updateSyncStatus(){
+    const el=document.getElementById('dash-sync-status');
+    if(!el) return;
+    const isOnline=navigator.onLine;
+    const hasFirebase=!!window.FAuth;
+    let icon,label,cls;
+    if(!isOnline){
+      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>';
+      label='Offline — local data'; cls='sync-offline';
+    } else if(!hasFirebase){
+      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>';
+      label='Local mode'; cls='sync-local';
+    } else {
+      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>';
+      label='Synced'; cls='sync-ok';
+    }
+    el.className=`dash-sync-pill ${cls}`;
+    el.innerHTML=`${icon}<span>${label}</span>`;
+  },
+
+
+  renderDashCharts(students,classes,payments,attRecords,role='admin'){
+    const isFinance=(role==='admin'||role==='accountant');
+    // Hide fee collection chart panel for non-finance roles
+    const feeChartCard=document.getElementById('dash-fee-chart-card');
+    if(feeChartCard) feeChartCard.style.display=isFinance?'':'none';
     const isDark=document.documentElement.getAttribute('data-theme')==='dark';
     const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
     const tickColor=isDark?'#64748b':'#94a3b8';

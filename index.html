@@ -1022,6 +1022,10 @@
                 <div class="dash-hero-stat-val" id="dash-hero-att">—</div>
                 <div class="dash-hero-stat-lbl">Attendance</div>
               </div>
+              <div class="dash-hero-stat">
+                <div class="dash-hero-stat-val" id="dash-hero-outstanding">—</div>
+                <div class="dash-hero-stat-lbl">Outstanding</div>
+              </div>
             </div>
             <div class="dash-hero-actions">
               <button class="btn btn-white btn-sm" id="dash-refresh-btn" title="Refresh">
@@ -1041,6 +1045,10 @@
                 Attendance
               </button>
             </div>
+            <div class="dash-sync-pill sync-ok" id="dash-sync-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Synced</span>
+            </div>
           </div>
         </div>
 
@@ -1055,7 +1063,7 @@
         <div class="dash-section-label">Analytics</div>
         <div class="dash-charts-layout">
           <!-- Fee collection — wide -->
-          <div class="card dash-chart-main">
+          <div class="card dash-chart-main" id="dash-fee-chart-card">
             <div class="dash-chart-hd">
               <div class="dash-chart-hd-left">
                 <div class="dash-chart-title">Fee Collection</div>
@@ -1113,7 +1121,7 @@
             <div class="card-hd"><span class="card-title">Upcoming Events</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('events')">View all →</button></div>
             <div class="mini-list" id="dash-events"></div>
           </div>
-          <div class="card">
+          <div class="card" id="dash-defaulters-panel">
             <div class="card-hd"><span class="card-title">Fee Defaulters <span class="badge badge-danger" id="dash-defaulters-count" style="display:none;margin-left:.3rem"></span></span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('fees')">View all →</button></div>
             <div class="mini-list" id="dash-defaulters"></div>
           </div>

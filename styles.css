@@ -2733,3 +2733,308 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border: 4px solid transparent; border-top-color: var(--t1);
 }
 .kpi-sparkline-wrap:hover .kpi-spark-tip { opacity: 1; transform: translateY(0); }
+
+/* ═══════════════════════════════════════════════════════════════
+   DASHBOARD 10/10 POLISH — Premium upgrades
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Section labels — more premium, with gradient accent ── */
+.dash-section-label {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin: 1.35rem 0 .75rem;
+}
+.dash-section-label::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(180deg, var(--brand) 0%, var(--brand-teal) 100%);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.dash-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+}
+[data-theme="dark"] .dash-section-label::before {
+  background: linear-gradient(180deg, #93c5fd 0%, #2dd4bf 100%);
+}
+[data-theme="dark"] .dash-section-label { color: var(--t3); }
+
+/* ── Today strip — 4-tile layout, tighter on mobile ── */
+.dash-today-strip {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ── Today tile — premium hover glow per color ── */
+.dash-tile-teal:hover {
+  box-shadow: 0 6px 20px rgba(13,148,136,.15), 0 2px 6px rgba(0,0,0,.06);
+}
+.dash-tile-navy:hover {
+  box-shadow: 0 6px 20px rgba(5,41,95,.12), 0 2px 6px rgba(0,0,0,.06);
+}
+[data-theme="dark"] .dash-tile-teal:hover {
+  box-shadow: 0 6px 20px rgba(45,212,191,.15), 0 2px 6px rgba(0,0,0,.25);
+}
+[data-theme="dark"] .dash-tile-navy:hover {
+  box-shadow: 0 6px 20px rgba(59,130,246,.15), 0 2px 6px rgba(0,0,0,.25);
+}
+
+/* ── Today tile sub-text — slightly more readable ── */
+.dash-today-sub { font-size: .62rem; color: var(--t4); margin-top: .12rem; line-height: 1.35; }
+
+/* ── Panel cards — per-card left border accent for visual identity ── */
+#page-dashboard .dash-panels .card {
+  border-left: 3px solid transparent;
+  transition: box-shadow .18s cubic-bezier(.22,1,.36,1), transform .14s, border-color .16s;
+}
+#page-dashboard .dash-panels .card:nth-child(1) { border-left-color: #05295f; }
+#page-dashboard .dash-panels .card:nth-child(2) { border-left-color: #0d9488; }
+#page-dashboard .dash-panels .card:nth-child(3) { border-left-color: #dc2626; }
+#page-dashboard .dash-panels .card:nth-child(4) { border-left-color: #d97706; }
+#page-dashboard .dash-panels .card:nth-child(5) { border-left-color: #7c3aed; }
+#page-dashboard .dash-panels .card:nth-child(6) { border-left-color: #0d9488; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(1) { border-left-color: #93c5fd; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(2) { border-left-color: #5eead4; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(3) { border-left-color: #fca5a5; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(4) { border-left-color: #fcd34d; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(5) { border-left-color: #c4b5fd; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(6) { border-left-color: #5eead4; }
+
+/* ── Panel dot colors for nth-child 5 & 6 ── */
+#page-dashboard .dash-panels .card:nth-child(5) .card-title::before { background: #7c3aed; }
+#page-dashboard .dash-panels .card:nth-child(6) .card-title::before { background: #0d9488; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(5) .card-title::before { background: #c4b5fd; }
+[data-theme="dark"] #page-dashboard .dash-panels .card:nth-child(6) .card-title::before { background: #5eead4; }
+
+/* ── Panel card hover — refined per-card glow ── */
+#page-dashboard .dash-panels .card:nth-child(1):hover { box-shadow: 0 6px 22px rgba(5,41,95,.1); }
+#page-dashboard .dash-panels .card:nth-child(2):hover { box-shadow: 0 6px 22px rgba(13,148,136,.1); }
+#page-dashboard .dash-panels .card:nth-child(3):hover { box-shadow: 0 6px 22px rgba(220,38,38,.1); }
+#page-dashboard .dash-panels .card:nth-child(4):hover { box-shadow: 0 6px 22px rgba(217,119,6,.1); }
+#page-dashboard .dash-panels .card:nth-child(5):hover { box-shadow: 0 6px 22px rgba(124,58,237,.1); }
+#page-dashboard .dash-panels .card:nth-child(6):hover { box-shadow: 0 6px 22px rgba(13,148,136,.1); }
+
+/* ── Panel card header — more polished ── */
+#page-dashboard .dash-panels .card-hd {
+  background: var(--surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+#page-dashboard .dash-panels .card-title {
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  display: flex;
+  align-items: center;
+  gap: .42rem;
+}
+
+/* ── Panel "View all" ghost button — more polished ── */
+#page-dashboard .dash-panels .btn-ghost {
+  font-size: .67rem;
+  font-weight: 600;
+  color: var(--t4);
+  padding: .22rem .55rem;
+  border-radius: 6px;
+  transition: color .13s, background .13s;
+}
+#page-dashboard .dash-panels .btn-ghost:hover {
+  color: var(--brand);
+  background: var(--brand-lt);
+}
+[data-theme="dark"] #page-dashboard .dash-panels .btn-ghost:hover {
+  color: #93c5fd;
+  background: rgba(59,130,246,.1);
+}
+
+/* ── Mini list items — richer hover + tighter spacing ── */
+#page-dashboard .mini-item {
+  padding: .58rem 1rem;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+#page-dashboard .mini-item:last-of-type { border-bottom: none; }
+#page-dashboard .mini-item:hover { background: var(--surface-2); }
+#page-dashboard .mini-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: .66rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Empty state panels — more refined look ── */
+.dash-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: 2.2rem 1.25rem;
+  color: var(--t4);
+  font-size: .78rem;
+  font-weight: 500;
+  text-align: center;
+  border-radius: var(--radius);
+}
+.dash-empty-panel svg { opacity: .28; }
+.dash-empty-ok {
+  color: var(--success) !important;
+  background: var(--success-bg);
+  border-radius: var(--radius);
+  margin: .5rem;
+}
+.dash-empty-ok svg { stroke: var(--success); opacity: .6 !important; }
+
+/* ── "X more" panel footer — premium style ── */
+.dash-panel-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  padding: .6rem 1rem;
+  font-size: .71rem;
+  font-weight: 600;
+  color: var(--t4);
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  transition: background .14s, color .14s;
+  letter-spacing: .01em;
+}
+.dash-panel-more:hover { background: var(--hover); color: var(--brand-teal); }
+.dash-panel-more span {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+[data-theme="dark"] .dash-panel-more span  { color: #5eead4; }
+[data-theme="dark"] .dash-panel-more:hover { color: #5eead4; }
+
+/* ── Sync pill — premium pill look ── */
+.dash-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .62rem;
+  font-weight: 700;
+  padding: .28rem .72rem;
+  border-radius: 99px;
+  border: 1px solid transparent;
+  letter-spacing: .02em;
+  margin-top: .55rem;
+  align-self: flex-start;
+  transition: opacity .2s;
+}
+
+/* ── KPI card — subtler hover lift ── */
+#page-dashboard .kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.1);
+}
+[data-theme="dark"] #page-dashboard .kpi-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+
+/* ── Hero — slightly richer gradient ── */
+.dash-hero {
+  background: linear-gradient(135deg, #05295f 0%, #0a3d6e 50%, #0d3d5c 100%);
+}
+[data-theme="dark"] .dash-hero {
+  background: linear-gradient(135deg, #040e1a 0%, #071828 60%, #061622 100%);
+}
+
+/* ── Hero stat pills — richer feel ── */
+.dash-hero-stat {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  padding: .55rem .75rem;
+  text-align: center;
+  transition: background .18s, border-color .18s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dash-hero-stat:hover {
+  background: rgba(13,148,136,.14);
+  border-color: rgba(13,148,136,.32);
+}
+
+/* ── Hero action buttons — more prominent ── */
+.dash-hero .btn-white {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.18);
+  color: rgba(255,255,255,.9);
+  font-weight: 600;
+  letter-spacing: .01em;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: background .16s, border-color .16s, transform .12s, box-shadow .16s;
+}
+.dash-hero .btn-white:hover {
+  background: rgba(13,148,136,.2);
+  border-color: rgba(13,148,136,.45);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13,148,136,.2);
+}
+
+/* ── Charts — premium card elevation ── */
+.dash-chart-main {
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  transition: box-shadow .18s;
+}
+.dash-chart-main:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,.09);
+}
+[data-theme="dark"] .dash-chart-main { box-shadow: 0 2px 12px rgba(0,0,0,.3); }
+[data-theme="dark"] .dash-chart-main:hover { box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+
+/* ── Live badge — more premium pulse ── */
+.dash-live-badge {
+  font-size: .62rem;
+  font-weight: 700;
+  padding: .22rem .68rem;
+  border-radius: 99px;
+  letter-spacing: .03em;
+}
+.dash-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0d9488;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(13,148,136,.4); }
+  50%       { opacity: .7; transform: scale(.85); box-shadow: 0 0 0 4px rgba(13,148,136,0); }
+}
+[data-theme="dark"] .dash-live-dot {
+  background: #2dd4bf;
+  animation: live-pulse-dark 2s ease-in-out infinite;
+}
+@keyframes live-pulse-dark {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(45,212,191,.4); }
+  50%       { opacity: .7; transform: scale(.85); box-shadow: 0 0 0 4px rgba(45,212,191,0); }
+}
+
+/* ── Responsive: today strip 2-col on tablet ── */
+@media (max-width: 760px) {
+  .dash-today-strip { grid-template-columns: 1fr 1fr; gap: .6rem; }
+}
+@media (max-width: 480px) {
+  .dash-today-strip { grid-template-columns: 1fr 1fr; gap: .5rem; }
+}

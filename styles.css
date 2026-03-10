@@ -1762,7 +1762,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .dash-hero-stats-row { display:flex; align-items:center; gap:.45rem; }
 .dash-hero-stat {
   background:rgba(13,148,136,.08); border:1px solid rgba(13,148,136,.18);
-  border-radius:var(--radius); padding:.5rem .9rem; text-align:center; min-width:76px;
+  border-radius:var(--radius); padding:.5rem .75rem; text-align:center; min-width:0;
   transition: background .16s, border-color .16s;
 }
 .dash-hero-stat:hover { background:rgba(13,148,136,.14); border-color:rgba(13,148,136,.32); }
@@ -2060,10 +2060,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   }
   .dash-hero-greeting           { font-size:1.1rem; white-space:normal; margin-bottom:.3rem; }
   .dash-hero-right              { align-items:flex-start; width:100%; }
-  .dash-hero-stats-row          { width:100%; }
-  .dash-hero-stat               { flex:1; }
+  .dash-hero-stats-row          { width:100%; gap:.4rem; }
+  .dash-hero-stat               { flex:1; min-width:0; padding:.45rem .5rem; }
+  .dash-hero-stat-val           { font-size:1.05rem; }
+  .dash-hero-stat-lbl           { font-size:.5rem; letter-spacing:.04em; }
   .dash-hero-actions            { width:100%; }
   .dash-hero-actions .btn-white { flex:1; justify-content:center; font-size:.67rem; }
+  .dash-sync-pill               { margin-top:.3rem; }
   .dash-today-strip             { grid-template-columns:1fr 1fr; gap:.6rem; }
   /* auto-fill naturally collapses; force 2-col below 760 */
   #page-dashboard .kpi-grid     { grid-template-columns:1fr 1fr; gap:.65rem; }
@@ -2077,6 +2080,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 /* ── 480px: mobile single column ── */
 @media (max-width:480px) {
+  .dash-hero-stats-row          { gap:.3rem; }
+  .dash-hero-stat               { padding:.4rem .35rem; }
+  .dash-hero-stat-val           { font-size:.95rem; letter-spacing:-.03em; }
+  .dash-hero-stat-lbl           { font-size:.46rem; letter-spacing:.03em; }
   .dash-today-strip             { grid-template-columns:1fr 1fr; gap:.5rem; }
   .dash-today-tile              { padding:.5rem .7rem; gap:.5rem; }
   .dash-today-val               { font-size:.95rem; }

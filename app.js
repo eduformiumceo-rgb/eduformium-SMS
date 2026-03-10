@@ -1183,7 +1183,8 @@ const SMS = {
       const yfs=getYearStructure(s.classId,_academicYear);
       if(!yfs) return;
       const yf=getYearFees(s,_academicYear);
-      [1,2,3].forEach(t=>{ totalOutstanding+=Math.max(0,(+(yfs['term'+t]||0))-(+(yf['term'+t]||0))); });
+      // Only current term — matches what is shown in the hero term pill
+      totalOutstanding+=Math.max(0,(+(yfs['term'+_currentTerm]||0))-(+(yf['term'+_currentTerm]||0)));
     });
 
     // Attendance colour — always renders on dark hero (#071830), use coral not flat red

@@ -3827,26 +3827,32 @@ const SMS = {
       const payments=DB.get('feePayments',[]).filter(p=>p.academicYear===y.year);
       const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
       const structCount=DB.get('feeStructure',[]).filter(f=>f.year===y.year).length;
+      const _termRows=[1,2,3].filter(t=>y[`t${t}Start`]||y[`t${t}End`]).map(t=>`<div class="ay-meta-item"><svg class="ay-meta-icon ay-meta-icon--term" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="ay-term-tag">T${t}</span>${y[`t${t}Start`]?fmtDate(y[`t${t}Start`]):'?'} &rarr; ${y[`t${t}End`]?fmtDate(y[`t${t}End`]):'?'}</div>`).join('');
       return `<div class="ay-card${isCurrent?' ay-card-current':''}">
-        <div class="ay-card-left">
-          <div class="ay-year-badge${isCurrent?' ay-year-badge-current':''}">${y.year}</div>
-          ${isCurrent?'<span class="badge badge-success" style="font-size:.62rem">Current Year</span>':''}
+        <div class="ay-card-header">
+          <div class="ay-card-left">
+            <div class="ay-year-badge${isCurrent?' ay-year-badge-current':''}">${y.year}</div>
+            ${isCurrent?'<span class="badge badge-success ay-current-badge">Current</span>':''}
+          </div>
+          <div class="ay-card-actions">
+            ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')" title="Set as active year">Set Current</button>`:''}
+            <button class="btn btn-secondary btn-sm" onclick="SMS.openEditTermDatesModal('${y.year}')" title="Set term start and end dates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Term Dates</button>
+            <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')" title="Edit fee structure">Fee Structure</button>
+            <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')" title="Enter or review payments">Enter Fee Data</button>
+            ${!isCurrent?`<button class="btn btn-ghost btn-sm ay-delete-btn" onclick="SMS.deleteAcademicYear('${y.year}')" title="Delete this year"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
+          </div>
         </div>
-        <div class="ay-card-meta">
-          <div class="ay-meta-item"><span>📅</span> Academic Year: ${y.startDate?fmtDate(y.startDate):'—'} → ${y.endDate?fmtDate(y.endDate):'—'}</div>
-          ${y.t1Start||y.t1End?`<div class="ay-meta-item"><span>📌</span> Term 1: ${y.t1Start?fmtDate(y.t1Start):'?'} → ${y.t1End?fmtDate(y.t1End):'?'}</div>`:''}
-          ${y.t2Start||y.t2End?`<div class="ay-meta-item"><span>📌</span> Term 2: ${y.t2Start?fmtDate(y.t2Start):'?'} → ${y.t2End?fmtDate(y.t2End):'?'}</div>`:''}
-          ${y.t3Start||y.t3End?`<div class="ay-meta-item"><span>📌</span> Term 3: ${y.t3Start?fmtDate(y.t3Start):'?'} → ${y.t3End?fmtDate(y.t3End):'?'}</div>`:''}
-          ${!y.t1Start&&!y.t2Start&&!y.t3Start?`<div class="ay-meta-item" style="color:var(--t4);font-style:italic"><span>⚠️</span> Term dates not set — using estimated thirds</div>`:''}
-          <div class="ay-meta-item"><span>🏫</span> ${structCount}/${classes.length} class fee structures set</div>
-          <div class="ay-meta-item"><span>💰</span> ${fmt(totalCollected)} collected (${payments.length} payments)</div>
-        </div>
-        <div class="ay-card-actions">
-          ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')">Set as Current</button>`:''}
-          <button class="btn btn-secondary btn-sm" onclick="SMS.openEditTermDatesModal('${y.year}')">📌 Term Dates</button>
-          <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')">Fee Structure</button>
-          <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')">Enter Fee Data</button>
-          ${!isCurrent?`<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="SMS.deleteAcademicYear('${y.year}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
+        <div class="ay-card-body">
+          <div class="ay-meta-group">
+            <div class="ay-meta-item"><svg class="ay-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> <span class="ay-meta-label">Academic Year</span>${y.startDate?fmtDate(y.startDate):'—'} &rarr; ${y.endDate?fmtDate(y.endDate):'—'}</div>
+          </div>
+          <div class="ay-meta-group">
+            ${_termRows||`<div class="ay-meta-item ay-meta-warn"><svg class="ay-meta-icon ay-meta-icon--warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Term dates not set &mdash; using estimated thirds</div>`}
+          </div>
+          <div class="ay-meta-group ay-meta-stats">
+            <div class="ay-stat-chip"><svg class="ay-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> ${structCount}/${classes.length} fee structures</div>
+            <div class="ay-stat-chip"><svg class="ay-meta-icon ay-meta-icon--fee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> ${fmt(totalCollected)} collected (${payments.length} payment${payments.length!==1?'s':''})</div>
+          </div>
         </div>
       </div>`;
     }).join('')||'<div style="color:var(--t4);font-size:.85rem;padding:1rem">No academic years configured yet.</div>';

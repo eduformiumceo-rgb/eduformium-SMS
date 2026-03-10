@@ -579,7 +579,6 @@ const SMS = {
     const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
     const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${u.name.split(' ')[0]}! Here's your school overview.`;
     const heroToday=document.getElementById('dash-hero-today'); if(heroToday){ const dn=new Date(); heroToday.textContent=dn.toLocaleDateString('default',{day:'numeric',month:'short'}); } // legacy fallback
-    const heroTerm=document.getElementById('dash-hero-term'); if(heroTerm){ const school=DB.get('school',{}); heroTerm.textContent=school.currentTerm?'T'+school.currentTerm:'T1'; }
     // New hero elements
     const _sch=DB.get('school',{});
     const _dn=new Date();
@@ -1155,11 +1154,10 @@ const SMS = {
       attNum=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100);
       attRate=attNum+'%'; attSub="Today's average";
     } else {
-      const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)<=7*864e5; });
+      // Fix: require d<=n (exclude future records) AND within last 7 days
+      const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)>=0&&(n-d)<=7*864e5; });
       if(week.length>0){ attNum=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100); attRate=attNum+'%'; attSub='7-day average'; }
     }
-    // Fee defaulters count for KPI
-    const feeStr=DB.get('feeStructure',[]);
     // Defaulters: only current term of current year
     const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
     // Attendance colour helper
@@ -1170,7 +1168,7 @@ const SMS = {
     const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const attClassesToday=todayAtt.length;
     const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
-    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date); return d>=now&&(d-now)<=7*864e5; }).length;
+    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=now&&(d-now)<=7*864e5; }).length;
     const stripEl=document.getElementById('dash-today-strip');
     if(stripEl){
       const tiles=[
@@ -1216,16 +1214,16 @@ const SMS = {
       </div>`).join('');
     // Hero stats — live numbers
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
-    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=''; heroAtt.className='dash-hero-stat-val'; }
+    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); heroAtt.className='dash-hero-stat-val'; }
     this.renderDashCharts(students,classes,payments,attRecords);
     // Recent students — two-color class pills (navy / teal), no rainbow
     const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
-    const recent=[...students].sort((a,b)=>new Date(b.admitDate)-new Date(a.admitDate)).slice(0,5);
+    const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
       const ci=classes.findIndex(c=>c.id===s.classId);
       const clsColor=clsPalette[ci%clsPalette.length]||'#1a3a6b';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
-        <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${s.fname[0]}${s.lname[0]}</div>
+        <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
           <div class="mini-sub"><span style="background:${clsColor}18;color:${clsColor};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${this.className(s.classId)}</span> · ${s.studentId}</div>
@@ -1259,7 +1257,7 @@ const SMS = {
       const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
       const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
-        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
+        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
           <div class="mini-sub">${this.className(s.classId)}</div>
@@ -1271,10 +1269,11 @@ const SMS = {
       </div>`;
     }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
     // Upcoming Exams panel
-    const upcomingExams=[...exams].filter(e=>e.date&&new Date(e.date)>=now).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
+    const _parseExamDate=d=>new Date(d.includes('T')?d:d+'T00:00:00');
+    const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=now).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
     if(examEl){ examEl.innerHTML=upcomingExams.map(e=>{
-      const daysLeft=Math.ceil((new Date(e.date)-now)/(1000*60*60*24));
+      const daysLeft=Math.ceil((_parseExamDate(e.date)-now)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
       const urgColor=daysLeft<=2?'var(--danger)':daysLeft<=7?'var(--warn)':'var(--brand)';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('exams')">
@@ -1299,7 +1298,7 @@ const SMS = {
     const ctx1=document.getElementById('chart-enrollment');
     if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
-      const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
+      const data=classes.map(c=>students.filter(s=>s.classId===c.id&&s.status==='active').length);
       this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:isDark?'rgba(59,130,246,0.7)':'rgba(26,58,107,0.75)',borderRadius:5}]},options:{...chartDefaults,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:tickColor},grid:{color:gridColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('students')}});
       ctx1.style.cursor='pointer';
     }

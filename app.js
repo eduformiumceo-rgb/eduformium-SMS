@@ -1186,8 +1186,8 @@ const SMS = {
       [1,2,3].forEach(t=>{ totalOutstanding+=Math.max(0,(+(yfs['term'+t]||0))-(+(yf['term'+t]||0))); });
     });
 
-    // ── Attendance colour helper ──
-    const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
+    // Attendance colour — always renders on dark hero (#071830), use coral not flat red
+    const attColor=n=>n===null?'rgba(255,255,255,.38)':n>=90?'#14b8a6':n>=75?'#fbbf24':'#ff6b6b';
 
     // ── KPI Trend helper: returns HTML badge ──
     const trendBadge=(current,previous,isCurrency=false,higherIsBetter=true)=>{
@@ -1561,11 +1561,13 @@ const SMS = {
           attData.push(rate);
           const alpha=isToday?1:0.82;
           if(isDark){
-            attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(248,113,113,${alpha})`);
-            attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(248,113,113,1)');
+            // Dark mode: coral (#fc8181) on dark chart surface — legible and professional
+            attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(252,129,129,${alpha})`);
+            attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(252,129,129,1)');
           } else {
-            attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(220,38,38,${alpha===1?0.95:0.78})`);
-            attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(220,38,38,1)');
+            // Light mode: deeper coral (#e05252) on white chart surface — more polished than #dc2626
+            attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(224,82,82,${alpha===1?0.95:0.78})`);
+            attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(224,82,82,1)');
           }
         } else {
           attData.push(0);
@@ -3199,7 +3201,7 @@ const SMS = {
 
   renderExpenseCharts(bycat,expenses){
     const ctx1=document.getElementById('chart-expenses'); if(ctx1){ if(this._charts.exp) this._charts.exp.destroy(); const labels=Object.keys(bycat); const data=labels.map(k=>bycat[k]); const colors=['#1a3a6b','#0d9488','#d97706','#dc2626','#7c3aed','#16a34a']; this._charts.exp=new Chart(ctx1,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}}); }
-    const ctx2=document.getElementById('chart-expense-trend'); if(ctx2){ if(this._charts.expTrend) this._charts.expTrend.destroy(); const months=['Jan','Feb','Mar','Apr','May']; const mData=months.map((_,i)=>expenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+(+e.amount||0),0)); this._charts.expTrend=new Chart(ctx2,{type:'bar',data:{labels:months,datasets:[{data:mData,backgroundColor:'rgba(220,38,38,0.7)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}}); }
+    const ctx2=document.getElementById('chart-expense-trend'); if(ctx2){ if(this._charts.expTrend) this._charts.expTrend.destroy(); const months=['Jan','Feb','Mar','Apr','May']; const mData=months.map((_,i)=>expenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+(+e.amount||0),0)); this._charts.expTrend=new Chart(ctx2,{type:'bar',data:{labels:months,datasets:[{data:mData,backgroundColor:'rgba(224,82,82,0.75)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}}); }
   },
 
   // ══ MESSAGES ══

@@ -2872,30 +2872,36 @@ const SMS = {
   // ══ FEE REMINDER (Alert/Simulate SMS) ══
   sendFeeReminder(studentId){
     const s=DB.get('students',[]).find(x=>x.id===studentId); if(!s) return;
-    const feeStructure=DB.get('feeStructure',[]);
     const fs=getYearStructure(s.classId,_academicYear);
-    const _ryf=getYearFees(s,_academicYear);
-    const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-    const owed1=Math.max(0,t1-(+(_ryf.term1||0)));
-    const owed2=Math.max(0,t2-(+(_ryf.term2||0)));
-    const owed3=Math.max(0,t3-(+(_ryf.term3||0)));
-    const total=owed1+owed2+owed3;
+    const yf=getYearFees(s,_academicYear);
+    // Use _studentOwed: only active terms (enrollTerm → _currentTerm) — matches defaulters table exactly
+    const total=this._studentOwed(s,_academicYear);
+    // Build per-active-term breakdown
+    const enrollTerm=Math.min(3,Math.max(1,+(s.enrollTerm||1)));
+    const curr=Math.min(3,Math.max(1,+_currentTerm));
+    const termRows=[];
+    for(let t=enrollTerm;t<=curr;t++){
+      const due=+(fs?fs['term'+t]||0:0);
+      const paid=+(yf['term'+t]||0);
+      const owed=Math.max(0,due-paid);
+      if(due>0) termRows.push(`<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--border);font-size:.82rem"><span style="color:var(--t2)">Term ${t}</span><span style="font-weight:700;color:${owed>0?'var(--danger)':'var(--success)'}">${owed>0?fmt(owed):'Paid'}</span></div>`);
+    }
     const school=DB.get('school',{});
-    const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
-    // Show simulated reminder modal
+    const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)} for Term ${_currentTerm}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
     document.getElementById('receipt-title').textContent='Fee Reminder Preview';
     document.getElementById('receipt-body').innerHTML=`
       <div style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:10px;padding:1rem;margin-bottom:1rem">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem">SMS Message to ${s.dadPhone||'No phone on record'}</div>
         <div style="font-size:.88rem;color:var(--t1);line-height:1.6">${msg}</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem;margin-bottom:.75rem">
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">AMOUNT OWED</div><div style="font-weight:700;color:var(--danger)">${fmt(total)}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">TOTAL OWED</div><div style="font-weight:800;color:var(--danger);font-size:.95rem">${fmt(total)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||s.momPhone||'Not on record'}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
       </div>
-      <div style="margin-top:1rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
+      ${termRows.length?`<div style="margin-bottom:.75rem"><div style="font-size:.7rem;color:var(--t4);font-weight:700;margin-bottom:.35rem">TERM BREAKDOWN (up to Term ${_currentTerm})</div>${termRows.join('')}</div>`:''}
+      <div style="margin-top:.5rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
         <svg style="width:13px;height:13px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Configure your SMS gateway in Settings → SMS Notifications to send real messages. This preview shows what will be sent.
       </div>`;
     this.audit('Fee Reminder','create',`Fee reminder sent to parent of ${sanitize(s.fname)} ${sanitize(s.lname)}`);

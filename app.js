@@ -1289,44 +1289,128 @@ const SMS = {
 
   renderDashCharts(students,classes,payments,attRecords){
     const isDark=document.documentElement.getAttribute('data-theme')==='dark';
-    const gridColor=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)';
+    const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
     const tickColor=isDark?'#64748b':'#94a3b8';
-    const emptyBarColor=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.07)';
-    const chartDefaults={ responsive:true, maintainAspectRatio:false };
+    const emptyBarColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
 
-    // ── Enrollment by class ──
-    const ctx1=document.getElementById('chart-enrollment');
-    if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
-      const labels=classes.map(c=>c.name);
-      const data=classes.map(c=>students.filter(s=>s.classId===c.id&&s.status==='active').length);
-      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:isDark?'rgba(59,130,246,0.7)':'rgba(26,58,107,0.75)',borderRadius:5}]},options:{...chartDefaults,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1,color:tickColor},grid:{color:gridColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('students')}});
-      ctx1.style.cursor='pointer';
-    }
-    // ── Fee collection — real data, last 6 months ──
+    // Shared plugin defaults
+    Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
+
+    // ── Fee Collection — gradient area line chart ──
     const ctx2=document.getElementById('chart-fees');
     if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
-      const now=new Date();
+      const now2=new Date();
       const feeKeys=[],feeLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
-        const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+        const d=new Date(now2.getFullYear(),now2.getMonth()-i,1);
         feeKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-        feeLabels.push(d.toLocaleString('default',{month:'short'}));
+        feeLabels.push(d.toLocaleString('default',{month:'short',year:'2-digit'}));
         feeData.push(0);
       }
       payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
       const hasAnyFee=feeData.some(v=>v>0);
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       const tealLine=isDark?'#2dd4bf':'#0d9488';
-      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:feeLabels,datasets:[{data:feeData,borderColor:tealLine,backgroundColor:isDark?'rgba(45,212,191,0.08)':'rgba(13,148,136,0.09)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:tealLine,pointRadius:4,pointHoverRadius:6}]},options:{...chartDefaults,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${sym}${ctx.parsed.y.toLocaleString()}`}}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{callback:v=>sym+v.toLocaleString(),color:tickColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('fees')}});
+      const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
+      grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
+      grad2.addColorStop(1,'rgba(0,0,0,0)');
+      // Update summary stat
+      const totalCollected=feeData.reduce((a,b)=>a+b,0);
+      const feeStatEl=document.getElementById('dash-fee-total-stat');
+      if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';
+      this._charts.fees=new Chart(ctx2,{
+        type:'line',
+        data:{labels:feeLabels,datasets:[{
+          data:feeData, borderColor:tealLine, backgroundColor:grad2,
+          borderWidth:2.5, tension:0.42, fill:true,
+          pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
+          pointBorderWidth:2, pointRadius:5, pointHoverRadius:7,
+          pointHoverBackgroundColor:tealLine, pointHoverBorderWidth:2.5,
+        }]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:{duration:700,easing:'easeInOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:isDark?'#1e293b':'#0f172a',
+              titleColor:isDark?'#94a3b8':'#94a3b8',
+              bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b',
+              borderWidth:1,
+              padding:{top:10,bottom:10,left:14,right:14},
+              cornerRadius:10,
+              titleFont:{size:11,weight:'500'},
+              bodyFont:{size:13,weight:'700'},
+              callbacks:{
+                label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
+                title:items=>`${items[0].label}  •  Fee Collection`,
+              }
+            }
+          },
+          scales:{
+            y:{
+              beginAtZero:true, grid:{color:gridColor,drawBorder:false},
+              border:{display:false},
+              ticks:{callback:v=>sym+(v>=1000?(v/1000).toFixed(v%1000?1:0)+'k':v),color:tickColor,font:{size:11},maxTicksLimit:5},
+            },
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
+          },
+          onClick:()=>SMS.nav('fees'),
+        }
+      });
       ctx2.style.cursor='pointer';
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
-    // ── Attendance — real data, last 7 days ──
+
+    // ── Enrollment by Class — horizontal bar ──
+    const ctx1=document.getElementById('chart-enrollment');
+    if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
+      const labels=classes.map(c=>c.name);
+      const data=classes.map(c=>students.filter(s=>s.classId===c.id&&s.status==='active').length);
+      const total=data.reduce((a,b)=>a+b,0);
+      const enrollStatEl=document.getElementById('dash-enroll-total-stat');
+      if(enrollStatEl) enrollStatEl.textContent=total||'—';
+      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(26,58,107,0.8)';
+      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(26,58,107,1)';
+      this._charts.enrollment=new Chart(ctx1,{
+        type:'bar',
+        data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:{duration:600,easing:'easeInOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:isDark?'#1e293b':'#0f172a',
+              titleColor:'#94a3b8', bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+              callbacks:{
+                label:ctx=>`  ${ctx.parsed.y} student${ctx.parsed.y!==1?'s':''}`,
+                title:items=>`${items[0].label}`,
+              }
+            }
+          },
+          scales:{
+            y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
+          },
+          onClick:()=>SMS.nav('students'),
+        }
+      });
+      ctx1.style.cursor='pointer';
+    }
+
+    // ── Attendance Rate — segmented bar with colour zones ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
       const recs=attRecords||DB.get('attendance',[]);
-      const attKeys=[],attLabels=[],attData=[],attColors=[];
+      const attKeys=[],attLabels=[],attData=[],attColors=[],attHover=[];
       for(let i=6;i>=0;i--){
         const d=new Date(); d.setDate(d.getDate()-i);
         const key=d.toISOString().split('T')[0];
@@ -1336,16 +1420,53 @@ const SMS = {
         if(dayRecs.length>0){
           const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
           attData.push(rate);
-          attColors.push(isDark
-            ? (rate>=90?'rgba(45,212,191,0.8)':rate>=75?'rgba(251,191,36,0.8)':'rgba(248,113,113,0.75)')
-            : (rate>=90?'rgba(13,148,136,0.8)':rate>=75?'rgba(217,119,6,0.8)':'rgba(220,38,38,0.75)'));
+          if(isDark){
+            attColors.push(rate>=90?'rgba(45,212,191,0.82)':rate>=75?'rgba(251,191,36,0.82)':'rgba(248,113,113,0.82)');
+            attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(248,113,113,1)');
+          } else {
+            attColors.push(rate>=90?'rgba(13,148,136,0.82)':rate>=75?'rgba(217,119,6,0.82)':'rgba(220,38,38,0.78)');
+            attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(220,38,38,1)');
+          }
         } else {
-          attData.push(null);
-          attColors.push(emptyBarColor);
+          attData.push(null); attColors.push(emptyBarColor); attHover.push(emptyBarColor);
         }
       }
       const hasAttData=attData.some(v=>v!==null);
-      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:attLabels,datasets:[{data:attData,backgroundColor:attColors,borderRadius:4}]},options:{...chartDefaults,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y!==null?ctx.parsed.y+'%':'No data'}}},scales:{y:{min:hasAttData?60:0,max:100,grid:{color:gridColor},ticks:{callback:v=>v+'%',color:tickColor}},x:{grid:{display:false},ticks:{color:tickColor}}},onClick:()=>SMS.nav('attendance')}});
+      const validRates=attData.filter(v=>v!==null);
+      const avgRate=validRates.length?Math.round(validRates.reduce((a,b)=>a+b,0)/validRates.length):null;
+      const attAvgEl=document.getElementById('dash-att-avg-stat');
+      if(attAvgEl) attAvgEl.textContent=avgRate!==null?avgRate+'%':'—';
+      this._charts.att=new Chart(ctx3,{
+        type:'bar',
+        data:{labels:attLabels,datasets:[{
+          data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
+          borderRadius:6, borderSkipped:false,
+        }]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:{duration:600,easing:'easeInOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:isDark?'#1e293b':'#0f172a',
+              titleColor:'#94a3b8', bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+              callbacks:{
+                label:ctx=>ctx.parsed.y!==null?`  ${ctx.parsed.y}%  attendance`:'  No data',
+                title:items=>items[0].label,
+              }
+            }
+          },
+          scales:{
+            y:{min:hasAttData?55:0,max:100,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{callback:v=>v+'%',color:tickColor,font:{size:11},maxTicksLimit:5}},
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
+          },
+          onClick:()=>SMS.nav('attendance'),
+        }
+      });
       ctx3.style.cursor='pointer';
       const sub3=document.getElementById('dash-att-sub');
       if(sub3) sub3.textContent=hasAttData?'Last 7 days':'No records yet';

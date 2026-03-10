@@ -1055,34 +1055,46 @@
         <div class="dash-section-label">Analytics</div>
         <div class="dash-charts-layout">
           <!-- Fee collection — wide -->
-          <div class="card dash-chart-main" style="cursor:pointer" onclick="SMS.nav('fees')" title="Click to view all fees">
-            <div class="card-hd">
-              <div>
-                <div class="card-title">Fee Collection</div>
-                <div class="card-subtitle" id="dash-fee-sub">Last 6 months</div>
+          <div class="card dash-chart-main" style="cursor:pointer" onclick="SMS.nav('fees')" title="Go to Fees">
+            <div class="dash-chart-hd">
+              <div class="dash-chart-hd-left">
+                <div class="dash-chart-title">Fee Collection</div>
+                <div class="dash-chart-sub" id="dash-fee-sub">Last 6 months</div>
               </div>
-              <span style="font-size:.65rem;font-weight:600;color:var(--brand-teal);background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.18);border-radius:99px;padding:.18rem .6rem;display:inline-flex;align-items:center;gap:.3rem">
-                <span style="width:5px;height:5px;background:#0d9488;border-radius:50%;display:inline-block"></span>Live
+              <div class="dash-chart-hd-right">
+                <div class="dash-chart-stat" id="dash-fee-total-stat">—</div>
+                <div class="dash-chart-stat-lbl">Total Collected</div>
+              </div>
+              <span class="dash-live-badge">
+                <span class="dash-live-dot"></span>Live
               </span>
             </div>
             <div class="dash-chart-box-tall"><canvas id="chart-fees"></canvas></div>
           </div>
           <!-- Right column — two stacked -->
           <div class="dash-charts-side">
-            <div class="card" style="cursor:pointer" onclick="SMS.nav('students')" title="Click to view students">
-              <div class="card-hd">
-                <div>
-                  <div class="card-title">Enrollment by Class</div>
-                  <div class="card-subtitle">Students per class</div>
+            <div class="card" style="cursor:pointer" onclick="SMS.nav('students')" title="Go to Students">
+              <div class="dash-chart-hd">
+                <div class="dash-chart-hd-left">
+                  <div class="dash-chart-title">Enrollment</div>
+                  <div class="dash-chart-sub">Active students per class</div>
+                </div>
+                <div class="dash-chart-hd-right">
+                  <div class="dash-chart-stat" id="dash-enroll-total-stat">—</div>
+                  <div class="dash-chart-stat-lbl">Total Active</div>
                 </div>
               </div>
               <div class="dash-chart-box-sm"><canvas id="chart-enrollment"></canvas></div>
             </div>
-            <div class="card" style="cursor:pointer" onclick="SMS.nav('attendance')" title="Click to view attendance">
-              <div class="card-hd">
-                <div>
-                  <div class="card-title">Attendance Rate</div>
-                  <div class="card-subtitle" id="dash-att-sub">Last 7 days</div>
+            <div class="card" style="cursor:pointer" onclick="SMS.nav('attendance')" title="Go to Attendance">
+              <div class="dash-chart-hd">
+                <div class="dash-chart-hd-left">
+                  <div class="dash-chart-title">Attendance Rate</div>
+                  <div class="dash-chart-sub" id="dash-att-sub">Last 7 days</div>
+                </div>
+                <div class="dash-chart-hd-right">
+                  <div class="dash-chart-stat" id="dash-att-avg-stat">—</div>
+                  <div class="dash-chart-stat-lbl">Avg Rate</div>
                 </div>
               </div>
               <div class="dash-chart-box-sm"><canvas id="chart-attendance"></canvas></div>
@@ -2602,6 +2614,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <!-- App -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="firebase.js"></script>
 <script src="app.js"></script>

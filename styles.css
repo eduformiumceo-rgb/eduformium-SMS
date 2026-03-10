@@ -1940,6 +1940,36 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .dash-chart-box-sm   { padding:.5rem 1rem 1.1rem; height:152px; }
 .dash-chart-box-sm   canvas { width:100% !important; height:100% !important; }
 [data-theme="dark"] .dash-charts-layout .card { background:var(--surface); border-color:var(--border); }
+
+/* ── Professional chart card headers ── */
+.dash-chart-hd {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  padding: 1rem 1.25rem .85rem;
+  border-bottom: 1px solid var(--border);
+}
+.dash-chart-hd-left { flex: 1; min-width: 0; }
+.dash-chart-title { font-size: .88rem; font-weight: 700; color: var(--t1); letter-spacing: -.01em; }
+.dash-chart-sub   { font-size: .72rem; color: var(--t3); margin-top: .1rem; font-weight: 500; }
+.dash-chart-hd-right { text-align: right; }
+.dash-chart-stat  { font-size: 1.15rem; font-weight: 800; color: var(--brand-teal); letter-spacing: -.03em; line-height: 1; }
+.dash-chart-stat-lbl { font-size: .65rem; color: var(--t4); font-weight: 500; margin-top: .15rem; text-transform: uppercase; letter-spacing: .04em; }
+.dash-live-badge  {
+  font-size: .63rem; font-weight: 700; color: var(--brand-teal);
+  background: rgba(13,148,136,.08); border: 1px solid rgba(13,148,136,.2);
+  border-radius: 99px; padding: .2rem .65rem;
+  display: inline-flex; align-items: center; gap: .35rem; align-self: flex-start; margin-top: .1rem;
+}
+.dash-live-dot {
+  width: 6px; height: 6px; background: #0d9488; border-radius: 50%;
+  animation: dash-pulse 1.8s ease-in-out infinite;
+}
+@keyframes dash-pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:.4; transform:scale(.7); }
+}
+[data-theme="dark"] .dash-live-badge { background:rgba(45,212,191,.08); border-color:rgba(45,212,191,.2); color:#5eead4; }
+[data-theme="dark"] .dash-live-dot   { background:#2dd4bf; }
+[data-theme="dark"] .dash-chart-stat { color:#5eead4; }
 [data-theme="dark"] .card-title    { color:var(--t1); }
 [data-theme="dark"] .card-subtitle { color:var(--t3); }
 

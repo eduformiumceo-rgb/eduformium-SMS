@@ -640,24 +640,23 @@ const SMS = {
     document.getElementById('topbar-school-name').textContent=school.name||'School';
     document.getElementById('sb-school-name').textContent=school.name||'School';
     const u=this.currentUser;
-    const initials=u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+    const initials=(u.name||'User').split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()||'U';
     ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=initials; if(u.avatar){ el.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; } }});
-    const el=document.getElementById('user-chip-name'); if(el) el.textContent=u.name.split(' ')[0];
+    const el=document.getElementById('user-chip-name'); if(el) el.textContent=(u.name||'User').split(' ')[0]||'User';
     const er=document.getElementById('user-chip-role'); if(er) er.textContent=this.roleLabel(u.role);
     const sn=document.getElementById('sb-user-name'); if(sn) sn.textContent=u.name;
     const sr=document.getElementById('sb-user-role'); if(sr) sr.textContent=this.roleLabel(u.role);
     const av=document.getElementById('av-preview'); if(av){ av.textContent=initials; if(u.avatar) av.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; }
     const h=new Date().getHours();
     const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-    const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${u.name.split(' ')[0]}! Here's your school overview.`;
+    const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${(u.name||'User').split(' ')[0]||'User'}! Here's your school overview.`;
     const heroToday=document.getElementById('dash-hero-today'); if(heroToday){ const dn=new Date(); heroToday.textContent=dn.toLocaleDateString('default',{day:'numeric',month:'short'}); } // legacy fallback
-    // New hero elements
-    const _sch=DB.get('school',{});
+    // New hero elements — reuse school already fetched above
     const _dn=new Date();
-    const hsn=document.getElementById('dash-hero-school-name'); if(hsn) hsn.textContent=_sch.name||'Eduformium SMS';
+    const hsn=document.getElementById('dash-hero-school-name'); if(hsn) hsn.textContent=school.name||'Eduformium SMS';
     const htf=document.getElementById('dash-hero-today-full'); if(htf) htf.textContent=_dn.toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-    const hyr=document.getElementById('dash-hero-year'); if(hyr) hyr.textContent=_sch.academicYear||'—';
-    const htr=document.getElementById('dash-hero-term'); if(htr) htr.textContent=_sch.currentTerm||'—';
+    const hyr=document.getElementById('dash-hero-year'); if(hyr) hyr.textContent=school.academicYear||'—';
+    const htr=document.getElementById('dash-hero-term'); if(htr) htr.textContent=school.currentTerm||'—';
   },
 
   roleLabel(r){ return {admin:'Administrator',teacher:'Teacher',accountant:'Accountant',librarian:'Librarian',staff:'Staff'}[r]||r; },
@@ -1385,7 +1384,7 @@ const SMS = {
     const attClassesToday=todayAtt.length;
     const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
     const _todayStart=new Date(todayStr+'T00:00:00');
-    
+
     // ── Homework & messages ──
     const unreadMessages=messages.filter(m=>!m.read&&(!m.tab||m.tab==='inbox')).length;
 
@@ -1462,9 +1461,15 @@ const SMS = {
         label:'Attendance Today',val:todayAttVal,
         sub:todayTotal>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked · ${todayAvgPct}`:'No sessions marked',
         cls:'teal',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+        label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
+        cls:'navy',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
       {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
         label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
         cls:'navy',page:'leave',roles:['admin','accountant']},
+      {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+        label:'Homework Due',val:hwDueToday+hwOverdue,sub:hwDueToday+hwOverdue===0?'Nothing pending':hwDueToday>0?`${hwDueToday} due today${hwOverdue>0?` · ${hwOverdue} overdue`:''}`:hwOverdue>0?`${hwOverdue} overdue`:'',
+        cls:'navy',page:'homework',roles:['admin','teacher','staff']},
       {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
         label:'Messages',val:unreadMessages||0,sub:unreadMessages===0?'All read':`${unreadMessages} unread`,
         cls:'teal',page:'messages',roles:['admin','teacher','staff','accountant','librarian']},
@@ -1795,6 +1800,7 @@ const SMS = {
       const total=data.reduce((a,b)=>a+b,0);
       const enrollStatEl=document.getElementById('dash-enroll-total-stat');
       if(enrollStatEl) enrollStatEl.textContent=total||'—';
+      const _enrBox=ctx1.closest('.dash-chart-box-sm'); if(_enrBox){ let _enrEmp=_enrBox.querySelector('.dash-chart-empty'); if(!_enrEmp){ _enrEmp=document.createElement('div'); _enrEmp.className='dash-chart-empty'; _enrBox.style.position='relative'; _enrBox.appendChild(_enrEmp); } _enrEmp.style.display=labels.length===0?'flex':'none'; _enrEmp.innerHTML=labels.length===0?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg><span>No classes added yet</span>':''; }
       const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
       const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
       this._charts.enrollment=new Chart(ctx1,{
@@ -1876,6 +1882,7 @@ const SMS = {
       const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
       const attAvgEl=document.getElementById('dash-att-avg-stat');
       if(attAvgEl) attAvgEl.textContent=weekTotalPossible>0?`${weekTotalPresent}/${weekTotalPossible}`:'—';
+      const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.style.position='relative'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; _attEmp.innerHTML=_noAtt?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>':''; }
       const isLastWeek=(_dow===0||_dow===6);
       const maxTotal=Math.max(...attTotals,1);
       this._charts.att=new Chart(ctx3,{

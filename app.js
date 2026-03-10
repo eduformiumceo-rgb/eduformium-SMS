@@ -1261,7 +1261,8 @@ const SMS = {
       const fe=document.getElementById('dash-freshness');
       if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
     },30000);
-    const _fp=`${d.students.length}|${d.classes.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
+    const _activeCount=d.students.filter(s=>s.status==='active').length;
+    const _fp=`${d.students.length}|${_activeCount}|${d.classes.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role); }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
@@ -1296,7 +1297,7 @@ const SMS = {
     const active=students.filter(s=>s.status==='active').length;
 
     // ── Term Attendance (field-based first, fallback to date-range, then thirds) ──
-    let attRate='—', attSub=`Term ${_currentTerm} students`, attNum=null;
+    let attRate='—', attSub=`Term ${_currentTerm} attendance`, attNum=null;
     const _ayInfo=(school.academicYears||[]).find(y=>y.year===_academicYear);
     const _ayStart=_ayInfo?.startDate?new Date(_ayInfo.startDate):null;
     const _ayEnd=_ayInfo?.endDate?new Date(_ayInfo.endDate):null;

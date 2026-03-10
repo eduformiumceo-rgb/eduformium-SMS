@@ -1333,10 +1333,10 @@ const SMS = {
           color:'#0d9488',page:'attendance',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
           label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
-          color:'#1a3a6b',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
+          color:'#05295f',page:'exams',roles:['admin','teacher','staff','accountant','librarian']},
         {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
           label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
-          color:'#1a3a6b',page:'leave',roles:['admin','accountant']},
+          color:'#05295f',page:'leave',roles:['admin','accountant']},
       ];
       const visibleTiles=allTiles.filter(t=>t.roles.includes(role));
       stripEl.innerHTML=visibleTiles.map(t=>`
@@ -1378,17 +1378,17 @@ const SMS = {
 
     // ── Hero stats: live numbers ──
     const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
-    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); heroAtt.className='dash-hero-stat-val'; }
+    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attNum!==null?'#14b8a6':'rgba(255,255,255,.38)'; heroAtt.className='dash-hero-stat-val'; }
     // Only re-render charts if underlying data has actually changed
     const _fp=`${students.length}|${payments.length}|${attRecords.length}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(students,classes,payments,attRecords,role); }
 
     // ── Recent students ──
-    const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
+    const clsPalette=['#05295f','#0d9488','#05295f','#0d9488','#05295f','#0d9488','#05295f','#0d9488'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
       const ci=classes.findIndex(c=>c.id===s.classId);
-      const clsColor=clsPalette[ci%clsPalette.length]||'#1a3a6b';
+      const clsColor=clsPalette[ci%clsPalette.length]||'#05295f';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
         <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -1402,10 +1402,10 @@ const SMS = {
     // ── Upcoming Events ──
     const events=DB.get('events',[]);
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=_todayStart).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
-    const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
+    const evColors={exam:'#05295f',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
     const evIcons={exam:'📝',academic:'🎓',sports:'⚽',holiday:'🏖️',meeting:'📅',cultural:'🎭'};
     document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
-      const col=evColors[e.type]||'#1a3a6b';
+      const col=evColors[e.type]||'#05295f';
       const daysLeft=Math.ceil((new Date(e.start)-now)/(1000*60*60*24));
       const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('events')">
@@ -1510,8 +1510,8 @@ const SMS = {
         } else {
           onLeaveEl.innerHTML=onLeaveToday.map(l=>{
             const s=staff.find(x=>x.id===l.staffId);
-            const leaveColors={Annual:'#0d9488',Sick:'#dc2626',Maternity:'#7c3aed',Paternity:'#1a3a6b',Emergency:'#d97706',Casual:'#16a34a'};
-            const col=leaveColors[l.type]||'#1a3a6b';
+            const leaveColors={Annual:'#0d9488',Sick:'#dc2626',Maternity:'#7c3aed',Paternity:'#05295f',Emergency:'#d97706',Casual:'#16a34a'};
+            const col=leaveColors[l.type]||'#05295f';
             const toDate=new Date(l.to+'T00:00:00');
             const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
             return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
@@ -1649,8 +1649,8 @@ const SMS = {
       const total=data.reduce((a,b)=>a+b,0);
       const enrollStatEl=document.getElementById('dash-enroll-total-stat');
       if(enrollStatEl) enrollStatEl.textContent=total||'—';
-      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(26,58,107,0.8)';
-      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(26,58,107,1)';
+      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
+      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
       this._charts.enrollment=new Chart(ctx1,{
         type:'bar',
         data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},

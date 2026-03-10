@@ -1554,7 +1554,7 @@ const SMS = {
         <div class="mini-av" style="background:${bg};color:${col}">${_evSvg[e.type]||_evFallback}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.title)}</div>
-          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
+          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+sanitize(e.venue):''}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;

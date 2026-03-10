@@ -582,7 +582,7 @@
       <div class="ps-divider">or</div>
 
       <div class="ps-secondary">
-        <a href="/cdn-cgi/l/email-protection#2d4849584b425f40445840034e48426d4a404c4441034e4240125e584f47484e59106c4e4e42584359081f1d6c4e59445b4c59444243081f1d7f485c58485e59" class="ps-sec-btn" target="_blank">
+        <a href="mailto:eduformium.ceo@gmail.com" class="ps-sec-btn" target="_blank">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Email Us Instead
         </a>
@@ -991,39 +991,119 @@
 
       <!-- ── DASHBOARD ── -->
       <div id="page-dashboard" class="page active">
-        <div class="ph">
-          <div>
-            <div class="ph-title">Dashboard</div>
-            <div class="ph-sub" id="dash-welcome">Good morning! Here's your school overview.</div>
+
+        <!-- ── Hero Banner ── -->
+        <div class="dash-hero">
+          <div class="dash-hero-left">
+            <div class="dash-hero-eyebrow" id="dash-hero-school-name">Eduformium SMS</div>
+            <div class="dash-hero-greeting" id="dash-welcome">Good morning! Here's your overview.</div>
+            <div class="dash-hero-meta">
+              <span class="dash-hero-meta-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span id="dash-hero-today-full">—</span>
+              </span>
+              <span class="dash-hero-meta-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><circle cx="12" cy="12" r="10"/></svg>
+                Year <span id="dash-hero-year">—</span>
+              </span>
+              <span class="dash-hero-meta-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+                Term <span id="dash-hero-term">—</span>
+              </span>
+            </div>
           </div>
-          <div class="ph-right">
-            <button class="btn btn-ghost btn-sm" id="dash-refresh-btn" title="Refresh Dashboard">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
-            </button>
-            <button class="btn btn-primary btn-sm" onclick="SMS.nav('students')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Enroll Student
-            </button>
+          <div class="dash-hero-right">
+            <div class="dash-hero-stats-row">
+              <div class="dash-hero-stat">
+                <div class="dash-hero-stat-val" id="dash-hero-active">—</div>
+                <div class="dash-hero-stat-lbl">Active Students</div>
+              </div>
+              <div class="dash-hero-stat">
+                <div class="dash-hero-stat-val" id="dash-hero-att">—</div>
+                <div class="dash-hero-stat-lbl">Attendance</div>
+              </div>
+            </div>
+            <div class="dash-hero-actions">
+              <button class="btn btn-white btn-sm" id="dash-refresh-btn" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                Refresh
+              </button>
+              <button class="btn btn-white btn-sm" onclick="SMS.nav('students');SMS.openStudentModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Enroll
+              </button>
+              <button class="btn btn-white btn-sm" onclick="SMS.nav('fees');SMS.openFeeModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Collect Fee
+              </button>
+              <button class="btn btn-white btn-sm" onclick="SMS.nav('attendance')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+                Attendance
+              </button>
+            </div>
           </div>
         </div>
-        <!-- KPI Cards -->
+
+        <!-- ── Today at a Glance Strip ── -->
+        <div class="dash-today-strip" id="dash-today-strip"></div>
+
+        <!-- ── KPI Cards ── -->
+        <div class="dash-section-label">Key Metrics</div>
         <div class="kpi-grid" id="dash-kpis"></div>
-        <!-- Charts Row -->
-        <div class="charts-grid">
-          <div class="card">
-            <div class="card-hd"><span class="card-title">Enrollment by Class</span></div>
-            <div class="chart-box"><canvas id="chart-enrollment"></canvas></div>
+
+        <!-- ── Charts ── -->
+        <div class="dash-section-label">Analytics</div>
+        <div class="dash-charts-layout">
+          <!-- Fee collection — wide -->
+          <div class="card dash-chart-main">
+            <div class="dash-chart-hd">
+              <div class="dash-chart-hd-left">
+                <div class="dash-chart-title">Fee Collection</div>
+                <div class="dash-chart-sub" id="dash-fee-sub">Last 6 months</div>
+              </div>
+              <div class="dash-chart-hd-right">
+                <div class="dash-chart-stat" id="dash-fee-total-stat">—</div>
+                <div class="dash-chart-stat-lbl">Total Collected</div>
+              </div>
+              <span class="dash-live-badge">
+                <span class="dash-live-dot"></span>Live
+              </span>
+            </div>
+            <div class="dash-chart-box-tall"><canvas id="chart-fees"></canvas></div>
           </div>
-          <div class="card">
-            <div class="card-hd"><span class="card-title">Fee Collection</span><span class="card-subtitle">This term</span></div>
-            <div class="chart-box"><canvas id="chart-fees"></canvas></div>
-          </div>
-          <div class="card">
-            <div class="card-hd"><span class="card-title">Attendance Rate</span><span class="card-subtitle">This week</span></div>
-            <div class="chart-box" style="height:160px"><canvas id="chart-attendance"></canvas></div>
+          <!-- Right column — two stacked -->
+          <div class="dash-charts-side">
+            <div class="card">
+              <div class="dash-chart-hd">
+                <div class="dash-chart-hd-left">
+                  <div class="dash-chart-title">Enrollment</div>
+                  <div class="dash-chart-sub">Active students per class</div>
+                </div>
+                <div class="dash-chart-hd-right">
+                  <div class="dash-chart-stat" id="dash-enroll-total-stat">—</div>
+                  <div class="dash-chart-stat-lbl">Total Active</div>
+                </div>
+              </div>
+              <div class="dash-chart-box-sm"><canvas id="chart-enrollment"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="dash-chart-hd">
+                <div class="dash-chart-hd-left">
+                  <div class="dash-chart-title">Attendance Rate</div>
+                  <div class="dash-chart-sub" id="dash-att-sub">Last 7 days</div>
+                </div>
+                <div class="dash-chart-hd-right">
+                  <div class="dash-chart-stat" id="dash-att-avg-stat">—</div>
+                  <div class="dash-chart-stat-lbl">Avg Rate</div>
+                </div>
+              </div>
+              <div class="dash-chart-box-sm"><canvas id="chart-attendance"></canvas></div>
+            </div>
           </div>
         </div>
-        <!-- Quick panels -->
+
+        <!-- ── Quick Panels ── -->
+        <div class="dash-section-label">Quick View</div>
         <div class="dash-panels">
           <div class="card">
             <div class="card-hd"><span class="card-title">Recent Admissions</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('students')">View all →</button></div>
@@ -1034,10 +1114,15 @@
             <div class="mini-list" id="dash-events"></div>
           </div>
           <div class="card">
-            <div class="card-hd"><span class="card-title">Fee Defaulters</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('fees')">View all →</button></div>
+            <div class="card-hd"><span class="card-title">Fee Defaulters <span class="badge badge-danger" id="dash-defaulters-count" style="display:none;margin-left:.3rem"></span></span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('fees')">View all →</button></div>
             <div class="mini-list" id="dash-defaulters"></div>
           </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">Upcoming Exams</span><button class="btn btn-ghost btn-sm" onclick="SMS.nav('exams')">View all →</button></div>
+            <div class="mini-list" id="dash-exams"></div>
+          </div>
         </div>
+
       </div>
 
       <!-- ── STUDENTS ── -->
@@ -1365,6 +1450,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="search" class="form-input" id="fee-search" placeholder="Search student…"/>
             </div>
+            <select class="filter-select" id="fee-year-f" title="Academic Year"></select>
             <select class="filter-select" id="fee-class-f"><option value="">All Classes</option></select>
             <select class="filter-select" id="fee-term-f">
               <option value="">All Terms</option>
@@ -1767,11 +1853,11 @@
 
         <!-- Academic Settings -->
         <div class="spane" id="sp-academic">
-          <div class="card" style="max-width:600px">
-            <div class="card-hd"><span class="card-title">Academic Settings</span></div>
+          <div class="card" style="max-width:680px">
+            <div class="card-hd"><span class="card-title">Current Academic Context</span></div>
             <div class="card-body">
               <div class="form-grid-2">
-                <div class="form-field"><label class="form-label">Academic Year</label><input class="form-input" id="ac-year" placeholder="e.g. 2025/2026"/></div>
+                <div class="form-field"><label class="form-label">Active Academic Year</label><input class="form-input" id="ac-year" placeholder="e.g. 2025/2026"/></div>
                 <div class="form-field"><label class="form-label">Current Term</label>
                   <select class="form-input" id="ac-term">
                     <option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option>
@@ -1793,6 +1879,7 @@
                     <option value="USD">USD — US Dollar ($)</option>
                     <option value="GBP">GBP — British Pound (£)</option>
                     <option value="ZAR">ZAR — South African Rand (R)</option>
+                    <option value="EUR">EUR — Euro (€)</option>
                   </select>
                 </div>
                 <div class="form-field"><label class="form-label">School Type</label>
@@ -1806,6 +1893,23 @@
                 </div>
               </div>
               <button class="btn btn-primary" id="save-academic-btn">Save Academic Settings</button>
+            </div>
+          </div>
+
+          <!-- Academic Year History Manager -->
+          <div class="card" style="max-width:680px;margin-top:1.5rem">
+            <div class="card-hd">
+              <span class="card-title">Academic Year History</span>
+              <div style="display:flex;gap:.5rem">
+                <button class="btn btn-secondary btn-sm" onclick="SMS.openAddYearModal()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add Previous Year
+                </button>
+              </div>
+            </div>
+            <div class="card-body" style="padding:.75rem">
+              <div class="ay-help">Manage all academic years. Add previous years to enter historical fee data, or set fee structures year by year. Switching the <em>Current Year</em> updates the entire system — dashboard, fees, defaulters, and reports all reflect the selected year.</div>
+              <div id="ac-year-history" style="margin-top:.75rem"></div>
             </div>
           </div>
         </div>
@@ -2031,10 +2135,11 @@
     <div class="modal-body">
       <input type="hidden" id="fee-id"/>
       <div class="form-grid-2">
-        <div class="form-field"><label class="form-label">Student *</label><select class="form-input" id="fee-student"><option value="">— Select Student —</option></select></div>
+        <div class="form-field"><label class="form-label">Academic Year *</label><select class="form-input" id="fee-academic-year"></select></div>
         <div class="form-field"><label class="form-label">Term *</label>
           <select class="form-input" id="fee-term"><option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option></select>
         </div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Student *</label><select class="form-input" id="fee-student"><option value="">— Select Student —</option></select></div>
         <div class="form-field"><label class="form-label">Amount *</label><input class="form-input" type="number" id="fee-amount" placeholder="0.00"/></div>
         <div class="form-field"><label class="form-label">Payment Method</label>
           <select class="form-input" id="fee-method">
@@ -2504,11 +2609,12 @@
 </div>
 
 <!-- Firebase SDK -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <!-- App -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="firebase.js"></script>
 <script src="app.js"></script>
@@ -2569,3 +2675,57 @@
             </select>
           </div>
           <
+<!-- ── ADD ACADEMIC YEAR MODAL ── -->
+<div id="m-add-year" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hd"><span class="modal-title">Add Academic Year</span><button class="modal-close" onclick="SMS.closeModal('m-add-year')">&#x2715;</button></div>
+    <div class="modal-body">
+      <div class="ay-modal-intro">Adding a previous year lets you enter historical fee data and track what was collected before this system was set up.</div>
+      <div class="form-grid-2">
+        <div class="form-field" style="grid-column:1/-1">
+          <label class="form-label">Academic Year *</label>
+          <input class="form-input" id="new-ay-year" placeholder="e.g. 2023/2024" pattern="\d{4}/\d{4}"/>
+          <div class="form-hint">Format: YYYY/YYYY</div>
+        </div>
+        <div class="form-field"><label class="form-label">Start Date</label><input class="form-input" type="date" id="new-ay-start"/></div>
+        <div class="form-field"><label class="form-label">End Date</label><input class="form-input" type="date" id="new-ay-end"/></div>
+      </div>
+      <div class="form-error" id="new-ay-err" style="display:none"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-add-year')">Cancel</button>
+      <button class="btn btn-primary" onclick="SMS.saveNewYear()">Add Year</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HISTORICAL FEE ENTRY MODAL ── -->
+<div id="m-hist-fees" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:900px;width:96vw">
+    <div class="modal-hd">
+      <span class="modal-title">Historical Fee Entry — <span id="hist-fee-year-title">—</span></span>
+      <button class="modal-close" onclick="SMS.closeModal('m-hist-fees')">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <input type="hidden" id="hist-fee-year-input"/>
+      <div class="hist-intro">Enter what each student paid for this academic year. Leave blank for no payment. Saving will replace any existing historical data for this year.</div>
+      <div style="overflow-x:auto">
+        <table class="tbl hist-tbl">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>T1 Fee</th><th>T1 Paid</th>
+              <th>T2 Fee</th><th>T2 Paid</th>
+              <th>T3 Fee</th><th>T3 Paid</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody id="hist-fee-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <div style="font-size:.78rem;color:var(--t4);flex:1">Fields highlighted in blue have amounts entered.</div>
+      <button class="btn btn-secondary" onclick="SMS.closeModal('m-hist-fees')">Cancel</button>
+      <button class="btn btn-primary" onclick="SMS.saveHistoricalFees()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" s

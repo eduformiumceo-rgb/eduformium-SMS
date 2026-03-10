@@ -40,16 +40,82 @@ const sanitize = (str) => {
     .replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/\//g,'&#x2F;');
 };
 let _currency='GHS';
+let _currentTerm='2';
+let _academicYear='2025/2026';
+let _passMark=50;
+let _gradeSystem='percentage';
 const SYMS={GHS:'₵',NGN:'₦',KES:'KSh ',USD:'$',GBP:'£',ZAR:'R ',EUR:'€'};
 const fmt=(n)=>(SYMS[_currency]||'₵')+(+n||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtDate=(s)=>{ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); };
-const gradeFromScore=(s,max=100)=>{const p=s/max*100; if(p>=80)return'A';if(p>=70)return'B';if(p>=60)return'C';if(p>=50)return'D';return'F';};
+// Always returns "YYYY-MM-DD" in the device's LOCAL timezone — never UTC midnight drift
+const localDateStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const gradeFromScore=(s,max=100)=>{
+  const p=s/max*100; const pm=_passMark||50;
+  if(_gradeSystem==='gpa'){ if(p>=90)return'4.0';if(p>=80)return'3.0';if(p>=70)return'2.0';if(p>=pm)return'1.0';return'0.0'; }
+  if(p>=80)return'A';if(p>=70)return'B';if(p>=60)return'C';if(p>=pm)return'D';return'F';
+};
 const statusBadge=(s)=>{const map={active:'badge-success',inactive:'badge-neutral',graduated:'badge-brand',suspended:'badge-danger',pending:'badge-warn',approved:'badge-success',rejected:'badge-danger',completed:'badge-brand',upcoming:'badge-info',available:'badge-success',borrowed:'badge-warn'};return`<span class="badge ${map[s]||'badge-neutral'}">${s}</span>`;};
 
-// ── SEED DEMO DATA ──
+// ── YEAR-AWARE FEE HELPERS ──
+// Get a student's paid amounts for a specific year (backward-compatible)
+const getYearFees=(s,year)=>{
+  if(!s?.feesPaid) return {term1:0,term2:0,term3:0};
+  // Old flat format: feesPaid = {term1:N, term2:N, term3:N}
+  if(typeof s.feesPaid.term1==='number') return s.feesPaid;
+  return s.feesPaid[year]||{term1:0,term2:0,term3:0};
+};
+// Get fee structure for a class+year combo (backward-compatible)
+const getYearStructure=(classId,year)=>{
+  const all=DB.get('feeStructure',[]);
+  return all.find(f=>f.classId===classId&&f.year===year)
+    ||all.find(f=>f.classId===classId&&!f.year)
+    ||null;
+};
+// Get all academic years sorted newest first
+const getAllAcademicYears=()=>{
+  const school=DB.get('school',{});
+  const years=school.academicYears||[];
+  if(!years.length) return [{year:school.academicYear||'2025/2026',isCurrent:true}];
+  return [...years].sort((a,b)=>b.year.localeCompare(a.year));
+};
+// Migrate old flat feesPaid → year-keyed (runs once, idempotent)
+function migrateToYearFees(){
+  const school=DB.get('school',{});
+  const year=school.academicYear||'2025/2026';
+  // Students
+  const students=DB.get('students',[]);
+  let sc=false;
+  students.forEach(s=>{
+    if(s.feesPaid&&typeof s.feesPaid.term1==='number'){
+      s.feesPaid={[year]:{term1:+(s.feesPaid.term1||0),term2:+(s.feesPaid.term2||0),term3:+(s.feesPaid.term3||0)}};
+      sc=true;
+    }
+  });
+  if(sc) DB.set('students',students);
+  // feeStructure — add year field
+  const fs=DB.get('feeStructure',[]);
+  let fsc=false;
+  fs.forEach(f=>{if(!f.year){f.year=year;fsc=true;}});
+  if(fsc) DB.set('feeStructure',fs);
+  // feePayments — add academicYear field
+  const payments=DB.get('feePayments',[]);
+  let fpc=false;
+  payments.forEach(p=>{if(!p.academicYear){p.academicYear=year;fpc=true;}});
+  if(fpc) DB.set('feePayments',payments);
+  // Ensure academicYears list exists on school object
+  if(!school.academicYears||!school.academicYears.length){
+    school.academicYears=[{year,isCurrent:true,label:year}];
+    DB.set('school',school);
+  }
+}
 function seedData(){
   if(DB.get('seeded')) return;
-  DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12'});
+  DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12',
+    academicYears:[
+      {year:'2023/2024',isCurrent:false,label:'2023/2024',startDate:'2023-09-01',endDate:'2024-07-31'},
+      {year:'2024/2025',isCurrent:false,label:'2024/2025',startDate:'2024-09-01',endDate:'2025-07-31'},
+      {year:'2025/2026',isCurrent:true, label:'2025/2026',startDate:'2025-09-01',endDate:'2026-07-31'},
+    ]});
   // Store hashed password (SHA-256 of 'BFA@demo2026') — never plain text
   hashPassword('BFA@demo2026').then(hash=>{
     DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',passwordHash:hash,name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
@@ -102,7 +168,7 @@ function seedData(){
     fname:s[0],lname:s[1],classId:s[2],gender:s[3],dob:s[4],
     dadName:s[5],dadPhone:s[6],status:'active',admitDate:'2024-09-01',
     address:'Accra, Ghana',
-    feesPaid:{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},
+    feesPaid:{'2025/2026':{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},'2024/2025':{term1:850,term2:850,term3:850}},
   })));
   DB.set('subjects',[
     {id:'subj1',name:'English Language',code:'ENG',classId:'cls7',teacherId:'stf7',periods:6},
@@ -115,19 +181,24 @@ function seedData(){
     {id:'subj8',name:'English Language',code:'ENG',classId:'cls9',teacherId:'stf7',periods:6},
   ]);
   DB.set('feeStructure',[
-    {id:'fs1',classId:'cls1',term1:650,term2:650,term3:650},{id:'fs2',classId:'cls2',term1:650,term2:650,term3:650},
-    {id:'fs3',classId:'cls3',term1:700,term2:700,term3:700},{id:'fs4',classId:'cls4',term1:700,term2:700,term3:700},
-    {id:'fs5',classId:'cls5',term1:750,term2:750,term3:750},{id:'fs6',classId:'cls6',term1:750,term2:750,term3:750},
-    {id:'fs7',classId:'cls7',term1:900,term2:900,term3:900},{id:'fs8',classId:'cls8',term1:900,term2:900,term3:900},
-    {id:'fs9',classId:'cls9',term1:950,term2:950,term3:950},
+    {id:'fs1',classId:'cls1',year:'2025/2026',term1:650,term2:650,term3:650},{id:'fs2',classId:'cls2',year:'2025/2026',term1:650,term2:650,term3:650},
+    {id:'fs3',classId:'cls3',year:'2025/2026',term1:700,term2:700,term3:700},{id:'fs4',classId:'cls4',year:'2025/2026',term1:700,term2:700,term3:700},
+    {id:'fs5',classId:'cls5',year:'2025/2026',term1:750,term2:750,term3:750},{id:'fs6',classId:'cls6',year:'2025/2026',term1:750,term2:750,term3:750},
+    {id:'fs7',classId:'cls7',year:'2025/2026',term1:900,term2:900,term3:900},{id:'fs8',classId:'cls8',year:'2025/2026',term1:900,term2:900,term3:900},
+    {id:'fs9',classId:'cls9',year:'2025/2026',term1:950,term2:950,term3:950},
+    {id:'fs1p',classId:'cls1',year:'2024/2025',term1:600,term2:600,term3:600},{id:'fs2p',classId:'cls2',year:'2024/2025',term1:600,term2:600,term3:600},
+    {id:'fs7p',classId:'cls7',year:'2024/2025',term1:850,term2:850,term3:850},{id:'fs8p',classId:'cls8',year:'2024/2025',term1:850,term2:850,term3:850},
   ]);
   DB.set('feePayments',[
-    {id:uid('fp'),studentId:'stu1',term:'1',amount:850,method:'cash',date:'2025-01-10',by:'Admin',receiptNo:'REC-001'},
-    {id:uid('fp'),studentId:'stu2',term:'1',amount:850,method:'mobile',date:'2025-01-12',by:'Admin',receiptNo:'REC-002'},
-    {id:uid('fp'),studentId:'stu3',term:'1',amount:850,method:'bank',date:'2025-01-15',by:'Admin',receiptNo:'REC-003'},
-    {id:uid('fp'),studentId:'stu5',term:'1',amount:900,method:'cash',date:'2025-01-11',by:'Admin',receiptNo:'REC-004'},
-    {id:uid('fp'),studentId:'stu2',term:'2',amount:850,method:'mobile',date:'2025-02-05',by:'Admin',receiptNo:'REC-005'},
-    {id:uid('fp'),studentId:'stu7',term:'1',amount:750,method:'cash',date:'2025-01-20',by:'Admin',receiptNo:'REC-006'},
+    {id:uid('fp'),studentId:'stu1',term:'1',amount:850,method:'cash',date:'2025-01-10',by:'Admin',receiptNo:'REC-001',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu2',term:'1',amount:850,method:'mobile',date:'2025-01-12',by:'Admin',receiptNo:'REC-002',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu3',term:'1',amount:850,method:'bank',date:'2025-01-15',by:'Admin',receiptNo:'REC-003',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu5',term:'1',amount:900,method:'cash',date:'2025-01-11',by:'Admin',receiptNo:'REC-004',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu2',term:'2',amount:850,method:'mobile',date:'2025-02-05',by:'Admin',receiptNo:'REC-005',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu7',term:'1',amount:750,method:'cash',date:'2025-01-20',by:'Admin',receiptNo:'REC-006',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu1',term:'1',amount:600,method:'cash',date:'2024-09-10',by:'Admin',receiptNo:'REC-P001',academicYear:'2024/2025'},
+    {id:uid('fp'),studentId:'stu2',term:'1',amount:600,method:'mobile',date:'2024-09-12',by:'Admin',receiptNo:'REC-P002',academicYear:'2024/2025'},
+    {id:uid('fp'),studentId:'stu1',term:'2',amount:600,method:'cash',date:'2025-01-09',by:'Admin',receiptNo:'REC-P003',academicYear:'2024/2025'},
   ]);
   DB.set('exams',[
     {id:'ex1',name:'Term 2 Mid-Term',type:'midterm',classId:'cls7',subjectId:'subj1',date:'2025-03-15',maxScore:100,term:'2',duration:90,status:'completed'},
@@ -268,11 +339,12 @@ const SMS = {
 
   _kpiSvg(type){
     const S='width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+    const currSym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
     const icons={
       students:`<svg ${S}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg>`,
       staff:`<svg ${S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
       classes:`<svg ${S}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
-      fees:`<svg ${S}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+      fees:`<svg ${S}><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
       check:`<svg ${S}><polyline points="20 6 9 17 4 12"/></svg>`,
       library:`<svg ${S}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`,
       transactions:`<svg ${S}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`,
@@ -281,7 +353,7 @@ const SMS = {
       trending:`<svg ${S}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
       chart:`<svg ${S}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
       pending:`<svg ${S}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-      expenses:`<svg ${S}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+      expenses:`<svg ${S}><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
       category:`<svg ${S}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`,
     };
     return icons[type]||icons['chart'];
@@ -309,6 +381,11 @@ const SMS = {
       // Do NOT seed demo data here - only seed in demo mode
       const school=DB.get('school',{});
       _currency=school.currency||'GHS';
+      _currentTerm=school.currentTerm||'2';
+      _academicYear=school.academicYear||'2025/2026';
+      _passMark=school.passMark||50;
+      _gradeSystem=school.gradeSystem||'percentage';
+      migrateToYearFees();
       const session=DB.get('session');
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
       this._afterLoad(()=>this.showLogin()); return;
@@ -343,6 +420,11 @@ const SMS = {
         }
         const school=DB.get('school',{});
         _currency=school.currency||'GHS';
+        _currentTerm=school.currentTerm||'2';
+        _academicYear=school.academicYear||'2025/2026';
+        _passMark=school.passMark||50;
+        _gradeSystem=school.gradeSystem||'percentage';
+        migrateToYearFees();
         const users=DB.get('users',[]);
         this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
         this._afterLoad(()=>this.boot());
@@ -498,6 +580,14 @@ const SMS = {
     const h=new Date().getHours();
     const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
     const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${u.name.split(' ')[0]}! Here's your school overview.`;
+    const heroToday=document.getElementById('dash-hero-today'); if(heroToday){ const dn=new Date(); heroToday.textContent=dn.toLocaleDateString('default',{day:'numeric',month:'short'}); } // legacy fallback
+    // New hero elements
+    const _sch=DB.get('school',{});
+    const _dn=new Date();
+    const hsn=document.getElementById('dash-hero-school-name'); if(hsn) hsn.textContent=_sch.name||'Eduformium SMS';
+    const htf=document.getElementById('dash-hero-today-full'); if(htf) htf.textContent=_dn.toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+    const hyr=document.getElementById('dash-hero-year'); if(hyr) hyr.textContent=_sch.academicYear||'—';
+    const htr=document.getElementById('dash-hero-term'); if(htr) htr.textContent=_sch.currentTerm||'—';
   },
 
   roleLabel(r){ return {admin:'Administrator',teacher:'Teacher',accountant:'Accountant',librarian:'Librarian',staff:'Staff'}[r]||r; },
@@ -662,7 +752,7 @@ const SMS = {
     document.getElementById('add-fee-btn')?.addEventListener('click',()=>this.openFeeModal());
     document.getElementById('save-fee-btn')?.addEventListener('click',()=>this.saveFee());
     document.getElementById('fee-search')?.addEventListener('input',()=>this.renderFees());
-    ['fee-class-f','fee-term-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderFees()));
+    ['fee-class-f','fee-term-f','fee-year-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{ this.renderFeesKpis(); this.renderFees(); this.renderFeeStructure(); this.renderDefaulters(); }));
     document.getElementById('exp-fees-btn')?.addEventListener('click',()=>this.exportFees());
     document.getElementById('add-fee-struct-btn')?.addEventListener('click',()=>this.openFeeStructModal());
     document.getElementById('add-expense-btn')?.addEventListener('click',()=>this.openExpenseModal());
@@ -1051,77 +1141,347 @@ const SMS = {
     const staff=DB.get('staff',[]);
     const classes=DB.get('classes',[]);
     const payments=DB.get('feePayments',[]);
+    const school=DB.get('school',{});
+    const exams=DB.get('exams',[]);
+    const leaves=DB.get('leaves',[]);
     const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
-    const todayAtt=attRecords.filter(a=>a.date===new Date().toISOString().split('T')[0]);
-    const attRate=todayAtt.length>0?Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100):94;
+    const todayStr=localDateStr();
+    const todayAtt=attRecords.filter(a=>a.date===todayStr);
+    const now=new Date();
+    // Attendance rate
+    let attRate='—', attSub='No data yet', attNum=null;
+    if(todayAtt.length>0){
+      attNum=Math.round(todayAtt.reduce((s,a)=>s+(a.present/(a.total||1)),0)/todayAtt.length*100);
+      attRate=attNum+'%'; attSub="Today's average";
+    } else {
+      // Fix: require d<=n (exclude future records) AND within last 7 days
+      const week=attRecords.filter(a=>{ const d=new Date(a.date),n=new Date(); return (n-d)>=0&&(n-d)<=7*864e5; });
+      if(week.length>0){ attNum=Math.round(week.reduce((s,a)=>s+(a.present/(a.total||1)),0)/week.length*100); attRate=attNum+'%'; attSub='7-day average'; }
+    }
+    // Defaulters: only current term of current year
+    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false; const due=+(fs['term'+_currentTerm]||0); if(!due) return false; const yf=getYearFees(s,_academicYear); const paid=+(yf['term'+_currentTerm]||0); return paid<due; });
+    // Attendance colour helper
+    const attColor=n=>n===null?'var(--t4)':n>=90?'var(--success)':n>=75?'var(--warn)':'var(--danger)';
+
+    // ── TODAY AT A GLANCE strip ──
+    const todayPayments=payments.filter(p=>p.date===todayStr);
+    const todayRevenue=todayPayments.reduce((s,p)=>s+(+p.amount||0),0);
+    const attClassesToday=todayAtt.length;
+    const pendingLeaves=leaves.filter(l=>l.status==='pending').length;
+    const examsThisWeek=exams.filter(e=>{ if(!e.date) return false; const d=new Date(e.date.includes('T')?e.date:e.date+'T00:00:00'); return d>=now&&(d-now)<=7*864e5; }).length;
+    const stripEl=document.getElementById('dash-today-strip');
+    if(stripEl){
+      const tiles=[
+        {icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
+          label:'Collected Today',val:fmt(todayRevenue),sub:`${todayPayments.length} payment${todayPayments.length!==1?'s':''}`,
+          color:'#0d9488',page:'fees'},
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>',
+          label:'Attendance Today',val:attClassesToday>0?attRate:'—',sub:attClassesToday>0?`${attClassesToday} class${attClassesToday!==1?'es':''} marked`:'No sessions marked',
+          color:'#0d9488',page:'attendance'},
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+          label:'Exams This Week',val:examsThisWeek,sub:examsThisWeek===0?'None scheduled':'Coming up',
+          color:'#1a3a6b',page:'exams'},
+        {icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+          label:'Pending Leave',val:pendingLeaves,sub:pendingLeaves===0?'None pending':pendingLeaves===1?'Awaiting approval':`${pendingLeaves} awaiting approval`,
+          color:'#1a3a6b',page:'leave'},
+      ];
+      stripEl.innerHTML=tiles.map(t=>`
+        <div class="dash-today-tile dash-tile-${t.color==='#0d9488'?'teal':'navy'}" onclick="SMS.nav('${t.page}')" title="Go to ${t.page}">
+          <div class="dash-today-icon">${t.icon}</div>
+          <div class="dash-today-body">
+            <div class="dash-today-val">${t.val}</div>
+            <div class="dash-today-label">${t.label}</div>
+            <div class="dash-today-sub">${t.sub}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    // KPI cards — with trend context line
     const kpis=[
-      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active`,color:'blue'},
-      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers`,color:'teal'},
-      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects`,color:'green'},
-      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:'All time collected',color:'amber'},
-      {icon:'check',label:'Attendance Rate',val:attRate+'%',sub:"Today's average",color:'teal'},
-      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue'},
+      {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,color:'blue',page:'students'},
+      {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,color:'blue',page:'staff'},
+      {icon:'classes',label:'Classes',val:classes.length,sub:`${DB.get('subjects',[]).length} subjects total`,color:'blue',page:'classes'},
+      {icon:'fees',label:'Fee Revenue',val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,color:'teal',warn:defaulters.length>0,featured:true,page:'fees'},
+      {icon:'check',label:'Attendance Rate',val:attRate,sub:attSub,color:'teal',featured:true,page:'attendance'},
+      {icon:'library',label:'Library Books',val:DB.get('books',[]).reduce((s,b)=>s+(+b.copies||0),0),sub:`${DB.get('books',[]).reduce((s,b)=>s+(+b.available||0),0)} available`,color:'blue',page:'library'},
     ];
     document.getElementById('dash-kpis').innerHTML=kpis.map(k=>`
-      <div class="kpi-card">
+      <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>
         <div class="kpi-label">${k.label}</div>
-        <div style="font-size:.72rem;color:var(--t4);margin-top:.2rem">${k.sub}</div>
+        <div class="kpi-sub-line ${k.warn?'kpi-sub-warn':''}">${k.sub}</div>
       </div>`).join('');
-    this.renderDashCharts(students,classes,payments);
-    // Recent students
-    const recent=[...students].sort((a,b)=>new Date(b.admitDate)-new Date(a.admitDate)).slice(0,5);
-    document.getElementById('dash-recent-students').innerHTML=recent.map(s=>`
-      <div class="mini-item">
-        <div class="mini-av">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div class="mini-sub">${this.className(s.classId)} · ${s.studentId}</div></div>
+    // Hero stats — live numbers
+    const heroActive=document.getElementById('dash-hero-active'); if(heroActive) heroActive.textContent=active;
+    const heroAtt=document.getElementById('dash-hero-att'); if(heroAtt){ heroAtt.textContent=attRate; heroAtt.style.color=attColor(attNum); heroAtt.className='dash-hero-stat-val'; }
+    this.renderDashCharts(students,classes,payments,attRecords);
+    // Recent students — two-color class pills (navy / teal), no rainbow
+    const clsPalette=['#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488','#1a3a6b','#0d9488'];
+    const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
+    document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
+      const ci=classes.findIndex(c=>c.id===s.classId);
+      const clsColor=clsPalette[ci%clsPalette.length]||'#1a3a6b';
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('students')">
+        <div class="mini-av" style="background:${clsColor}22;color:${clsColor}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div class="mini-sub"><span style="background:${clsColor}18;color:${clsColor};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${this.className(s.classId)}</span> · ${s.studentId}</div>
+        </div>
         <div class="mini-right">${statusBadge(s.status)}</div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No students enrolled yet</div>';
+      </div>`;
+    }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.53 1.76 9.47 1.76 12 0v-5"/></svg><div>No students enrolled yet</div></div>';
     // Events
     const events=DB.get('events',[]);
-    const upcomingEv=[...events].filter(e=>new Date(e.start)>=new Date()).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
+    const upcomingEv=[...events].filter(e=>new Date(e.start)>=now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     const evColors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
-    document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>`
-      <div class="mini-item">
-        <div class="mini-av" style="background:${evColors[e.type]||'var(--brand-lt)'};color:white"></div>
-        <div><div class="mini-name">${sanitize(e.title)}</div><div class="mini-sub">${fmtDate(e.start)}</div></div>
-        <div class="mini-right"><span class="badge badge-info" style="font-size:.65rem">${e.type}</span></div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--t4);font-size:.82rem;padding:1.5rem">No upcoming events</div>';
-    // Defaulters
-    const feeStr=DB.get('feeStructure',[]);
-    const defaulters=students.filter(s=>{ if(s.status!=='active') return false; const fs=feeStr.find(f=>f.classId===s.classId); if(!fs) return false; const t1=+(fs.term1||0),t2=+(fs.term2||0),t3=+(fs.term3||0); return (+(s.feesPaid?.term1||0))<t1||(+(s.feesPaid?.term2||0))<t2||(+(s.feesPaid?.term3||0))<t3; }).slice(0,4);
-    document.getElementById('dash-defaulters').innerHTML=defaulters.map(s=>`
-      <div class="mini-item">
-        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${s.fname[0]}${s.lname[0]}</div>
-        <div><div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div class="mini-sub">${this.className(s.classId)}</div></div>
-        <div class="mini-right" style="font-size:.78rem;font-weight:700;color:var(--danger)">Owes fees</div>
-      </div>`).join('') || '<div class="mini-item" style="color:var(--success);font-size:.82rem;padding:1.5rem">No defaulters — all fees paid</div>';
+    const evIcons={exam:'📝',academic:'🎓',sports:'⚽',holiday:'🏖️',meeting:'📅',cultural:'🎭'};
+    document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
+      const col=evColors[e.type]||'#1a3a6b';
+      const daysLeft=Math.ceil((new Date(e.start)-now)/(1000*60*60*24));
+      const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('events')">
+        <div class="mini-av" style="background:${col}18;color:${col};font-size:.85rem">${evIcons[e.type]||'📌'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(e.title)}</div>
+          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
+        </div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${col}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
+      </div>`;
+    }).join('') || '<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div>No upcoming events</div></div>';
+    // Defaulters — with actual amount owed
+    const defBadge=document.getElementById('dash-defaulters-count');
+    if(defBadge){ defBadge.textContent=defaulters.length; defBadge.style.display=defaulters.length>0?'inline-flex':'none'; }
+    document.getElementById('dash-defaulters').innerHTML=defaulters.slice(0,5).map(s=>{
+      const _yf=getYearFees(s,_academicYear); const _yfs=getYearStructure(s.classId,_academicYear);
+      const t1=+(_yfs?.term1||0),t2=+(_yfs?.term2||0),t3=+(_yfs?.term3||0);
+      const owed=Math.max(0,t1-(+(_yf.term1||0)))+Math.max(0,t2-(+(_yf.term2||0)))+Math.max(0,t3-(+(_yf.term3||0)));
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees')">
+        <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div class="mini-sub">${this.className(s.classId)}</div>
+        </div>
+        <div class="mini-right" style="text-align:right">
+          <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
+          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">outstanding</div>
+        </div>
+      </div>`;
+    }).join('') || '<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
+    // Upcoming Exams panel
+    const _parseExamDate=d=>new Date(d.includes('T')?d:d+'T00:00:00');
+    const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=now).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
+    const examEl=document.getElementById('dash-exams');
+    if(examEl){ examEl.innerHTML=upcomingExams.map(e=>{
+      const daysLeft=Math.ceil((_parseExamDate(e.date)-now)/(1000*60*60*24));
+      const daysStr=daysLeft===0?'Today':daysLeft===1?'Tomorrow':`In ${daysLeft}d`;
+      const urgColor=daysLeft<=2?'var(--danger)':daysLeft<=7?'var(--warn)':'var(--brand)';
+      return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('exams')">
+        <div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">📝</div>
+        <div style="flex:1;min-width:0">
+          <div class="mini-name">${sanitize(e.name)}</div>
+          <div class="mini-sub">${this.className(e.classId)||'All Classes'} · ${fmtDate(e.date)}</div>
+        </div>
+        <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgColor}18;padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
+      </div>`;
+    }).join('')||'<div class="dash-empty-panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div>No upcoming exams</div></div>'; }
   },
 
-  renderDashCharts(students,classes,payments){
-    // Enrollment by class
+  renderDashCharts(students,classes,payments,attRecords){
+    const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+    const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
+    const tickColor=isDark?'#64748b':'#94a3b8';
+    const emptyBarColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
+
+    // Shared plugin defaults
+    Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
+
+    // ── Fee Collection — gradient area line chart ──
+    const ctx2=document.getElementById('chart-fees');
+    if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
+      const now2=new Date();
+      const feeKeys=[],feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
+      for(let i=5;i>=0;i--){
+        const d=new Date(now2.getFullYear(),now2.getMonth()-i,1);
+        feeKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+        feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));            // "Oct" "Nov" etc
+        feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'})); // "October 2025"
+        feeData.push(0);
+      }
+      payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
+      const hasAnyFee=feeData.some(v=>v>0);
+      const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
+      const tealLine=isDark?'#2dd4bf':'#0d9488';
+      const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
+      grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
+      grad2.addColorStop(1,'rgba(0,0,0,0)');
+      const totalCollected=feeData.reduce((a,b)=>a+b,0);
+      const feeStatEl=document.getElementById('dash-fee-total-stat');
+      if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';
+      this._charts.fees=new Chart(ctx2,{
+        type:'line',
+        data:{labels:feeAxisLabels,datasets:[{
+          data:feeData, borderColor:tealLine, backgroundColor:grad2,
+          borderWidth:2.5, tension:0.42, fill:true,
+          pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
+          pointBorderWidth:2, pointRadius:5, pointHoverRadius:7,
+          pointHoverBackgroundColor:tealLine, pointHoverBorderWidth:2.5,
+        }]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:{duration:700,easing:'easeInOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:isDark?'#1e293b':'#0f172a',
+              titleColor:'#94a3b8', bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+              padding:{top:10,bottom:10,left:14,right:14}, cornerRadius:10,
+              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+              callbacks:{
+                label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
+                title:items=>`${feeTooltipLabels[items[0].dataIndex]}  •  Fee Collection`,
+              }
+            }
+          },
+          scales:{
+            y:{
+              beginAtZero:true, grid:{color:gridColor,drawBorder:false},
+              border:{display:false},
+              ticks:{callback:v=>sym+(v>=1000?(v/1000).toFixed(v%1000?1:0)+'k':v),color:tickColor,font:{size:11},maxTicksLimit:5},
+            },
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
+          },
+        }
+      });
+      const sub=document.getElementById('dash-fee-sub');
+      if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
+    }
+
+    // ── Enrollment by Class — horizontal bar ──
     const ctx1=document.getElementById('chart-enrollment');
     if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
-      const data=classes.map(c=>students.filter(s=>s.classId===c.id).length);
-      this._charts.enrollment=new Chart(ctx1,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(26,58,107,0.8)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}});
+      const data=classes.map(c=>students.filter(s=>s.classId===c.id&&s.status==='active').length);
+      const total=data.reduce((a,b)=>a+b,0);
+      const enrollStatEl=document.getElementById('dash-enroll-total-stat');
+      if(enrollStatEl) enrollStatEl.textContent=total||'—';
+      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(26,58,107,0.8)';
+      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(26,58,107,1)';
+      this._charts.enrollment=new Chart(ctx1,{
+        type:'bar',
+        data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:{duration:600,easing:'easeInOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:isDark?'#1e293b':'#0f172a',
+              titleColor:'#94a3b8', bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+              callbacks:{
+                label:ctx=>`  ${ctx.parsed.y} student${ctx.parsed.y!==1?'s':''}`,
+                title:items=>`${items[0].label}`,
+              }
+            }
+          },
+          scales:{
+            y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
+          },
+        }
+      });
     }
-    // Fee collection
-    const ctx2=document.getElementById('chart-fees');
-    if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
-      const months=['Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
-      const feeData=[18200,22400,19800,14200,28600,24100,18900];
-      this._charts.fees=new Chart(ctx2,{type:'line',data:{labels:months,datasets:[{data:feeData,borderColor:'#0d9488',backgroundColor:'rgba(13,148,136,0.1)',borderWidth:2.5,tension:0.4,fill:true,pointBackgroundColor:'#0d9488',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}});
-    }
-    // Attendance chart
+
+    // ── Attendance Rate — Mon–Fri school week, future days dimmed ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
-      const days=['Mon','Tue','Wed','Thu','Fri'];
-      const attData=[94,91,96,89,95];
-      this._charts.att=new Chart(ctx3,{type:'bar',data:{labels:days,datasets:[{data:attData,backgroundColor:attData.map(v=>v>=90?'rgba(13,148,136,0.8)':'rgba(217,119,6,0.8)'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:70,max:100,grid:{color:'rgba(0,0,0,0.05)'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}}});
+      const recs=attRecords||DB.get('attendance',[]);
+      const _today=new Date();
+      const _dow=_today.getDay(); // 0=Sun,1=Mon,...,6=Sat
+      // Find Monday of current week; if weekend show last completed week
+      const _monday=new Date(_today);
+      if(_dow===0)      _monday.setDate(_today.getDate()-6);   // Sun → last Mon
+      else if(_dow===6) _monday.setDate(_today.getDate()-5);   // Sat → last Mon
+      else              _monday.setDate(_today.getDate()-(_dow-1)); // Mon–Fri → this Mon
+      const attAxisLabels=[],attTooltipLabels=[],attData=[],attColors=[],attHover=[];
+      for(let i=0;i<5;i++){
+        const d=new Date(_monday); d.setDate(_monday.getDate()+i);
+        const key=localDateStr(d);
+        const isFuture=d>_today;
+        const isToday=key===localDateStr(_today);
+        attAxisLabels.push(d.toLocaleString('default',{weekday:'short'}));
+        attTooltipLabels.push(d.toLocaleString('default',{weekday:'long',day:'numeric',month:'short'}));
+        const dayRecs=recs.filter(a=>a.date===key);
+        if(isFuture){
+          attData.push(0);
+          attColors.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
+          attHover.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
+        } else if(dayRecs.length>0){
+          const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
+          attData.push(rate);
+          const alpha=isToday?1:0.82;
+          if(isDark){
+            attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(248,113,113,${alpha})`);
+            attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(248,113,113,1)');
+          } else {
+            attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(220,38,38,${alpha===1?0.95:0.78})`);
+            attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(220,38,38,1)');
+          }
+        } else {
+          attData.push(0);
+          attColors.push(isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)');
+          attHover.push(isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)');
+        }
+      }
+      const validRates=attData.filter((v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return v>0&&d<=_today; });
+      const avgRate=validRates.length?Math.round(validRates.reduce((a,b)=>a+b,0)/validRates.length):null;
+      const attAvgEl=document.getElementById('dash-att-avg-stat');
+      if(attAvgEl) attAvgEl.textContent=avgRate!==null?avgRate+'%':'—';
+      const isLastWeek=(_dow===0||_dow===6);
+      this._charts.att=new Chart(ctx3,{
+        type:'bar',
+        data:{labels:attAxisLabels,datasets:[{
+          data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
+          borderRadius:6, borderSkipped:false,
+        }]},
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          animation:{duration:600,easing:'easeInOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:isDark?'#1e293b':'#0f172a',
+              titleColor:'#94a3b8', bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+              callbacks:{
+                label:(ctx)=>{
+                  const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
+                  if(d>_today) return '  No school yet';
+                  return ctx.parsed.y>0?`  ${ctx.parsed.y}%  attendance`:'  Not recorded';
+                },
+                title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
+              }
+            }
+          },
+          scales:{
+            y:{min:0,max:100,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{callback:v=>v+'%',color:tickColor,font:{size:11},maxTicksLimit:5}},
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
+          },
+        }
+      });
+      const sub3=document.getElementById('dash-att-sub');
+      if(sub3) sub3.textContent=isLastWeek?'Last school week (Mon–Fri)':'This week (Mon–Fri)';
     }
   },
 
@@ -1167,7 +1527,7 @@ const SMS = {
     tbody.innerHTML=slice.map(s=>{
       const fs=feeStructure.find(f=>f.classId===s.classId);
       const termFee1=+(fs?.term1||0), termFee2=+(fs?.term2||0), termFee3=+(fs?.term3||0);
-      const p1=+(s.feesPaid?.term1||0), p2=+(s.feesPaid?.term2||0), p3=+(s.feesPaid?.term3||0);
+      const _syf=getYearFees(s,_academicYear); const p1=+(_syf.term1||0), p2=+(_syf.term2||0), p3=+(_syf.term3||0);
       const owed=Math.max(0,termFee1-p1)+Math.max(0,termFee2-p2)+Math.max(0,termFee3-p3);
       const noStructure=!fs||(termFee1===0&&termFee2===0&&termFee3===0);
       const feeStatus=noStructure?`<span style="color:var(--t4);font-size:.76rem;font-weight:600">—</span>`:owed>0?`<span style="color:var(--danger);font-size:.76rem;font-weight:600">Owes ${fmt(owed)}</span>`:`<span style="color:var(--success);font-size:.76rem;font-weight:600">Paid</span>`;
@@ -1202,9 +1562,9 @@ const SMS = {
     const grades=DB.get('grades',[]).filter(g=>g.studentId===id);
     const exams=DB.get('exams',[]);
     const feeStructure=DB.get('feeStructure',[]);
-    const fs=feeStructure.find(f=>f.classId===s.classId);
+    const fs=getYearStructure(s.classId,_academicYear);
     const ft1=+(fs?.term1||0),ft2=+(fs?.term2||0),ft3=+(fs?.term3||0);
-    const fp1=+(s.feesPaid?.term1||0),fp2=+(s.feesPaid?.term2||0),fp3=+(s.feesPaid?.term3||0);
+    const _spyf=getYearFees(s,_academicYear); const fp1=+(_spyf.term1||0),fp2=+(_spyf.term2||0),fp3=+(_spyf.term3||0);
     const fb1=Math.max(0,ft1-fp1),fb2=Math.max(0,ft2-fp2),fb3=Math.max(0,ft3-fp3);
     const totalDue=ft1+ft2+ft3, totalPaid=fp1+fp2+fp3, totalOwed=fb1+fb2+fb3;
     const noFeeStruct=!fs||(ft1===0&&ft2===0&&ft3===0);
@@ -1343,7 +1703,7 @@ const SMS = {
     const existingId=document.getElementById('sf-id').value;
     const _maxId=students.reduce((mx,st)=>{ const n=parseInt((st.studentId||'').split('-').pop()||0); return n>mx?n:mx; },100);
     const sid=document.getElementById('sf-sid').value.trim()||`BFA-${new Date().getFullYear()}-`+String(_maxId+1).padStart(4,'0');
-    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{term1:0,term2:0,term3:0}};
+    const data={fname,mname:document.getElementById('sf-mname').value.trim(),lname,classId,gender,dob,admitDate,blood:document.getElementById('sf-blood').value,address:document.getElementById('sf-address').value,nationality:document.getElementById('sf-nation')?.value||'',religion:document.getElementById('sf-religion')?.value||'',studentId:sid,roll:document.getElementById('sf-roll').value,status:document.getElementById('sf-status').value,transport:document.getElementById('sf-transport').value,notes:document.getElementById('sf-notes').value,dadName:document.getElementById('sf-dad').value,dadPhone:document.getElementById('sf-dad-phone').value,dadEmail:document.getElementById('sf-dad-email').value,dadJob:document.getElementById('sf-dad-job').value,momName:document.getElementById('sf-mom').value,momPhone:document.getElementById('sf-mom-phone').value,momJob:document.getElementById('sf-mom-job').value,emerName:document.getElementById('sf-emer').value,emerPhone:document.getElementById('sf-emer-phone').value,emerRel:document.getElementById('sf-emer-rel').value,allergies:document.getElementById('sf-allergies').value,medical:document.getElementById('sf-medical').value,doctorName:document.getElementById('sf-doctor').value,docPhone:document.getElementById('sf-doc-phone').value,feesPaid:{[_academicYear]:{term1:0,term2:0,term3:0}}};
     if(existingId){
       const i=students.findIndex(s=>s.id===existingId);
       if(i>-1){ const old=students[i]; students[i]={...old,...data,id:existingId,studentId:old.studentId,feesPaid:old.feesPaid}; DB.set('students',students); this.audit('Edit Student','edit',`Updated student: ${fname} ${lname}`); this.toast('Student updated','success'); }
@@ -1562,17 +1922,21 @@ const SMS = {
 
   // ══ ATTENDANCE ══
   loadAttendance(){
+    // Always reset date to today when module loads — prevents stale date from boot time
+    const attDateEl=document.getElementById('att-date');
+    if(attDateEl) attDateEl.value=localDateStr();
     this.renderAttSummary(); this.renderAttendanceRecords();
     const classes=DB.get('classes',[]);
     const sel=document.getElementById('att-class'); if(sel) sel.innerHTML='<option value="">Select Class</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     const from=document.getElementById('att-from'), to=document.getElementById('att-to');
-    if(from) from.value=new Date(Date.now()-7*86400000).toISOString().split('T')[0];
-    if(to) to.value=new Date().toISOString().split('T')[0];
+    const _7ago=new Date(); _7ago.setDate(_7ago.getDate()-7);
+    if(from) from.value=localDateStr(_7ago);
+    if(to) to.value=localDateStr();
   },
 
   renderAttSummary(){
     const att=DB.get('attendance',[]);
-    const today=att.filter(a=>a.date===new Date().toISOString().split('T')[0]);
+    const today=att.filter(a=>a.date===localDateStr());
     const totP=today.reduce((s,a)=>s+(a.present||0),0), totA=today.reduce((s,a)=>s+(a.absent||0),0), totL=today.reduce((s,a)=>s+(a.late||0),0), totT=today.reduce((s,a)=>s+(a.total||0),0);
     const rate=totT>0?Math.round(totP/totT*100):0;
     document.getElementById('att-summary').innerHTML=[
@@ -2057,23 +2421,34 @@ const SMS = {
     const classes=DB.get('classes',[]);
     const sel=document.getElementById('fee-class-f'); if(sel) sel.innerHTML='<option value="">All Classes</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     const fstu=document.getElementById('fee-student'); if(fstu){ const students=DB.get('students',[]); fstu.innerHTML='<option value="">— Select Student —</option>'+students.map(s=>`<option value="${s.id}">${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)})</option>`).join(''); }
+    // Populate year filter
+    const yearSel=document.getElementById('fee-year-f');
+    if(yearSel){
+      const years=getAllAcademicYears();
+      yearSel.innerHTML=years.map(y=>`<option value="${y.year}"${y.year===_academicYear?' selected':''}>${y.year}${y.isCurrent?' (Current)':''}</option>`).join('');
+    }
+    // Populate fee modal year dropdown
+    const fmYear=document.getElementById('fee-academic-year');
+    if(fmYear){
+      const years=getAllAcademicYears();
+      fmYear.innerHTML=years.map(y=>`<option value="${y.year}"${y.year===_academicYear?' selected':''}>${y.year}${y.isCurrent?' (Current)':''}</option>`).join('');
+    }
     this.renderFeesKpis(); this.renderFees(); this.renderFeeStructure(); this.renderDefaulters();
   },
 
   renderFeesKpis(){
-    const payments=DB.get('feePayments',[]);
+    const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
+    const payments=DB.get('feePayments',[]).filter(p=>!p.academicYear||p.academicYear===yearFilter);
     const students=DB.get('students',[]).filter(s=>s.status==='active');
-    const feeStructure=DB.get('feeStructure',[]);
     const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
-    // Correct outstanding: all 3 terms, no hardcoded fallbacks, active students only
+    // Outstanding = all 3 terms for selected year, active students only
     let outstanding=0, defaulterCount=0;
     students.forEach(s=>{
-      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const fs=getYearStructure(s.classId,yearFilter);
       if(!fs) return;
+      const yf=getYearFees(s,yearFilter);
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      const owed=Math.max(0,t1-(+(s.feesPaid?.term1||0)))
-               +Math.max(0,t2-(+(s.feesPaid?.term2||0)))
-               +Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      const owed=Math.max(0,t1-(+(yf.term1||0)))+Math.max(0,t2-(+(yf.term2||0)))+Math.max(0,t3-(+(yf.term3||0)));
       if(owed>0){ outstanding+=owed; defaulterCount++; }
     });
     document.getElementById('fees-kpis').innerHTML=[
@@ -2090,26 +2465,29 @@ const SMS = {
     const q=(document.getElementById('fee-search')?.value||'').toLowerCase();
     const cf=document.getElementById('fee-class-f')?.value||'';
     const tf=document.getElementById('fee-term-f')?.value||'';
+    const yf=document.getElementById('fee-year-f')?.value||_academicYear;
     let filtered=payments.filter(p=>{
       const s=students.find(x=>x.id===p.studentId);
       if(!s) return false; if(cf&&s.classId!==cf) return false; if(tf&&p.term!==tf) return false;
+      if(yf&&p.academicYear&&p.academicYear!==yf) return false;
       if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${p.receiptNo||''}`.toLowerCase().includes(q)) return false; return true;
     }).sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('fees-tbody').innerHTML=filtered.map(p=>{
       const s=students.find(x=>x.id===p.studentId);
       // Work out if this term is fully paid for the student
-      const fs=s?feeStructure.find(f=>f.classId===s.classId):null;
+      const pYear=p.academicYear||_academicYear;
+      const fs=s?getYearStructure(s.classId,pYear):null;
+      const sfyf=s?getYearFees(s,pYear):{term1:0,term2:0,term3:0};
       const termDue=fs?+(fs['term'+p.term]||0):0;
-      const termPaid=s?+(s.feesPaid?.['term'+p.term]||0):0;
+      const termPaid=+(sfyf['term'+p.term]||0);
       const termOwed=Math.max(0,termDue-termPaid);
       const termStatus=termDue===0
         ? `<span class="badge badge-neutral">No structure</span>`
         : termOwed===0
           ? `<span class="badge badge-success">Term ${p.term} Fully Paid</span>`
           : `<span class="badge badge-warn">Balance: ${fmt(termOwed)}</span>`;
-      // Overall balance across all terms
       const t1=+(fs?.term1||0),t2=+(fs?.term2||0),t3=+(fs?.term3||0);
-      const totalOwed=s&&fs?Math.max(0,t1-(+(s.feesPaid?.term1||0)))+Math.max(0,t2-(+(s.feesPaid?.term2||0)))+Math.max(0,t3-(+(s.feesPaid?.term3||0))):0;
+      const totalOwed=s&&fs?Math.max(0,t1-(+(sfyf.term1||0)))+Math.max(0,t2-(+(sfyf.term2||0)))+Math.max(0,t3-(+(sfyf.term3||0))):0;
       return `<tr>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3);white-space:nowrap">${p.receiptNo||'—'}</td>
         <td><div style="font-weight:600;color:var(--t1);white-space:nowrap">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</div><div style="font-size:.72rem;color:var(--t4)">${this.className(s?.classId)}</div></td>
@@ -2129,7 +2507,8 @@ const SMS = {
   },
 
   renderFeeStructure(){
-    const fs=DB.get('feeStructure',[]); const classes=DB.get('classes',[]);
+    const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
+    const fs=DB.get('feeStructure',[]).filter(f=>!f.year||f.year===yearFilter); const classes=DB.get('classes',[]);
     document.getElementById('fee-struct-tbody').innerHTML=fs.map(f=>{
       const cls=classes.find(c=>c.id===f.classId);
       const total=(+f.term1||0)+(+f.term2||0)+(+f.term3||0);
@@ -2144,20 +2523,22 @@ const SMS = {
   },
 
   renderDefaulters(){
-    const students=DB.get('students',[]); const classes=DB.get('classes',[]); const feeStructure=DB.get('feeStructure',[]);
+    const students=DB.get('students',[]); const classes=DB.get('classes',[]);
+    const yearFilter=document.getElementById('fee-year-f')?.value||_academicYear;
     const defaulters=students.filter(s=>{
       if(s.status!=='active') return false;
-      const fs=feeStructure.find(f=>f.classId===s.classId);
-      if(!fs) return false;
+      const fs=getYearStructure(s.classId,yearFilter); if(!fs) return false;
+      const yf=getYearFees(s,yearFilter);
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
+      return (+(yf.term1||0))<t1 || (+(yf.term2||0))<t2 || (+(yf.term3||0))<t3;
     });
     document.getElementById('defaulters-tbody').innerHTML=defaulters.map(s=>{
-      const fs=feeStructure.find(f=>f.classId===s.classId);
+      const fs=getYearStructure(s.classId,yearFilter);
+      const yf=getYearFees(s,yearFilter);
       const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-      const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
-      const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
-      const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+      const owed1=Math.max(0,t1-(+(yf.term1||0)));
+      const owed2=Math.max(0,t2-(+(yf.term2||0)));
+      const owed3=Math.max(0,t3-(+(yf.term3||0)));
       return `<tr>
         <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
@@ -2180,11 +2561,12 @@ const SMS = {
   sendFeeReminder(studentId){
     const s=DB.get('students',[]).find(x=>x.id===studentId); if(!s) return;
     const feeStructure=DB.get('feeStructure',[]);
-    const fs=feeStructure.find(f=>f.classId===s.classId);
+    const fs=getYearStructure(s.classId,_academicYear);
+    const _ryf=getYearFees(s,_academicYear);
     const t1=+(fs?.term1||0), t2=+(fs?.term2||0), t3=+(fs?.term3||0);
-    const owed1=Math.max(0,t1-(+(s.feesPaid?.term1||0)));
-    const owed2=Math.max(0,t2-(+(s.feesPaid?.term2||0)));
-    const owed3=Math.max(0,t3-(+(s.feesPaid?.term3||0)));
+    const owed1=Math.max(0,t1-(+(_ryf.term1||0)));
+    const owed2=Math.max(0,t2-(+(_ryf.term2||0)));
+    const owed3=Math.max(0,t3-(+(_ryf.term3||0)));
     const total=owed1+owed2+owed3;
     const school=DB.get('school',{});
     const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
@@ -2212,10 +2594,10 @@ const SMS = {
     const students=DB.get('students',[]); const feeStructure=DB.get('feeStructure',[]);
     const defaulters=students.filter(s=>{
       if(s.status!=='active') return false;
-      const fs=feeStructure.find(f=>f.classId===s.classId);
-      if(!fs) return false;
+      const fs=getYearStructure(s.classId,_academicYear); if(!fs) return false;
+      const yf=getYearFees(s,_academicYear);
       const t1=+(fs.term1||0), t2=+(fs.term2||0), t3=+(fs.term3||0);
-      return (+(s.feesPaid?.term1||0))<t1 || (+(s.feesPaid?.term2||0))<t2 || (+(s.feesPaid?.term3||0))<t3;
+      return (+(yf.term1||0))<t1 || (+(yf.term2||0))<t2 || (+(yf.term3||0))<t3;
     });
     if(defaulters.length===0){ this.toast('No defaulters — all fees are paid!','success'); return; }
     this.audit('Fee Reminder','create',`Bulk reminders queued for ${defaulters.length} defaulters`);
@@ -2269,7 +2651,7 @@ const SMS = {
     if(!fromId||!toId||fromId===toId){ this.toast('Select two different classes','warn'); return; }
     const students=DB.get('students',[]);
     const promotedIds=[]; let count=0;
-    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; s.feesPaid={term1:0,term2:0,term3:0}; promotedIds.push(s.id); count++; } });
+    students.forEach(s=>{ if(s.classId===fromId&&s.status==='active'){ s.classId=toId; if(!s.feesPaid||typeof s.feesPaid.term1==='number') s.feesPaid={}; s.feesPaid[_academicYear]={term1:0,term2:0,term3:0}; promotedIds.push(s.id); count++; } });
     DB.set('students',students);
     // Clear old fee payment records for promoted students so feesPaid stays in sync
     const orphanPromo=DB.get('feePayments',[]).filter(p=>promotedIds.includes(p.studentId));
@@ -2439,8 +2821,11 @@ const SMS = {
   openFeeModal(preStudentId=null){
     ['fee-id','fee-amount','fee-ref','fee-notes'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
     document.getElementById('fee-date').value=new Date().toISOString().split('T')[0];
-    document.getElementById('fee-term').value=DB.get('school',{}).currentTerm||'2';
+    document.getElementById('fee-term').value=_currentTerm;
     document.getElementById('fee-method').value='cash';
+    // Set academic year dropdown
+    const fmYearEl=document.getElementById('fee-academic-year');
+    if(fmYearEl){ const years=getAllAcademicYears(); fmYearEl.innerHTML=years.map(y=>`<option value="${y.year}"${y.year===_academicYear?' selected':''}>${y.year}${y.isCurrent?' (Current)':''}</option>`).join(''); }
     document.getElementById('fee-err').style.display='none';
     const fstu=document.getElementById('fee-student'); if(fstu) fstu.value=preStudentId||'';
     // Always re-enable save button in case it was disabled by a previous "fully paid" check
@@ -2455,10 +2840,11 @@ const SMS = {
       const saveBtn=document.getElementById('save-fee-btn');
       if(!sId||!tm){ errEl.style.display='none'; return; }
       const st=DB.get('students',[]).find(x=>x.id===sId);
-      const fs=DB.get('feeStructure',[]).find(f=>f.classId===st?.classId);
+      const fmYear=document.getElementById('fee-academic-year')?.value||_academicYear;
+      const fs=getYearStructure(st?.classId,fmYear);
       if(!st||!fs){ errEl.style.display='none'; return; }
       const due=+(fs['term'+tm]||0);
-      const paid=+(st.feesPaid?.['term'+tm]||0);
+      const fmyf=getYearFees(st,fmYear); const paid=+(fmyf['term'+tm]||0);
       const owed=Math.max(0,due-paid);
       if(due===0){ errEl.style.display='none'; return; }
       if(owed===0){
@@ -2480,7 +2866,7 @@ const SMS = {
     };
     setTimeout(()=>{
       // Replace elements with clones to remove any previously stacked listeners
-      ['fee-student','fee-term'].forEach(eid=>{
+      ['fee-student','fee-term','fee-academic-year'].forEach(eid=>{
         const el=document.getElementById(eid); if(!el) return;
         const clone=el.cloneNode(true); el.parentNode.replaceChild(clone,el);
         clone.addEventListener('change', checkTermStatus);
@@ -2499,10 +2885,11 @@ const SMS = {
     if(amount<=0){ errEl.style.display='block'; errEl.textContent='Amount must be greater than zero.'; return; }
     // Hard block — prevent overpayment if term is already fully paid
     const stCheck=DB.get('students',[]).find(x=>x.id===studentId);
-    const fsCheck=DB.get('feeStructure',[]).find(f=>f.classId===stCheck?.classId);
+    const payYear=document.getElementById('fee-academic-year')?.value||_academicYear;
+    const fsCheck=getYearStructure(stCheck?.classId,payYear);
     if(stCheck&&fsCheck){
       const due=+(fsCheck['term'+term]||0);
-      const paid=+(stCheck.feesPaid?.['term'+term]||0);
+      const scyf=getYearFees(stCheck,payYear); const paid=+(scyf['term'+term]||0);
       if(due>0&&paid>=due){
         errEl.style.display='block';
         errEl.style.background='var(--danger-bg)';
@@ -2511,7 +2898,7 @@ const SMS = {
         return;
       }
       // Also cap: don't allow amount that exceeds remaining balance
-      const owed=due-paid;
+      const owed=Math.max(0,due-paid);
       if(due>0&&amount>owed){
         errEl.style.display='block';
         errEl.style.background='var(--danger-bg)';
@@ -2524,18 +2911,24 @@ const SMS = {
     const payments=DB.get('feePayments',[]);
     const maxRec=payments.reduce((mx,p)=>{ const n=parseInt((p.receiptNo||'').replace('REC-','')||0); return n>mx?n:mx; },0);
     const receiptNo='REC-'+String(maxRec+1).padStart(4,'0');
-    const payment={id:uid('fp'),studentId,term,amount,method:document.getElementById('fee-method').value,date,by:this.currentUser.name,receiptNo,ref:document.getElementById('fee-ref').value,notes:document.getElementById('fee-notes').value};
+    const _saveYear=document.getElementById('fee-academic-year')?.value||_academicYear;
+    const payment={id:uid('fp'),studentId,term,amount,method:document.getElementById('fee-method').value,date,by:this.currentUser.name,receiptNo,ref:document.getElementById('fee-ref').value,notes:document.getElementById('fee-notes').value,academicYear:_saveYear};
     payments.push(payment); DB.set('feePayments',payments);
-    // Update student feesPaid
+    // Update student feesPaid (year-keyed)
     const students=DB.get('students',[]); const si=students.findIndex(s=>s.id===studentId);
-    if(si>-1){ if(!students[si].feesPaid) students[si].feesPaid={}; students[si].feesPaid['term'+term]=(+(students[si].feesPaid['term'+term]||0))+amount; DB.set('students',students); }
+    if(si>-1){
+      if(!students[si].feesPaid||typeof students[si].feesPaid.term1==='number') students[si].feesPaid={};
+      if(!students[si].feesPaid[_saveYear]) students[si].feesPaid[_saveYear]={term1:0,term2:0,term3:0};
+      students[si].feesPaid[_saveYear]['term'+term]=(+(students[si].feesPaid[_saveYear]['term'+term]||0))+amount;
+      DB.set('students',students);
+    }
     const s=DB.get('students',[]).find(x=>x.id===studentId);
     this.audit('Fee Payment','create',`Payment recorded: ${s?.fname} ${s?.lname} — ${fmt(amount)} Term ${term} (${receiptNo})`);
     // Refresh student to get updated feesPaid
     const updatedSt=DB.get('students',[]).find(x=>x.id===studentId);
-    const fs2=DB.get('feeStructure',[]).find(f=>f.classId===updatedSt?.classId);
+    const fs2=getYearStructure(updatedSt?.classId,_saveYear);
     const termDue2=fs2?+(fs2['term'+term]||0):0;
-    const termPaid2=updatedSt?+(updatedSt.feesPaid?.['term'+term]||0):0;
+    const _ustYF=getYearFees(updatedSt,_saveYear); const termPaid2=+((_ustYF)['term'+term]||0);
     const termFullyPaid=termDue2>0&&termPaid2>=termDue2;
     const toastMsg=termFullyPaid
       ? `Term ${term} fully paid! Receipt: ${receiptNo}`
@@ -2828,7 +3221,7 @@ const SMS = {
       const feeStructure=DB.get('feeStructure',[]);
       let totalOutstanding=0; students.filter(s=>s.status==='active').forEach(s=>{ const fs=feeStructure.find(f=>f.classId===s.classId); if(!fs) return; totalOutstanding+=Math.max(0,+(fs.term1||0)-(+(s.feesPaid?.term1||0)))+Math.max(0,+(fs.term2||0)-(+(s.feesPaid?.term2||0)))+Math.max(0,+(fs.term3||0)-(+(s.feesPaid?.term3||0))); });
       content.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem">
-        <div class="kpi-card"><div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="kpi-val">${fmt(totalFees)}</div><div class="kpi-label">Total Fee Revenue</div></div>
+        <div class="kpi-card"><div class="kpi-icon teal">${SMS._kpiSvg('fees')}</div><div class="kpi-val">${fmt(totalFees)}</div><div class="kpi-label">Total Fee Revenue</div></div>
         <div class="kpi-card"><div class="kpi-icon red">${SMS._kpiSvg('expenses')}</div><div class="kpi-val">${fmt(totalExp)}</div><div class="kpi-label">Total Expenses</div></div>
                 <div class="kpi-card"><div class="kpi-icon amber">${SMS._kpiSvg('warning')}</div><div class="kpi-val" style="color:var(--danger)">${fmt(totalOutstanding)}</div><div class="kpi-label">Outstanding Balance</div></div>
 <div class="kpi-card"><div class="kpi-icon ${totalFees-totalExp>0?'green':'amber'}">${SMS._kpiSvg('trending')}</div><div class="kpi-val" style="color:${totalFees-totalExp>0?'var(--success)':'var(--danger)'}">${fmt(totalFees-totalExp)}</div><div class="kpi-label">Net Balance</div></div>
@@ -2982,6 +3375,7 @@ const SMS = {
     document.getElementById('ac-pass').value=school.passMark||50;
     document.getElementById('ac-currency').value=school.currency||'GHS';
     document.getElementById('ac-type').value=school.type||'k12';
+    this.renderAcademicYearHistory();
   },
 
   saveAcademic(){
@@ -2993,8 +3387,256 @@ const SMS = {
     school.currency=document.getElementById('ac-currency').value;
     school.type=document.getElementById('ac-type').value;
     _currency=school.currency;
-    DB.set('school',school); this.audit('Settings','settings','Academic settings updated');
+    _currentTerm=school.currentTerm;
+    _academicYear=school.academicYear;
+    _passMark=school.passMark;
+    _gradeSystem=school.gradeSystem;
+    // Ensure this year is in academicYears list
+    if(!school.academicYears) school.academicYears=[];
+    if(!school.academicYears.find(y=>y.year===school.academicYear)){
+      school.academicYears.push({year:school.academicYear,isCurrent:true,label:school.academicYear});
+    }
+    // Mark current year
+    school.academicYears.forEach(y=>y.isCurrent=(y.year===school.academicYear));
+    DB.set('school',school);
+    // Ensure fee structure exists for new year
+    const fs=DB.get('feeStructure',[]);
+    const classes=DB.get('classes',[]);
+    let fsChanged=false;
+    classes.forEach(c=>{
+      if(!fs.find(f=>f.classId===c.id&&f.year===school.academicYear)){
+        // Copy from most recent year for this class
+        const prev=fs.filter(f=>f.classId===c.id).sort((a,b)=>(b.year||'').localeCompare(a.year||''))[0];
+        fs.push({id:uid('fs'),classId:c.id,year:school.academicYear,term1:prev?.term1||0,term2:prev?.term2||0,term3:prev?.term3||0});
+        fsChanged=true;
+      }
+    });
+    if(fsChanged) DB.set('feeStructure',fs);
+    this.audit('Settings','settings','Academic settings updated — Year: '+school.academicYear+' Term: '+school.currentTerm);
     this.toast('Academic settings saved!','success');
+    // Refresh hero stats and dashboard
+    this.setupTopbar();
+    if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
+    this.renderAcademicYearHistory();
+  },
+
+  renderAcademicYearHistory(){
+    const el=document.getElementById('ac-year-history'); if(!el) return;
+    const school=DB.get('school',{});
+    const years=getAllAcademicYears();
+    const classes=DB.get('classes',[]);
+    el.innerHTML=years.map(y=>{
+      const isCurrent=y.year===school.academicYear;
+      const payments=DB.get('feePayments',[]).filter(p=>p.academicYear===y.year);
+      const totalCollected=payments.reduce((s,p)=>s+(+p.amount||0),0);
+      const structCount=DB.get('feeStructure',[]).filter(f=>f.year===y.year).length;
+      return `<div class="ay-card${isCurrent?' ay-card-current':''}">
+        <div class="ay-card-left">
+          <div class="ay-year-badge${isCurrent?' ay-year-badge-current':''}">${y.year}</div>
+          ${isCurrent?'<span class="badge badge-success" style="font-size:.62rem">Current Year</span>':''}
+        </div>
+        <div class="ay-card-meta">
+          <div class="ay-meta-item"><span>📅</span> ${y.startDate?fmtDate(y.startDate):'—'} → ${y.endDate?fmtDate(y.endDate):'—'}</div>
+          <div class="ay-meta-item"><span>🏫</span> ${structCount}/${classes.length} class fee structures set</div>
+          <div class="ay-meta-item"><span>💰</span> ${fmt(totalCollected)} collected (${payments.length} payments)</div>
+        </div>
+        <div class="ay-card-actions">
+          ${!isCurrent?`<button class="btn btn-secondary btn-sm" onclick="SMS.setCurrentYear('${y.year}')">Set as Current</button>`:''}
+          <button class="btn btn-secondary btn-sm" onclick="SMS.openFeeStructureForYear('${y.year}')">Fee Structure</button>
+          <button class="btn btn-primary btn-sm" onclick="SMS.openHistoricalFeeEntry('${y.year}')">Enter Fee Data</button>
+          ${!isCurrent?`<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="SMS.deleteAcademicYear('${y.year}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>`:''}
+        </div>
+      </div>`;
+    }).join('')||'<div style="color:var(--t4);font-size:.85rem;padding:1rem">No academic years configured yet.</div>';
+  },
+
+  setCurrentYear(year){
+    const school=DB.get('school',{});
+    school.academicYear=year;
+    // Set term 1 as default when switching years
+    school.currentTerm='1';
+    school.academicYears=(school.academicYears||[]).map(y=>({...y,isCurrent:y.year===year}));
+    _academicYear=year; _currentTerm='1';
+    _passMark=school.passMark||50;
+    _gradeSystem=school.gradeSystem||'percentage';
+    DB.set('school',school);
+    document.getElementById('ac-year').value=year;
+    document.getElementById('ac-term').value='1';
+    this.toast(`Switched to ${year} — Term 1`,'success');
+    this.setupTopbar();
+    this.renderAcademicYearHistory();
+    if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard();
+    this.audit('Settings','settings','Academic year switched to '+year);
+  },
+
+  openAddYearModal(){
+    const school=DB.get('school',{});
+    // Suggest the next logical year
+    const latest=getAllAcademicYears()[0]?.year||'2025/2026';
+    const parts=latest.split('/');
+    const suggestStart=+parts[0]+1; const suggestEnd=+parts[1]+1;
+    const suggested=`${suggestStart}/${suggestEnd}`;
+    document.getElementById('new-ay-year').value=suggested;
+    document.getElementById('new-ay-start').value=`${suggestStart}-09-01`;
+    document.getElementById('new-ay-end').value=`${suggestEnd}-07-31`;
+    document.getElementById('new-ay-err').style.display='none';
+    this.openModal('m-add-year');
+  },
+
+  saveNewYear(){
+    const year=document.getElementById('new-ay-year').value.trim();
+    const startDate=document.getElementById('new-ay-start').value;
+    const endDate=document.getElementById('new-ay-end').value;
+    const errEl=document.getElementById('new-ay-err');
+    if(!year||!/^\d{4}\/\d{4}$/.test(year)){
+      errEl.style.display='block'; errEl.textContent='Year must be in format YYYY/YYYY (e.g. 2023/2024)'; return;
+    }
+    const school=DB.get('school',{});
+    if(!school.academicYears) school.academicYears=[];
+    if(school.academicYears.find(y=>y.year===year)){
+      errEl.style.display='block'; errEl.textContent=`${year} already exists.`; return;
+    }
+    school.academicYears.push({year,isCurrent:false,label:year,startDate,endDate});
+    DB.set('school',school);
+    // Auto-create fee structure for this year based on current year's rates
+    const fs=DB.get('feeStructure',[]); const classes=DB.get('classes',[]);
+    const copyFrom=school.academicYear||_academicYear;
+    classes.forEach(c=>{
+      if(!fs.find(f=>f.classId===c.id&&f.year===year)){
+        const prev=fs.find(f=>f.classId===c.id&&f.year===copyFrom)||fs.filter(f=>f.classId===c.id).sort((a,b)=>(b.year||'').localeCompare(a.year||''))[0];
+        fs.push({id:uid('fs'),classId:c.id,year,term1:prev?.term1||0,term2:prev?.term2||0,term3:prev?.term3||0});
+      }
+    });
+    DB.set('feeStructure',fs);
+    this.closeModal('m-add-year');
+    this.renderAcademicYearHistory();
+    this.audit('Settings','settings','Academic year added: '+year);
+    this.toast(`${year} added! Adjust its fee structure and enter historical payments.`,'success');
+  },
+
+  deleteAcademicYear(year){
+    if(!confirm(`Delete academic year ${year}? This will also remove all fee payments recorded for this year.`)) return;
+    const school=DB.get('school',{});
+    school.academicYears=(school.academicYears||[]).filter(y=>y.year!==year);
+    DB.set('school',school);
+    // Remove fee payments for that year
+    DB.set('feePayments',DB.get('feePayments',[]).filter(p=>p.academicYear!==year));
+    // Remove fee structures for that year
+    DB.set('feeStructure',DB.get('feeStructure',[]).filter(f=>f.year!==year));
+    // Remove from students' feesPaid
+    const students=DB.get('students',[]);
+    students.forEach(s=>{ if(s.feesPaid&&s.feesPaid[year]){ delete s.feesPaid[year]; } });
+    DB.set('students',students);
+    this.renderAcademicYearHistory();
+    this.toast(`${year} deleted.`,'info');
+  },
+
+  openFeeStructureForYear(year){
+    // Open the fee structure modal pre-filtered to the selected year
+    const school=DB.get('school',{});
+    const prev=school.academicYear;
+    // Temporarily switch year filter to show that year's structure
+    document.getElementById('fee-year-f') && (document.getElementById('fee-year-f').value=year);
+    SMS.nav('fees');
+    // Switch to fee structure tab
+    setTimeout(()=>{
+      document.querySelectorAll('.fee-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.fee-pane').forEach(p=>p.classList.remove('active'));
+      const structTab=document.querySelector('.fee-tab[data-pane="structure"]');
+      const structPane=document.getElementById('fee-pane-structure');
+      if(structTab) structTab.classList.add('active');
+      if(structPane) structPane.classList.add('active');
+      this.renderFeeStructure();
+    },100);
+  },
+
+  openHistoricalFeeEntry(year){
+    const students=DB.get('students',[]).filter(s=>s.status==='active');
+    const classes=DB.get('classes',[]);
+    const fs=DB.get('feeStructure',[]).filter(f=>f.year===year);
+    document.getElementById('hist-fee-year-title').textContent=year;
+    document.getElementById('hist-fee-year-input').value=year;
+    const tbody=document.getElementById('hist-fee-tbody');
+    if(!tbody) return;
+    tbody.innerHTML=students.map(s=>{
+      const fss=fs.find(f=>f.classId===s.classId);
+      const yf=getYearFees(s,year);
+      const t1due=+(fss?.term1||0), t2due=+(fss?.term2||0), t3due=+(fss?.term3||0);
+      const p1=+(yf.term1||0), p2=+(yf.term2||0), p3=+(yf.term3||0);
+      const cls=classes.find(c=>c.id===s.classId);
+      const rowClass=p1+p2+p3>0?'hist-row-has-data':'';
+      return `<tr class="${rowClass}" id="hist-row-${s.id}">
+        <td><div style="font-weight:600;font-size:.82rem">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
+          <div style="font-size:.7rem;color:var(--t4)">${cls?.name||'—'} · ${s.studentId}</div></td>
+        <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t1due):'—'}</td>
+        <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p1||''}" placeholder="0.00" data-sid="${s.id}" data-term="term1" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
+        <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t2due):'—'}</td>
+        <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p2||''}" placeholder="0.00" data-sid="${s.id}" data-term="term2" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
+        <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t3due):'—'}</td>
+        <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p3||''}" placeholder="0.00" data-sid="${s.id}" data-term="term3" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
+        <td class="hist-balance-cell" id="hist-bal-${s.id}" style="font-weight:700;font-size:.8rem;white-space:nowrap">${this._histBalance(p1,p2,p3,t1due,t2due,t3due)}</td>
+      </tr>`;
+    }).join('')||'<tr><td colspan="8" class="tbl-empty">No active students found.</td></tr>';
+    this.openModal('m-hist-fees');
+  },
+
+  _histBalance(p1,p2,p3,t1,t2,t3){
+    const total=(+t1||0)+(+t2||0)+(+t3||0);
+    const paid=(+p1||0)+(+p2||0)+(+p3||0);
+    const owed=Math.max(0,total-paid);
+    if(!total) return '<span style="color:var(--t4)">No structure</span>';
+    if(owed===0) return `<span style="color:var(--success)">✓ ${fmt(paid)}</span>`;
+    return `<span style="color:var(--danger)">${fmt(owed)} owed</span>`;
+  },
+
+  _histRowUpdate(sid,year){
+    const s=DB.get('students',[]).find(x=>x.id===sid); if(!s) return;
+    const fss=getYearStructure(sid?s.classId:null,year)||{term1:0,term2:0,term3:0};
+    const p1=+document.querySelector(`[data-sid="${sid}"][data-term="term1"]`)?.value||0;
+    const p2=+document.querySelector(`[data-sid="${sid}"][data-term="term2"]`)?.value||0;
+    const p3=+document.querySelector(`[data-sid="${sid}"][data-term="term3"]`)?.value||0;
+    const balEl=document.getElementById('hist-bal-'+sid);
+    if(balEl) balEl.innerHTML=this._histBalance(p1,p2,p3,fss.term1,fss.term2,fss.term3);
+    const row=document.getElementById('hist-row-'+sid);
+    if(row) row.classList.toggle('hist-row-has-data',(p1+p2+p3)>0);
+  },
+
+  saveHistoricalFees(){
+    const year=document.getElementById('hist-fee-year-input')?.value;
+    if(!year){ this.toast('No year selected','danger'); return; }
+    const inputs=document.querySelectorAll('.hist-amt');
+    const students=DB.get('students',[]);
+    const payments=DB.get('feePayments',[]);
+    let savedCount=0;
+    const byStudent={};
+    inputs.forEach(inp=>{
+      const sid=inp.dataset.sid, term=inp.dataset.term, amount=+(inp.value||0);
+      if(!sid) return;
+      if(!byStudent[sid]) byStudent[sid]={};
+      byStudent[sid][term]=amount;
+    });
+    Object.entries(byStudent).forEach(([sid,terms])=>{
+      const si=students.findIndex(s=>s.id===sid); if(si<0) return;
+      if(!students[si].feesPaid||typeof students[si].feesPaid.term1==='number') students[si].feesPaid={};
+      const prev=students[si].feesPaid[year]||{term1:0,term2:0,term3:0};
+      students[si].feesPaid[year]={term1:+(terms.term1||0),term2:+(terms.term2||0),term3:+(terms.term3||0)};
+      // Sync feePayments: remove old historical payments for this student/year, re-add as single records
+      const filtered=payments.filter(p=>!(p.studentId===sid&&p.academicYear===year&&p.ref==='historical-entry'));
+      const s=students[si];
+      ['term1','term2','term3'].forEach((t,ti)=>{
+        const amt=+(terms[t]||0); if(amt<=0) return;
+        const maxRec=filtered.reduce((mx,p)=>{ const n=parseInt((p.receiptNo||'').replace('REC-','')||0); return n>mx?n:mx; },0);
+        filtered.push({id:uid('fp'),studentId:sid,term:String(ti+1),amount:amt,method:'historical',date:year.split('/')[0]+'-09-01',by:this.currentUser.name,receiptNo:'REC-'+String(maxRec+1).padStart(4,'0'),academicYear:year,ref:'historical-entry'});
+        savedCount++;
+      });
+      payments.length=0; filtered.forEach(p=>payments.push(p));
+    });
+    DB.set('students',students);
+    DB.set('feePayments',[...payments]);
+    this.closeModal('m-hist-fees');
+    this.audit('Historical Fees','create',`Historical fee data saved for ${year} — ${savedCount} term records`);
+    this.toast(`Historical fees saved for ${year}!`,'success');
+    this.renderAcademicYearHistory();
   },
 
   loadAppearanceSettings(){

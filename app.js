@@ -1418,12 +1418,13 @@ const SMS = {
     }
     const heroOutEl=document.getElementById('dash-hero-outstanding');
     if(heroOutEl){
+      const _heroStatWrap=heroOutEl.closest('.dash-hero-stat');
       if(isFinance){
-        heroOutEl.closest('.dash-hero-stat').style.display='';
+        if(_heroStatWrap) _heroStatWrap.style.display='';
         heroOutEl.textContent=fmt(totalOutstanding);
         heroOutEl.style.color=totalOutstanding>0?'#ff6b6b':'#14b8a6';
       } else {
-        heroOutEl.closest('.dash-hero-stat').style.display='none';
+        if(_heroStatWrap) _heroStatWrap.style.display='none';
       }
     }
     // Dim date when viewing historical year/term

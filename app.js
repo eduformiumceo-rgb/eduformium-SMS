@@ -1256,12 +1256,12 @@ const SMS = {
     if(_fEl) _fEl.textContent='Updated just now';
     clearInterval(this._freshTimer);
     this._freshTimer=setInterval(()=>{
-      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); this._freshTimer=null; return; }
+      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); return; }
       const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
       const fe=document.getElementById('dash-freshness');
       if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
     },30000);
-    const _fp=`${d.students.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}|${d.role}`;
+    const _fp=`${d.students.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role); }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
@@ -1287,6 +1287,7 @@ const SMS = {
     const subjects=DB.get('subjects',[]);
     const events=DB.get('events',[]);
     const attRecords=DB.get('attendance',[]);
+    const homework=DB.get('homework',[]);
     const messages=DB.get('messages',[]);
     const now=new Date();
     const todayStr=localDateStr();
@@ -1350,7 +1351,7 @@ const SMS = {
       const pct=previous>0?Math.abs(Math.round(diff/previous*100)):'—';
       const up=diff>0;
       const isGood=(up&&higherIsBetter)||(!up&&!higherIsBetter);
-      const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff)+' new':pct+'%');
+      const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff):pct+'%');
       return `<span class="kpi-trend ${isGood?'kpi-trend-up':'kpi-trend-down'}">${up?'↑':'↓'} ${label} vs last month</span>`;
     };
 
@@ -1489,12 +1490,11 @@ const SMS = {
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:enrollTrend,color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
-      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant']},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?`${attSub} · ${attNum}% avg`:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
-    const _kpisEl=document.getElementById('dash-kpis'); if(!_kpisEl) return;
-    _kpisEl.innerHTML=allKpis.filter(k=>k.roles.includes(role)).map(k=>`
+    document.getElementById('dash-kpis').innerHTML=allKpis.filter(k=>k.roles.includes(role)).map(k=>`
       <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>
@@ -1512,9 +1512,8 @@ const SMS = {
     const clsPalette=['var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)'];
     const clsAlphaPalette=['var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
-    const _rsEl=document.getElementById('dash-recent-students'); if(!_rsEl) return;
-    _rsEl.innerHTML=recent.map(s=>{
-      const ci=Math.max(0,classes.findIndex(c=>c.id===s.classId));
+    document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
+      const ci=classes.findIndex(c=>c.id===s.classId);
       const col=clsPalette[ci%clsPalette.length]||'var(--brand)';
       const colLt=clsAlphaPalette[ci%clsAlphaPalette.length]||'var(--brand-lt)';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.viewStudent('${s.id}')">
@@ -1544,8 +1543,7 @@ const SMS = {
       cultural:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
     };
     const _evFallback='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
-    const _evEl=document.getElementById('dash-events'); if(!_evEl) return;
-    _evEl.innerHTML=upcomingEv.map(e=>{
+    document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
       const col=evColors[e.type]||'var(--brand)';
       const bg=evBg[e.type]||'var(--brand-lt)';
       const daysLeft=Math.ceil((new Date(e.start)-_todayStart)/(1000*60*60*24));
@@ -1554,7 +1552,7 @@ const SMS = {
         <div class="mini-av" style="background:${bg};color:${col}">${_evSvg[e.type]||_evFallback}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.title)}</div>
-          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+sanitize(e.venue):''}</div>
+          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
@@ -1572,9 +1570,7 @@ const SMS = {
     const defList=document.getElementById('dash-defaulters');
     if(!defList) return;
     defList.innerHTML=defaulters.slice(0,5).map(s=>{
-      const yfs=getYearStructure(s.classId,_academicYear);
-      const yf=getYearFees(s,_academicYear);
-      const owed=yfs?Math.max(0,(+(yfs['term'+_currentTerm]||0))-(+(yf['term'+_currentTerm]||0))):0;
+      const owed=this._studentOwed(s,_academicYear);
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees');SMS.openFeeModal('${s.id}')">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -1583,7 +1579,7 @@ const SMS = {
         </div>
         <div class="mini-right" style="text-align:right">
           <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
-          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">Term ${_currentTerm} outstanding</div>
+          <div style="font-size:.65rem;color:var(--t4);margin-top:.1rem">Outstanding balance</div>
         </div>
       </div>`;
     }).join('')||'<div class="dash-empty-panel dash-empty-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><polyline points="20 6 9 17 4 12"/></svg><div>All fees up to date</div></div>';
@@ -1646,7 +1642,7 @@ const SMS = {
 
   // ── Staff on Leave Today panel ──
   _renderDashOnLeave(d){
-    const {isFinance,leaves,staff,now,_todayStart} = d;
+    const {isFinance,leaves,staff,now} = d;
     const onLeavePanel=document.getElementById('dash-on-leave-panel');
     if(onLeavePanel) onLeavePanel.style.display=isFinance?'':'none';
     if(!isFinance) return;
@@ -1671,12 +1667,12 @@ const SMS = {
       const col=leaveColors[l.type]||'var(--brand)';
       const bg=leaveBg[l.type]||'var(--brand-lt)';
       const toDate=new Date(l.to+'T00:00:00');
-      const daysLeft=Math.ceil((toDate-_todayStart)/(1000*60*60*24));
+      const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
-          <div class="mini-sub">${l.type} leave · back ${daysLeft<=0?'today':daysLeft===1?'tomorrow':fmtDate(l.to)}</div>
+          <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
       </div>`;
@@ -1689,7 +1685,7 @@ const SMS = {
     const el=document.getElementById('dash-getting-started');
     if(!el) return;
     const {students,classes,isAdmin}=d;
-    const isEmpty=students.length===0||classes.length===0;
+    const isEmpty=students.length===0&&classes.length===0;
     el.style.display=(isEmpty&&isAdmin)?'':'none';
   },
 
@@ -1744,12 +1740,9 @@ const SMS = {
       const hasAnyFee=feeData.some(v=>v>0);
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       const tealLine=isDark?'#2dd4bf':'#0d9488';
-      const _ctx2d=ctx2.getContext('2d');
-      const grad2=_ctx2d?_ctx2d.createLinearGradient(0,0,0,220):null;
-      if(grad2){
-        grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
-        grad2.addColorStop(1,'rgba(0,0,0,0)');
-      }
+      const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
+      grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
+      grad2.addColorStop(1,'rgba(0,0,0,0)');
       const totalCollected=feeData.reduce((a,b)=>a+b,0);
       const feeStatEl=document.getElementById('dash-fee-total-stat');
       if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';
@@ -1883,7 +1876,7 @@ const SMS = {
       const weekTotalPossible=attTotals.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
       const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
       const attAvgEl=document.getElementById('dash-att-avg-stat');
-      if(attAvgEl) attAvgEl.textContent=weekTotalPossible>0?`${weekTotalPresent}/${weekTotalPossible}`:'—';
+      if(attAvgEl) attAvgEl.textContent=avgRate!==null?`${avgRate}%`:'—';
       const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.style.position='relative'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; _attEmp.innerHTML=_noAtt?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>':''; }
       const isLastWeek=(_dow===0||_dow===6);
       const maxTotal=Math.max(...attTotals,1);

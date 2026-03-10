@@ -47,6 +47,8 @@ let _gradeSystem='percentage';
 const SYMS={GHS:'₵',NGN:'₦',KES:'KSh ',USD:'$',GBP:'£',ZAR:'R ',EUR:'€'};
 const fmt=(n)=>(SYMS[_currency]||'₵')+(+n||0).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtDate=(s)=>{ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); };
+// Always returns "YYYY-MM-DD" in the device's LOCAL timezone — never UTC midnight drift
+const localDateStr=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const gradeFromScore=(s,max=100)=>{
   const p=s/max*100; const pm=_passMark||50;
   if(_gradeSystem==='gpa'){ if(p>=90)return'4.0';if(p>=80)return'3.0';if(p>=70)return'2.0';if(p>=pm)return'1.0';return'0.0'; }
@@ -1145,7 +1147,7 @@ const SMS = {
     const totalRevenue=payments.reduce((s,p)=>s+(+p.amount||0),0);
     const active=students.filter(s=>s.status==='active').length;
     const attRecords=DB.get('attendance',[]);
-    const todayStr=new Date().toISOString().split('T')[0];
+    const todayStr=localDateStr();
     const todayAtt=attRecords.filter(a=>a.date===todayStr);
     const now=new Date();
     // Attendance rate
@@ -1300,11 +1302,12 @@ const SMS = {
     const ctx2=document.getElementById('chart-fees');
     if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
       const now2=new Date();
-      const feeKeys=[],feeLabels=[],feeData=[];
+      const feeKeys=[],feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
         const d=new Date(now2.getFullYear(),now2.getMonth()-i,1);
         feeKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-        feeLabels.push(d.toLocaleString('default',{month:'short',year:'2-digit'}));
+        feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));            // "Oct" "Nov" etc
+        feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'})); // "October 2025"
         feeData.push(0);
       }
       payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
@@ -1314,13 +1317,12 @@ const SMS = {
       const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
       grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
       grad2.addColorStop(1,'rgba(0,0,0,0)');
-      // Update summary stat
       const totalCollected=feeData.reduce((a,b)=>a+b,0);
       const feeStatEl=document.getElementById('dash-fee-total-stat');
       if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';
       this._charts.fees=new Chart(ctx2,{
         type:'line',
-        data:{labels:feeLabels,datasets:[{
+        data:{labels:feeAxisLabels,datasets:[{
           data:feeData, borderColor:tealLine, backgroundColor:grad2,
           borderWidth:2.5, tension:0.42, fill:true,
           pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
@@ -1335,17 +1337,13 @@ const SMS = {
             legend:{display:false},
             tooltip:{
               backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:isDark?'#94a3b8':'#94a3b8',
-              bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b',
-              borderWidth:1,
-              padding:{top:10,bottom:10,left:14,right:14},
-              cornerRadius:10,
-              titleFont:{size:11,weight:'500'},
-              bodyFont:{size:13,weight:'700'},
+              titleColor:'#94a3b8', bodyColor:'#fff',
+              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+              padding:{top:10,bottom:10,left:14,right:14}, cornerRadius:10,
+              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
               callbacks:{
                 label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
-                title:items=>`${items[0].label}  •  Fee Collection`,
+                title:items=>`${feeTooltipLabels[items[0].dataIndex]}  •  Fee Collection`,
               }
             }
           },
@@ -1357,10 +1355,8 @@ const SMS = {
             },
             x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
           },
-          onClick:()=>SMS.nav('fees'),
         }
       });
-      ctx2.style.cursor='pointer';
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
     }
@@ -1400,45 +1396,59 @@ const SMS = {
             y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
             x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
           },
-          onClick:()=>SMS.nav('students'),
         }
       });
-      ctx1.style.cursor='pointer';
     }
 
-    // ── Attendance Rate — segmented bar with colour zones ──
+    // ── Attendance Rate — Mon–Fri school week, future days dimmed ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
       const recs=attRecords||DB.get('attendance',[]);
-      const attKeys=[],attLabels=[],attData=[],attColors=[],attHover=[];
-      for(let i=6;i>=0;i--){
-        const d=new Date(); d.setDate(d.getDate()-i);
-        const key=d.toISOString().split('T')[0];
-        attKeys.push(key);
-        attLabels.push(d.toLocaleString('default',{weekday:'short'}));
+      const _today=new Date();
+      const _dow=_today.getDay(); // 0=Sun,1=Mon,...,6=Sat
+      // Find Monday of current week; if weekend show last completed week
+      const _monday=new Date(_today);
+      if(_dow===0)      _monday.setDate(_today.getDate()-6);   // Sun → last Mon
+      else if(_dow===6) _monday.setDate(_today.getDate()-5);   // Sat → last Mon
+      else              _monday.setDate(_today.getDate()-(_dow-1)); // Mon–Fri → this Mon
+      const attAxisLabels=[],attTooltipLabels=[],attData=[],attColors=[],attHover=[];
+      for(let i=0;i<5;i++){
+        const d=new Date(_monday); d.setDate(_monday.getDate()+i);
+        const key=localDateStr(d);
+        const isFuture=d>_today;
+        const isToday=key===localDateStr(_today);
+        attAxisLabels.push(d.toLocaleString('default',{weekday:'short'}));
+        attTooltipLabels.push(d.toLocaleString('default',{weekday:'long',day:'numeric',month:'short'}));
         const dayRecs=recs.filter(a=>a.date===key);
-        if(dayRecs.length>0){
+        if(isFuture){
+          attData.push(0);
+          attColors.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
+          attHover.push(isDark?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.04)');
+        } else if(dayRecs.length>0){
           const rate=Math.round(dayRecs.reduce((s,a)=>s+(a.present/(a.total||1)),0)/dayRecs.length*100);
           attData.push(rate);
+          const alpha=isToday?1:0.82;
           if(isDark){
-            attColors.push(rate>=90?'rgba(45,212,191,0.82)':rate>=75?'rgba(251,191,36,0.82)':'rgba(248,113,113,0.82)');
+            attColors.push(rate>=90?`rgba(45,212,191,${alpha})`:rate>=75?`rgba(251,191,36,${alpha})`:`rgba(248,113,113,${alpha})`);
             attHover.push(rate>=90?'rgba(45,212,191,1)':rate>=75?'rgba(251,191,36,1)':'rgba(248,113,113,1)');
           } else {
-            attColors.push(rate>=90?'rgba(13,148,136,0.82)':rate>=75?'rgba(217,119,6,0.82)':'rgba(220,38,38,0.78)');
+            attColors.push(rate>=90?`rgba(13,148,136,${alpha})`:rate>=75?`rgba(217,119,6,${alpha})`:`rgba(220,38,38,${alpha===1?0.95:0.78})`);
             attHover.push(rate>=90?'rgba(13,148,136,1)':rate>=75?'rgba(217,119,6,1)':'rgba(220,38,38,1)');
           }
         } else {
-          attData.push(null); attColors.push(emptyBarColor); attHover.push(emptyBarColor);
+          attData.push(0);
+          attColors.push(isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)');
+          attHover.push(isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)');
         }
       }
-      const hasAttData=attData.some(v=>v!==null);
-      const validRates=attData.filter(v=>v!==null);
+      const validRates=attData.filter((v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return v>0&&d<=_today; });
       const avgRate=validRates.length?Math.round(validRates.reduce((a,b)=>a+b,0)/validRates.length):null;
       const attAvgEl=document.getElementById('dash-att-avg-stat');
       if(attAvgEl) attAvgEl.textContent=avgRate!==null?avgRate+'%':'—';
+      const isLastWeek=(_dow===0||_dow===6);
       this._charts.att=new Chart(ctx3,{
         type:'bar',
-        data:{labels:attLabels,datasets:[{
+        data:{labels:attAxisLabels,datasets:[{
           data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
           borderRadius:6, borderSkipped:false,
         }]},
@@ -1455,21 +1465,23 @@ const SMS = {
               padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
               titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
               callbacks:{
-                label:ctx=>ctx.parsed.y!==null?`  ${ctx.parsed.y}%  attendance`:'  No data',
-                title:items=>items[0].label,
+                label:(ctx)=>{
+                  const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
+                  if(d>_today) return '  No school yet';
+                  return ctx.parsed.y>0?`  ${ctx.parsed.y}%  attendance`:'  Not recorded';
+                },
+                title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
               }
             }
           },
           scales:{
-            y:{min:hasAttData?55:0,max:100,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{callback:v=>v+'%',color:tickColor,font:{size:11},maxTicksLimit:5}},
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
+            y:{min:0,max:100,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{callback:v=>v+'%',color:tickColor,font:{size:11},maxTicksLimit:5}},
+            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
           },
-          onClick:()=>SMS.nav('attendance'),
         }
       });
-      ctx3.style.cursor='pointer';
       const sub3=document.getElementById('dash-att-sub');
-      if(sub3) sub3.textContent=hasAttData?'Last 7 days':'No records yet';
+      if(sub3) sub3.textContent=isLastWeek?'Last school week (Mon–Fri)':'This week (Mon–Fri)';
     }
   },
 
@@ -1910,17 +1922,21 @@ const SMS = {
 
   // ══ ATTENDANCE ══
   loadAttendance(){
+    // Always reset date to today when module loads — prevents stale date from boot time
+    const attDateEl=document.getElementById('att-date');
+    if(attDateEl) attDateEl.value=localDateStr();
     this.renderAttSummary(); this.renderAttendanceRecords();
     const classes=DB.get('classes',[]);
     const sel=document.getElementById('att-class'); if(sel) sel.innerHTML='<option value="">Select Class</option>'+classes.map(c=>`<option value="${c.id}">${sanitize(c.name)}</option>`).join('');
     const from=document.getElementById('att-from'), to=document.getElementById('att-to');
-    if(from) from.value=new Date(Date.now()-7*86400000).toISOString().split('T')[0];
-    if(to) to.value=new Date().toISOString().split('T')[0];
+    const _7ago=new Date(); _7ago.setDate(_7ago.getDate()-7);
+    if(from) from.value=localDateStr(_7ago);
+    if(to) to.value=localDateStr();
   },
 
   renderAttSummary(){
     const att=DB.get('attendance',[]);
-    const today=att.filter(a=>a.date===new Date().toISOString().split('T')[0]);
+    const today=att.filter(a=>a.date===localDateStr());
     const totP=today.reduce((s,a)=>s+(a.present||0),0), totA=today.reduce((s,a)=>s+(a.absent||0),0), totL=today.reduce((s,a)=>s+(a.late||0),0), totT=today.reduce((s,a)=>s+(a.total||0),0);
     const rate=totT>0?Math.round(totP/totT*100):0;
     document.getElementById('att-summary').innerHTML=[

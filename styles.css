@@ -1932,8 +1932,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   margin-bottom:0;
   align-items:start;
 }
-.dash-charts-layout .card { margin-bottom:0; transition: box-shadow .16s, transform .14s; }
-.dash-charts-layout .card:hover { box-shadow:0 6px 20px rgba(0,0,0,.08); transform:translateY(-1px); }
+.dash-charts-layout .card { margin-bottom:0; }
 .dash-charts-side { display:flex; flex-direction:column; gap:.9rem; }
 .dash-chart-box-tall { padding:.5rem 1rem 1.1rem; height:260px; }
 .dash-chart-box-tall canvas { width:100% !important; height:100% !important; }

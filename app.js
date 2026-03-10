@@ -432,6 +432,7 @@ const SMS = {
   _auditPage: 1,
   _dashRefreshTimer: null,   // auto-refresh interval handle
   _freshTimer: null,         // freshness label interval handle
+  _readNotifIds: null,       // Set of dismissed notification IDs (session)
   _syncStatus: 'idle',       // 'idle' | 'syncing' | 'synced' | 'offline'
 
   // Minimum ms the loading screen stays visible — ensures it's seen on fast/cached loads
@@ -733,7 +734,7 @@ const SMS = {
     document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const so=document.getElementById('search-overlay'); if(so&&so.style.display!=='none') so.style.display='none'; } });
     document.getElementById('global-search-input')?.addEventListener('input',e=>this.globalSearch(e.target.value));
     document.getElementById('notif-btn')?.addEventListener('click',()=>{ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
-    document.getElementById('notif-clear')?.addEventListener('click',()=>{ document.getElementById('notif-list').innerHTML='<div class="notif-empty">No new notifications</div>'; document.getElementById('notif-badge').style.display='none'; document.getElementById('notif-panel').style.display='none'; });
+    document.getElementById('notif-clear')?.addEventListener('click',()=>this.clearAllNotifs());
     document.addEventListener('click',e=>{ if(!document.getElementById('notif-wrap')?.contains(e.target)) document.getElementById('notif-panel').style.display='none'; });
     document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); }));
     document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ const g=t.closest('.tabs'); if(!g) return; g.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const panes=t.closest('.page')?.querySelectorAll('.tab-pane'); panes?.forEach(p=>{ p.classList.remove('active'); if(p.id===t.dataset.tab) p.classList.add('active'); }); }));
@@ -4367,20 +4368,41 @@ const SMS = {
 
   // ══ NOTIFICATIONS ══
   loadNotifications(){
+    if(!this._readNotifIds) this._readNotifIds = new Set();
     const log=DB.get('auditLog',[]);
-    const recent=[...log].reverse().slice(0,15);
+    const recent=[...log].reverse().slice(0,50); // pull more so dismissed ones still leave 15 visible
     const list=document.getElementById('notif-list');
     const badge=document.getElementById('notif-badge');
-    const icons={create:'create',edit:'edit',delete:'delete',login:'login',default:'info'};
-    const colors={create:'#16a34a',edit:'#2563eb',delete:'#dc2626',login:'#0d9488',default:'#6b7280'};
+    if(!list||!badge) return;
+
     const pageMap={
-      'Enroll Student':'students','Edit Student':'students','Delete Student':'students',
+      'Enroll Student':'students','Edit Student':'students','Delete Student':'students','Student Promotion':'students','Bulk Import':'students',
       'Add Staff':'staff','Edit Staff':'staff','Delete Staff':'staff',
-      'Fee Payment':'fees','Payroll':'payroll',
-      'Attendance':'attendance','Grades Entry':'exams','Create Exam':'exams',
-      'Add Event':'events','Add Class':'classes','Add Subject':'classes',
-      'Send Message':'messages','Leave':'leave','Login':'dashboard','Logout':'dashboard',
+      'Fee Payment':'fees','Fee Reversal':'fees','Fee Reminder':'fees',
+      'Payroll':'payroll','Payroll Export':'payroll',
+      'Attendance':'attendance',
+      'Grades Entry':'exams','Create Exam':'exams',
+      'Add Event':'events',
+      'Add Class':'classes','Edit Class':'classes','Add Subject':'classes',
+      'Send Message':'messages',
+      'Leave':'leave',
+      'Add Expense':'expenses','Edit Expense':'expenses',
+      'Login':'dashboard','Logout':'dashboard','Backup':'settings',
+      'Add User':'settings','Delete User':'settings',
+      'Add Book':'library','Edit Book':'library',
+      'Add Homework':'homework','Edit Homework':'homework','Delete Homework':'homework',
     };
+
+    // SVG icons keyed by audit type
+    const iconSvg={
+      create:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+      edit:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      delete:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`,
+      login:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>`,
+      settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="15" height="15"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+    };
+    const iconColors={create:'#16a34a',edit:'#2563eb',delete:'#dc2626',login:'#0d9488',settings:'#7c3aed',default:'#6b7280'};
+
     function timeAgo(t){
       const s=Math.floor((Date.now()-new Date(t))/1000);
       if(s<60) return 'just now';
@@ -4388,28 +4410,79 @@ const SMS = {
       if(s<86400) return Math.floor(s/3600)+'h ago';
       return Math.floor(s/86400)+'d ago';
     }
-    if(recent.length===0){
-      list.innerHTML='<div class="notif-empty">No activity yet</div>';
+
+    // Filter out dismissed, show up to 15
+    const visible=recent.filter(l=>!this._readNotifIds.has(l.id)).slice(0,15);
+    // Unread = not dismissed AND within 3 days
+    const unreadCount=visible.filter(l=>Date.now()-new Date(l.time)<3*86400000).length;
+
+    if(visible.length===0){
+      list.innerHTML='<div class="notif-empty">No new notifications</div>';
       badge.style.display='none'; return;
     }
-    const newCount=recent.filter(l=>Date.now()-new Date(l.time)<3*86400000).length;
-    list.innerHTML=recent.map(l=>{
-      const icon=icons[l.type]||icons.default;
-      const color=colors[l.type]||colors.default;
+
+    list.innerHTML=visible.map(l=>{
       const page=pageMap[l.action]||'dashboard';
-      return `<div onclick="SMS.nav('${page}');document.getElementById('notif-panel').style.display='none';"
-        style="display:flex;align-items:flex-start;gap:.65rem;padding:.85rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s"
+      const type=l.type||'default';
+      const svg=iconSvg[type]||iconSvg.create;
+      const color=iconColors[type]||iconColors.default;
+      const isNew=Date.now()-new Date(l.time)<3*86400000;
+      return `<div class="notif-item" id="ni-${l.id}" onclick="SMS.clickNotif('${l.id}','${page}')"
+        style="display:flex;align-items:flex-start;gap:.65rem;padding:.8rem 1rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;position:relative"
         onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
-        <div style="width:32px;height:32px;border-radius:8px;background:${color}18;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0">${icon}</div>
+        ${isNew?`<span style="position:absolute;top:.7rem;left:.4rem;width:5px;height:5px;border-radius:50%;background:var(--brand);flex-shrink:0"></span>`:''}
+        <div style="width:32px;height:32px;border-radius:8px;background:${color}18;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${color}">${svg}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:.8rem;font-weight:600;color:var(--t1);margin-bottom:.1rem">${sanitize(l.action)}</div>
-          <div style="font-size:.75rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sanitize(l.details||'')}</div>
-          <div style="font-size:.68rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${sanitize(l.user)}</div>
+          <div style="font-size:.74rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sanitize(l.details||'')}</div>
+          <div style="font-size:.67rem;color:var(--t4);margin-top:.2rem">${timeAgo(l.time)} · ${sanitize(l.user)}</div>
         </div>
+        <button onclick="event.stopPropagation();SMS.clickNotif('${l.id}',null)"
+          style="flex-shrink:0;border:none;background:none;cursor:pointer;color:var(--t4);padding:.2rem .35rem;border-radius:4px;font-size:.75rem;line-height:1;opacity:.5"
+          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'" title="Dismiss">✕</button>
       </div>`;
     }).join('');
-    badge.style.display=newCount>0?'flex':'none';
-    badge.textContent=newCount>9?'9+':newCount;
+
+    badge.style.display=unreadCount>0?'flex':'none';
+    badge.textContent=unreadCount>9?'9+':unreadCount;
+  },
+
+  // Click a notification: navigate (if page given) + dismiss it
+  clickNotif(id, page){
+    if(!this._readNotifIds) this._readNotifIds=new Set();
+    this._readNotifIds.add(id);
+    // Animate out
+    const el=document.getElementById('ni-'+id);
+    if(el){ el.style.transition='opacity .18s, transform .18s'; el.style.opacity='0'; el.style.transform='translateX(12px)'; setTimeout(()=>{ el.remove(); this._refreshNotifBadge(); },200); }
+    if(page){ this.nav(page); document.getElementById('notif-panel').style.display='none'; }
+    else { this._refreshNotifBadge(); }
+  },
+
+  // Clear all: dismiss every currently visible notification
+  clearAllNotifs(){
+    if(!this._readNotifIds) this._readNotifIds=new Set();
+    const log=DB.get('auditLog',[]);
+    log.forEach(l=>this._readNotifIds.add(l.id));
+    const list=document.getElementById('notif-list');
+    if(list) list.innerHTML='<div class="notif-empty">No new notifications</div>';
+    const badge=document.getElementById('notif-badge');
+    if(badge) badge.style.display='none';
+    document.getElementById('notif-panel').style.display='none';
+  },
+
+  // Recalculate badge after a dismiss without full re-render
+  _refreshNotifBadge(){
+    if(!this._readNotifIds) return;
+    const log=DB.get('auditLog',[]);
+    const unread=[...log].reverse().slice(0,50)
+      .filter(l=>!this._readNotifIds.has(l.id)&&Date.now()-new Date(l.time)<3*86400000).length;
+    const badge=document.getElementById('notif-badge');
+    if(!badge) return;
+    badge.style.display=unread>0?'flex':'none';
+    badge.textContent=unread>9?'9+':unread;
+    // If no visible items remain, show empty state
+    const list=document.getElementById('notif-list');
+    if(list&&!list.querySelector('.notif-item')){ list.innerHTML='<div class="notif-empty">No new notifications</div>'; }
   },
 
   // ══ HELPERS ══
@@ -4448,6 +4521,7 @@ const SMS = {
     const log=DB.get('auditLog',[]); log.push({id:uid('al'),action,type,user:this.currentUser?.name||'System',details,time:new Date().toISOString()});
     if(log.length>500) log.splice(0,log.length-500);
     DB.set('auditLog',log);
+    this.loadNotifications(); // keep badge fresh after every action
   },
 
   openModal(id){

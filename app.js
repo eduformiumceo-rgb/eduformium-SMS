@@ -1413,6 +1413,11 @@ const SMS = {
     // Keep year/term pills in sync with the currently selected academic year/term
     const hyrEl=document.getElementById('dash-hero-year'); if(hyrEl) hyrEl.textContent=_academicYear||'—';
     const htrEl=document.getElementById('dash-hero-term'); if(htrEl) htrEl.textContent=_currentTerm||'—';
+    // Keep greeting in sync with current time of day (auto-refresh can run hours after login)
+    const _h=new Date().getHours();
+    const _g=_h<12?'Good morning':_h<17?'Good afternoon':'Good evening';
+    const _dwEl=document.getElementById('dash-welcome');
+    if(_dwEl) _dwEl.textContent=`${_g}, ${(this.currentUser?.name||'User').split(' ')[0]}! Here's your school overview.`;
     // Hero always renders on dark navy — use fixed high-contrast colours (not CSS vars which target light bg)
     const heroAtt=document.getElementById('dash-hero-att');
     if(heroAtt){

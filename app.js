@@ -1350,7 +1350,7 @@ const SMS = {
       const pct=previous>0?Math.abs(Math.round(diff/previous*100)):'—';
       const up=diff>0;
       const isGood=(up&&higherIsBetter)||(!up&&!higherIsBetter);
-      const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff):pct+'%');
+      const label=isCurrency?fmt(Math.abs(diff)):(pct==='—'?Math.abs(diff)+' new':pct+'%');
       return `<span class="kpi-trend ${isGood?'kpi-trend-up':'kpi-trend-down'}">${up?'↑':'↓'} ${label} vs last month</span>`;
     };
 
@@ -1689,7 +1689,7 @@ const SMS = {
     const el=document.getElementById('dash-getting-started');
     if(!el) return;
     const {students,classes,isAdmin}=d;
-    const isEmpty=students.length===0&&classes.length===0;
+    const isEmpty=students.length===0||classes.length===0;
     el.style.display=(isEmpty&&isAdmin)?'':'none';
   },
 
@@ -1744,9 +1744,12 @@ const SMS = {
       const hasAnyFee=feeData.some(v=>v>0);
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       const tealLine=isDark?'#2dd4bf':'#0d9488';
-      const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
-      grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
-      grad2.addColorStop(1,'rgba(0,0,0,0)');
+      const _ctx2d=ctx2.getContext('2d');
+      const grad2=_ctx2d?_ctx2d.createLinearGradient(0,0,0,220):null;
+      if(grad2){
+        grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
+        grad2.addColorStop(1,'rgba(0,0,0,0)');
+      }
       const totalCollected=feeData.reduce((a,b)=>a+b,0);
       const feeStatEl=document.getElementById('dash-fee-total-stat');
       if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';

@@ -3888,7 +3888,6 @@ const SMS = {
       if(si) si.value=yEntry[`${t}Start`]||'';
       if(ei) ei.value=yEntry[`${t}End`]||'';
     });
-    document.getElementById('etd-impact').style.display='none';
     this.openModal('m-edit-term-dates');
   },
 

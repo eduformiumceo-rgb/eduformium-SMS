@@ -1504,7 +1504,10 @@ const SMS = {
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?`${attSub} · ${attNum}% avg`:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
-    document.getElementById('dash-kpis').innerHTML=allKpis.filter(k=>k.roles.includes(role)).map(k=>`
+    const visibleKpis=allKpis.filter(k=>k.roles.includes(role));
+    const kpiEl=document.getElementById('dash-kpis');
+    if(kpiEl) kpiEl.dataset.cols=visibleKpis.length;
+    if(kpiEl) kpiEl.innerHTML=visibleKpis.map(k=>`
       <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>

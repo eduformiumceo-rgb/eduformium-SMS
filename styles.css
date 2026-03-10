@@ -1962,6 +1962,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   margin-bottom:0;
   align-items:stretch;
 }
+#page-dashboard .kpi-grid[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
+#page-dashboard .kpi-grid[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
+#page-dashboard .kpi-grid[data-cols="5"] { grid-template-columns: repeat(5, 1fr); }
+#page-dashboard .kpi-grid[data-cols="6"] { grid-template-columns: repeat(6, 1fr); }
 #page-dashboard .kpi-card {
   padding:1.1rem 1.15rem 1rem;
   border-radius:var(--radius-lg);

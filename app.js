@@ -862,7 +862,7 @@ const SMS = {
     document.getElementById('save-pw-btn')?.addEventListener('click',()=>this.changePassword());
     document.getElementById('save-academic-btn')?.addEventListener('click',()=>this.saveAcademic());
     document.getElementById('apply-custom-theme')?.addEventListener('click',()=>this.applyCustomTheme());
-    document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; this._dashDataFingerprint=null; });
+    document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; this._dashDataFingerprint=null; if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard(); });
     document.querySelectorAll('.swatch[data-primary]').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); this.applyThemeColors(s.dataset.primary,s.dataset.teal); }));
     document.getElementById('custom-primary')?.addEventListener('input',e=>{ document.getElementById('custom-primary-hex').value=e.target.value; });
     document.getElementById('custom-teal')?.addEventListener('input',e=>{ document.getElementById('custom-teal-hex').value=e.target.value; });
@@ -1261,7 +1261,7 @@ const SMS = {
       const fe=document.getElementById('dash-freshness');
       if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
     },30000);
-    const _fp=`${d.students.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
+    const _fp=`${d.students.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}|${d.role}`;
     if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role); }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
@@ -1493,7 +1493,8 @@ const SMS = {
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?`${attSub} · ${attNum}% avg`:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
-    document.getElementById('dash-kpis').innerHTML=allKpis.filter(k=>k.roles.includes(role)).map(k=>`
+    const _kpisEl=document.getElementById('dash-kpis'); if(!_kpisEl) return;
+    _kpisEl.innerHTML=allKpis.filter(k=>k.roles.includes(role)).map(k=>`
       <div class="kpi-card${k.featured?' kpi-featured':''}" style="cursor:pointer" onclick="SMS.nav('${k.page}')">
         <div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div>
         <div class="kpi-val">${k.val}</div>
@@ -1511,7 +1512,8 @@ const SMS = {
     const clsPalette=['var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)','var(--brand)','var(--brand-teal)'];
     const clsAlphaPalette=['var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
-    document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
+    const _rsEl=document.getElementById('dash-recent-students'); if(!_rsEl) return;
+    _rsEl.innerHTML=recent.map(s=>{
       const ci=Math.max(0,classes.findIndex(c=>c.id===s.classId));
       const col=clsPalette[ci%clsPalette.length]||'var(--brand)';
       const colLt=clsAlphaPalette[ci%clsAlphaPalette.length]||'var(--brand-lt)';
@@ -1542,7 +1544,8 @@ const SMS = {
       cultural:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
     };
     const _evFallback='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
-    document.getElementById('dash-events').innerHTML=upcomingEv.map(e=>{
+    const _evEl=document.getElementById('dash-events'); if(!_evEl) return;
+    _evEl.innerHTML=upcomingEv.map(e=>{
       const col=evColors[e.type]||'var(--brand)';
       const bg=evBg[e.type]||'var(--brand-lt)';
       const daysLeft=Math.ceil((new Date(e.start)-_todayStart)/(1000*60*60*24));
@@ -1569,7 +1572,9 @@ const SMS = {
     const defList=document.getElementById('dash-defaulters');
     if(!defList) return;
     defList.innerHTML=defaulters.slice(0,5).map(s=>{
-      const owed=this._studentOwed(s,_academicYear);
+      const yfs=getYearStructure(s.classId,_academicYear);
+      const yf=getYearFees(s,_academicYear);
+      const owed=yfs?Math.max(0,(+(yfs['term'+_currentTerm]||0))-(+(yf['term'+_currentTerm]||0))):0;
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('fees');SMS.openFeeModal('${s.id}')">
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -1671,7 +1676,7 @@ const SMS = {
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
-          <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(l.to)}</div>
+          <div class="mini-sub">${l.type} leave · back ${daysLeft<=0?'today':daysLeft===1?'tomorrow':fmtDate(l.to)}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
       </div>`;

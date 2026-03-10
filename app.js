@@ -3313,12 +3313,13 @@ const SMS = {
     const p=payments.find(x=>x.id===paymentId); if(!p){ this.toast('Payment not found','error'); return; }
     const students=DB.get('students',[]);
     const si=students.findIndex(s=>s.id===p.studentId);
-    // Subtract amount from student feesPaid for that term
+    // Subtract amount from student feesPaid for that term — use year-keyed path
     if(si>-1){
-      const current=+(students[si].feesPaid?.['term'+p.term]||0);
-      const newPaid=Math.max(0, current - p.amount);
-      if(!students[si].feesPaid) students[si].feesPaid={};
-      students[si].feesPaid['term'+p.term]=newPaid;
+      const pYear=p.academicYear||_academicYear;
+      if(!students[si].feesPaid||typeof students[si].feesPaid.term1==='number') students[si].feesPaid={};
+      if(!students[si].feesPaid[pYear]) students[si].feesPaid[pYear]={term1:0,term2:0,term3:0};
+      const current=+(students[si].feesPaid[pYear]['term'+p.term]||0);
+      students[si].feesPaid[pYear]['term'+p.term]=Math.max(0, current - p.amount);
       DB.set('students',students);
     }
     // Delete payment record from local + Firestore

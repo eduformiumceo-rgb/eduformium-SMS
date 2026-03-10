@@ -2118,6 +2118,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   margin-bottom:.75rem;
   background:var(--surface);
   transition:box-shadow .16s, border-color .16s;
+  overflow:hidden;
 }
 .ay-card > * { border-radius:0; }
 .ay-card:hover { box-shadow:0 2px 12px rgba(0,0,0,.08); }
@@ -2131,11 +2132,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:.75rem;
+  gap:.6rem;
   padding:.75rem 1rem;
   border-bottom:1px solid var(--border);
-  flex-wrap:wrap;
-  row-gap:.5rem;
 }
 .ay-card-current .ay-card-header {
   border-bottom-color:var(--brand-lt2,rgba(26,58,107,.15));
@@ -2145,6 +2144,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   align-items:center;
   gap:.6rem;
   flex-shrink:0;
+  min-width:0;
 }
 .ay-year-badge {
   font-size:1.05rem;
@@ -2158,16 +2158,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   font-size:.6rem;
   padding:.18rem .5rem;
   letter-spacing:.04em;
+  white-space:nowrap;
 }
 
-/* Action buttons */
+/* Action buttons row */
 .ay-card-actions {
   display:flex;
   align-items:center;
   gap:.35rem;
   flex-wrap:wrap;
+  justify-content:flex-end;
+  flex-shrink:1;
+  min-width:0;
 }
-.ay-delete-btn { color:var(--danger) !important; }
+.ay-delete-btn { color:var(--danger) !important; flex-shrink:0; }
 
 /* Body: meta info below header */
 .ay-card-body {
@@ -2237,19 +2241,69 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   white-space:nowrap;
 }
 
-/* ── Responsive: ≤ 640px ── */
-@media(max-width:640px){
-  .ay-card-header { padding:.65rem .8rem; }
-  .ay-card-body   { padding:.6rem .8rem .7rem; }
-  .ay-card-actions { width:100%; }
-  .ay-card-actions .btn { flex:1; justify-content:center; min-width:0; font-size:.73rem; }
+/* ── Responsive: ≤ 600px — stack header, structured button grid ── */
+@media(max-width:600px){
+  .ay-card-header {
+    flex-direction:column;
+    align-items:stretch;
+    gap:.5rem;
+    padding:.7rem .85rem;
+  }
+  .ay-card-left {
+    justify-content:space-between;
+    align-items:center;
+  }
+  .ay-card-body { padding:.6rem .85rem .75rem; }
+
+  /* Button grid: 2-column flex wrap with named roles */
+  .ay-card-actions {
+    width:100%;
+    display:flex;
+    flex-wrap:wrap;
+    gap:.4rem;
+    align-items:center;
+  }
+
+  /* Row 1 (non-current only): Set Current expands, delete stays right */
+  .ay-btn-setcurrent {
+    flex:1 1 auto;
+    justify-content:center;
+    text-align:center;
+    min-width:0;
+  }
+  .ay-delete-btn {
+    flex:0 0 auto;
+    padding:.38rem .5rem;
+  }
+
+  /* Row 2: Term Dates + Fee Structure share a 50/50 row */
+  .ay-btn-termdates,
+  .ay-btn-feestruct {
+    flex:1 1 calc(50% - .2rem);
+    justify-content:center;
+    text-align:center;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* Row 3: Enter Fee Data spans full width */
+  .ay-btn-enterdata {
+    flex:1 1 100%;
+    justify-content:center;
+    text-align:center;
+  }
+
   .ay-meta-item { white-space:normal; }
+  .ay-stat-chip { font-size:.7rem; }
 }
 
-/* ── Responsive: ≤ 420px ── */
-@media(max-width:420px){
-  .ay-card-actions .btn { font-size:.7rem; padding:.3rem .45rem; }
-  .ay-year-badge { font-size:.95rem; }
+/* ── Responsive: ≤ 400px — tighter text & padding ── */
+@media(max-width:400px){
+  .ay-year-badge { font-size:.93rem; }
+  .ay-card-actions .btn { font-size:.72rem; padding:.35rem .5rem; }
+  .ay-stat-chip { font-size:.67rem; padding:.18rem .45rem; }
 }
 
 /* ── Term Date Ranges ── */

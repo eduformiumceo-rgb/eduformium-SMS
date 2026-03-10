@@ -1225,7 +1225,8 @@ const SMS = {
       const y=H-pad-(((v-min)/range)*(H-pad*2));
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
-    const trend=values[values.length-1]>=values[0]?'up':values[values.length-1]<values[0]?'down':'flat';
+    const allZero=values.every(v=>v===0);
+    const trend=allZero?'flat':values[values.length-1]>values[0]?'up':values[values.length-1]<values[0]?'down':'flat';
     // Build tooltip lines showing last 6 months
     const _now=new Date();
     const tipLines=values.map((v,i)=>{
@@ -1418,6 +1419,9 @@ const SMS = {
     const _g=_h<12?'Good morning':_h<17?'Good afternoon':'Good evening';
     const _dwEl=document.getElementById('dash-welcome');
     if(_dwEl) _dwEl.textContent=`${_g}, ${(this.currentUser?.name||'User').split(' ')[0]}! Here's your school overview.`;
+    // Keep hero date pill in sync — stays correct if dashboard is open past midnight
+    const _htfDateEl=document.getElementById('dash-hero-today-full');
+    if(_htfDateEl) _htfDateEl.textContent=new Date().toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
     // Hero always renders on dark navy — use fixed high-contrast colours (not CSS vars which target light bg)
     const heroAtt=document.getElementById('dash-hero-att');
     if(heroAtt){

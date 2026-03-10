@@ -1256,7 +1256,7 @@ const SMS = {
     if(_fEl) _fEl.textContent='Updated just now';
     clearInterval(this._freshTimer);
     this._freshTimer=setInterval(()=>{
-      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); return; }
+      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); this._freshTimer=null; return; }
       const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
       const fe=document.getElementById('dash-freshness');
       if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
@@ -1287,7 +1287,6 @@ const SMS = {
     const subjects=DB.get('subjects',[]);
     const events=DB.get('events',[]);
     const attRecords=DB.get('attendance',[]);
-    const homework=DB.get('homework',[]);
     const messages=DB.get('messages',[]);
     const now=new Date();
     const todayStr=localDateStr();
@@ -1513,7 +1512,7 @@ const SMS = {
     const clsAlphaPalette=['var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)','var(--brand-lt)','var(--brand-teal-lt)'];
     const recent=[...students].sort((a,b)=>new Date(b.admitDate||0)-new Date(a.admitDate||0)).slice(0,5);
     document.getElementById('dash-recent-students').innerHTML=recent.map(s=>{
-      const ci=classes.findIndex(c=>c.id===s.classId);
+      const ci=Math.max(0,classes.findIndex(c=>c.id===s.classId));
       const col=clsPalette[ci%clsPalette.length]||'var(--brand)';
       const colLt=clsAlphaPalette[ci%clsAlphaPalette.length]||'var(--brand-lt)';
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.viewStudent('${s.id}')">
@@ -1642,7 +1641,7 @@ const SMS = {
 
   // ── Staff on Leave Today panel ──
   _renderDashOnLeave(d){
-    const {isFinance,leaves,staff,now} = d;
+    const {isFinance,leaves,staff,now,_todayStart} = d;
     const onLeavePanel=document.getElementById('dash-on-leave-panel');
     if(onLeavePanel) onLeavePanel.style.display=isFinance?'':'none';
     if(!isFinance) return;
@@ -1667,7 +1666,7 @@ const SMS = {
       const col=leaveColors[l.type]||'var(--brand)';
       const bg=leaveBg[l.type]||'var(--brand-lt)';
       const toDate=new Date(l.to+'T00:00:00');
-      const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
+      const daysLeft=Math.ceil((toDate-_todayStart)/(1000*60*60*24));
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">

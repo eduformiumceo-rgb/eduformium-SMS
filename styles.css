@@ -2096,6 +2096,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   grid-template-columns:repeat(4,1fr);
   gap:.9rem;
 }
+#page-dashboard .dash-panels[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
+#page-dashboard .dash-panels[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
 #page-dashboard .dash-panels .card { margin-bottom:0; transition: box-shadow .16s, transform .14s; }
 #page-dashboard .dash-panels .card:hover { box-shadow:0 6px 20px rgba(0,0,0,.08); transform:translateY(-1px); }
 #page-dashboard .dash-panels .card-hd { padding:.75rem 1rem; border-bottom:1px solid var(--border); gap:.4rem; }

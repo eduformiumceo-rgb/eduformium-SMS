@@ -1250,6 +1250,9 @@ const SMS = {
     this._renderDashAbsent(d);
     this._renderDashOnLeave(d);
     this._renderDashGettingStarted(d);
+    // Set panel grid cols after all show/hide decisions are made
+    const _panelsEl=document.querySelector('#page-dashboard .dash-panels');
+    if(_panelsEl) _panelsEl.dataset.cols=d.isFinance?'3':'2';
     this._updateSyncStatus();
     // ── Freshness timestamp ──
     this._dashRefreshedAt=Date.now();
@@ -1361,7 +1364,7 @@ const SMS = {
     const prevMKey=`${prevMStart.getFullYear()}-${String(prevMStart.getMonth()+1).padStart(2,'0')}`;
     const currMKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     const feeThisMonth=yearPayments.filter(p=>p.date?.startsWith(currMKey)).reduce((s,p)=>s+(+p.amount||0),0);
-    const feePrevMonth=yearPayments.filter(p=>p.date?.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0);
+    const feePrevMonth=now.getDate()<7?null:yearPayments.filter(p=>p.date?.startsWith(prevMKey)).reduce((s,p)=>s+(+p.amount||0),0); // suppress trend in first 7 days of month
     // Enrollment trend: only show when there's meaningful monthly activity
     const studThisMonth=students.filter(s=>s.admitDate?.startsWith(currMKey)).length;
     const studPrevMonth=students.filter(s=>s.admitDate?.startsWith(prevMKey)).length;

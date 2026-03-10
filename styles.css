@@ -1893,11 +1893,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   display:flex; align-items:center; justify-content:center;
   position:relative; z-index:1; flex-shrink:0;
 }
-#page-dashboard .kpi-icon.blue  { --kpi-accent:#05295f; background:rgba(5,41,95,.07);  color:#05295f; }
-#page-dashboard .kpi-icon.teal  { --kpi-accent:#0d9488; background:rgba(13,148,136,.09); color:#0d9488; }
-#page-dashboard .kpi-icon.green { --kpi-accent:#05295f; background:rgba(5,41,95,.07);  color:#05295f; }
-#page-dashboard .kpi-icon.amber { --kpi-accent:#0d9488; background:rgba(13,148,136,.09); color:#0d9488; }
-#page-dashboard .kpi-icon.red   { --kpi-accent:#05295f; background:rgba(5,41,95,.07);  color:#05295f; }
+#page-dashboard .kpi-icon.blue  { background:rgba(5,41,95,.07);    color:#05295f; }
+#page-dashboard .kpi-icon.teal  { background:rgba(13,148,136,.09); color:#0d9488; }
+#page-dashboard .kpi-icon.green { background:var(--success-bg);    color:var(--success); }
+#page-dashboard .kpi-icon.amber { background:var(--warn-bg);        color:var(--warn); }
+#page-dashboard .kpi-icon.red   { background:var(--danger-bg);     color:var(--danger); }
+/* Top accent bar colour follows icon semantic colour */
+#page-dashboard .kpi-card::before                      { background:#05295f; }
+#page-dashboard .kpi-card:has(.kpi-icon.teal)::before  { background:#0d9488; }
+#page-dashboard .kpi-card:has(.kpi-icon.green)::before { background:var(--success); }
+#page-dashboard .kpi-card:has(.kpi-icon.amber)::before { background:var(--warn); }
+#page-dashboard .kpi-card:has(.kpi-icon.red)::before   { background:var(--danger); }
 /* Value — uniform size across all cards, featured only gets color */
 #page-dashboard .kpi-val {
   font-size:1.5rem; font-weight:800; letter-spacing:-.05em;
@@ -1918,18 +1924,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] #page-dashboard .kpi-card.kpi-featured::after { background:radial-gradient(circle at top right, rgba(45,212,191,.08) 0%, transparent 70%); }
 [data-theme="dark"] #page-dashboard .kpi-featured .kpi-val { color:#5eead4; }
 [data-theme="dark"] #page-dashboard .kpi-val               { color:var(--t1); }
-[data-theme="dark"] #page-dashboard .kpi-icon.blue     { background:rgba(59,130,246,.1); color:#93c5fd; }
-[data-theme="dark"] #page-dashboard .kpi-icon.teal     { background:rgba(45,212,191,.1); color:#5eead4; }
-[data-theme="dark"] #page-dashboard .kpi-icon.green    { background:rgba(59,130,246,.1); color:#93c5fd; }
-[data-theme="dark"] #page-dashboard .kpi-icon.amber    { background:rgba(45,212,191,.1); color:#5eead4; }
-[data-theme="dark"] #page-dashboard .kpi-icon.red      { background:rgba(59,130,246,.1); color:#93c5fd; }
+[data-theme="dark"] #page-dashboard .kpi-icon.blue     { background:rgba(59,130,246,.1);  color:#93c5fd; }
+[data-theme="dark"] #page-dashboard .kpi-icon.teal     { background:rgba(45,212,191,.1);  color:#5eead4; }
+[data-theme="dark"] #page-dashboard .kpi-icon.green    { background:var(--success-bg);    color:var(--success); }
+[data-theme="dark"] #page-dashboard .kpi-icon.amber    { background:var(--warn-bg);        color:var(--warn); }
+[data-theme="dark"] #page-dashboard .kpi-icon.red      { background:var(--danger-bg);     color:var(--danger); }
 
 /* ─────────────────────────────────────────────
    ANALYTICS CHARTS
 ───────────────────────────────────────────── */
 .dash-charts-layout {
   display:grid;
-  grid-template-columns:1fr 280px;
+  grid-template-columns:1fr minmax(260px, 300px);
   gap:.9rem;
   margin-bottom:0;
   align-items:start;
@@ -2018,10 +2024,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .dash-empty-panel {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:.55rem; padding:2rem 1rem; color:var(--t4); font-size:.78rem; font-weight:500; text-align:center;
+  border-radius:var(--radius);
 }
-.dash-empty-panel svg { opacity:.4; }
-.dash-empty-ok { color:var(--success) !important; }
-.dash-empty-ok svg { stroke:var(--success); opacity:.75 !important; }
+.dash-empty-panel svg { opacity:.35; }
+.dash-empty-ok {
+  color:var(--success) !important;
+  background:var(--success-bg);
+}
+.dash-empty-ok svg { stroke:var(--success); opacity:.7 !important; }
 
 /* ─────────────────────────────────────────────
    PAGE PADDING
@@ -2031,12 +2041,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE BREAKPOINTS — 5 levels, every device covered
    ═══════════════════════════════════════════════════════════════ */
-
-/* ── 1280px: tighten charts side column ── */
-/* ── 1280px: tighten charts side column ── */
-@media (max-width:1280px) {
-  .dash-charts-layout { grid-template-columns:1fr 260px; }
-}
 
 /* ── 1100px: panels go 2-col ── */
 @media (max-width:1100px) {

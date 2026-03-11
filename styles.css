@@ -718,6 +718,7 @@ img { max-width: 100%; }
 /* ── Loading screen wordmark: lo-n1 ── */
 [data-theme="dark"] .lo-n1  { color: #93c5fd; }
 [data-theme="dark"] .lo-sub { color: #64748b; }
+[data-theme="dark"] .lo-motto { color: #475569; }
 
 /* ── Dark mode: force native inputs & selects to use dark colours ── */
 [data-theme="dark"] input,
@@ -2086,6 +2087,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] #page-dashboard .kpi-icon.green    { background:var(--success-bg);    color:var(--success); }
 [data-theme="dark"] #page-dashboard .kpi-icon.amber    { background:var(--warn-bg);        color:var(--warn); }
 [data-theme="dark"] #page-dashboard .kpi-icon.red      { background:var(--danger-bg);     color:var(--danger); }
+[data-theme="dark"] #page-dashboard .kpi-card::before                     { background:#3b82f6; }
+[data-theme="dark"] #page-dashboard .kpi-card:has(.kpi-icon.teal)::before { background:#2dd4bf; }
 
 /* ─────────────────────────────────────────────
    ANALYTICS CHARTS

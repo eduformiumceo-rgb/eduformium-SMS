@@ -4308,8 +4308,11 @@ const SMS = {
     if(pwd.length<8){ errEl.style.display='block'; errEl.textContent='Password must be at least 8 characters.'; return; }
     const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.style.display='block'; errEl.textContent='Email already exists.'; return; }
     const passwordHash=await hashPassword(pwd);
-    users.push({id:uid('u'),email,passwordHash,name,role,phone:'',createdAt:new Date().toISOString(),lastLogin:null});
-    DB.set('users',users); this.audit('Add User','create',`New user: ${name} (${role})`); this.toast('User created!','success'); this.closeModal('m-user'); this.renderUsers();
+    const newUser={id:uid('u'),email,passwordHash,name,role,phone:'',createdAt:new Date().toISOString(),lastLogin:null};
+    users.push(newUser);
+    DB.set('users',users);
+    const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.batchWrite(_sid,'users',[newUser]).catch(()=>{});
+    this.audit('Add User','create',`New user: ${name} (${role})`); this.toast('User created!','success'); this.closeModal('m-user'); this.renderUsers();
   },
 
   deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'users',id).catch(()=>{}); this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },

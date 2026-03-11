@@ -518,6 +518,7 @@ img { max-width: 100%; }
   margin-bottom: 2rem; font-weight: 400;
   font-family: 'DM Sans', sans-serif;
 }
+#otp-email-display { color: #071830; }
 
 /* Input icon helpers */
 .fi-wrap { position: relative; }
@@ -706,12 +707,16 @@ img { max-width: 100%; }
 
 /* ── Login panel: missing dark text overrides ── */
 [data-theme="dark"] .l-eyebrow          { color: #2dd4bf; }
+[data-theme="dark"] .l-demo             { color: #94a3b8; }
 [data-theme="dark"] .l-demo strong      { color: #f1f5f9; }
 [data-theme="dark"] .pw-toggle:hover    { background: rgba(255,255,255,.06); color: #94a3b8; }
 [data-theme="dark"] .fi-icon            { color: #64748b; }
 
 /* ── OTP screen dark mode ── */
 [data-theme="dark"] .otp-box            { background: rgba(13,148,136,.06); border-color: rgba(13,148,136,.2); color: #f1f5f9; }
+[data-theme="dark"] .otp-box:focus      { background: rgba(13,148,136,.12); border-color: #0d9488; }
+[data-theme="dark"] .otp-box.otp-error  { background: rgba(239,68,68,.12); border-color: #ef4444; }
+[data-theme="dark"] #otp-email-display  { color: #e2e8f0; }
 [data-theme="dark"] .otp-timer-row      { color: #64748b; }
 [data-theme="dark"] .otp-resend-row     { color: #64748b; }
 

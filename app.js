@@ -4899,22 +4899,33 @@ const SMS = {
   },
 
   applyThemeColors(primary,teal,save=true){
-    document.documentElement.style.setProperty('--brand',primary);
-    document.documentElement.style.setProperty('--brand-dk',this.darken(primary,0.15));
-    document.documentElement.style.setProperty('--brand-teal',teal);
-    document.documentElement.style.setProperty('--brand-teal-dk',this.darken(teal,0.15));
-    document.documentElement.style.setProperty('--brand-lt',this.hexToRgba(primary,0.08));
-    document.documentElement.style.setProperty('--brand-lt2',this.hexToRgba(primary,0.15));
-    document.documentElement.style.setProperty('--brand-teal-lt',this.hexToRgba(teal,0.08));
+    const isDark=document.documentElement.dataset.theme==='dark';
+    // In dark mode, brand color must be lightened so text using var(--brand) is visible on dark backgrounds
+    const brandDisplay=isDark?this.lighten(primary,0.55):primary;
+    const tealDisplay=isDark?this.lighten(teal,0.35):teal;
+    document.documentElement.style.setProperty('--brand',brandDisplay);
+    document.documentElement.style.setProperty('--brand-dk',isDark?this.darken(brandDisplay,0.1):this.darken(primary,0.15));
+    document.documentElement.style.setProperty('--brand-teal',tealDisplay);
+    document.documentElement.style.setProperty('--brand-teal-dk',isDark?this.darken(tealDisplay,0.1):this.darken(teal,0.15));
+    document.documentElement.style.setProperty('--brand-lt',this.hexToRgba(isDark?primary:primary,isDark?0.15:0.08));
+    document.documentElement.style.setProperty('--brand-lt2',this.hexToRgba(primary,isDark?0.25:0.15));
+    document.documentElement.style.setProperty('--brand-teal-lt',this.hexToRgba(teal,isDark?0.15:0.08));
+    // Store the original base colors (not the lightened display colors)
+    document.documentElement.style.setProperty('--brand-base',primary);
+    document.documentElement.style.setProperty('--brand-teal-base',teal);
     if(save) DB.set('themeColors',{primary,teal});
     this._dashDataFingerprint=null;
   },
 
   applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value; const t=document.getElementById('custom-teal-hex')?.value; if(p&&t){ this.applyThemeColors(p,t); this.toast('Custom theme applied!','success'); } },
 
-  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog){ tog.checked=!isDark; tog.dispatchEvent(new Event('change')); } if(this.currentPage&&['expenses','events'].includes(this.currentPage)){ this.nav(this.currentPage); } },
+  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog){ tog.checked=!isDark; tog.dispatchEvent(new Event('change')); } if(this.currentPage&&['expenses','events'].includes(this.currentPage)){ this.nav(this.currentPage); }
+    // Re-apply theme colors now that the theme has switched, so --brand adapts correctly
+    const saved=DB.get('themeColors'); if(saved) this.applyThemeColors(saved.primary,saved.teal,false); },
 
   darken(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.max(0,Math.floor(r*(1-pct))); g=Math.max(0,Math.floor(g*(1-pct))); b=Math.max(0,Math.floor(b*(1-pct))); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
+
+  lighten(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.min(255,Math.round(r+(255-r)*pct)); g=Math.min(255,Math.round(g+(255-g)*pct)); b=Math.min(255,Math.round(b+(255-b)*pct)); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
 
 
 

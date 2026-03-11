@@ -683,8 +683,8 @@ const SMS = {
 
   setupTopbar(){
     const school=DB.get('school',{});
-    document.getElementById('topbar-school-name').textContent=school.name||'School';
-    document.getElementById('sb-school-name').textContent=school.name||'School';
+    document.getElementById('topbar-school-name')?.textContent && (document.getElementById('topbar-school-name').textContent=school.name||'School');
+    document.getElementById('sb-school-name')?.textContent && (document.getElementById('sb-school-name').textContent=school.name||'School');
     const u=this.currentUser;
     const initials=(u.name||'User').split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()||'U';
     ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=initials; if(u.avatar){ el.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; } }});
@@ -918,7 +918,7 @@ const SMS = {
     document.getElementById('notif-btn')?.addEventListener('click',()=>{ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
     document.getElementById('notif-clear')?.addEventListener('click',()=>this.clearAllNotifs());
     document.addEventListener('click',e=>{ if(!document.getElementById('notif-wrap')?.contains(e.target)) document.getElementById('notif-panel').style.display='none'; });
-    document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); if(t.dataset.stab==='sms-notif') this.loadSmsSettings(); }));
+    document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); if(t.dataset.stab==='sms-notif') this.loadSmsSettings(); if(t.dataset.stab==='profile') this.loadProfileSettings(); if(t.dataset.stab==='academic') this.loadAcademicSettings(); }));
     document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ const g=t.closest('.tabs'); if(!g) return; g.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const panes=t.closest('.page')?.querySelectorAll('.tab-pane'); panes?.forEach(p=>{ p.classList.remove('active'); if(p.id===t.dataset.tab) p.classList.add('active'); }); }));
     document.querySelectorAll('.mtab').forEach(t=>t.addEventListener('click',()=>{ const mb=t.closest('.modal-body'); mb?.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); mb?.querySelectorAll('.modal-tab-pane').forEach(p=>{ p.classList.remove('active'); if(p.id===t.dataset.mtab) p.classList.add('active'); }); }));
     document.querySelectorAll('.msg-tab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.msg-tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); this.renderMessages(t.dataset.mtab); }));
@@ -1047,7 +1047,7 @@ const SMS = {
     document.getElementById('save-academic-btn')?.addEventListener('click',()=>this.saveAcademic());
     document.getElementById('apply-custom-theme')?.addEventListener('click',()=>this.applyCustomTheme());
     document.getElementById('dark-mode-toggle')?.addEventListener('change',e=>{ document.documentElement.dataset.theme=e.target.checked?'dark':'light'; DB.set('darkMode',e.target.checked); const sun=document.querySelector('.icon-sun'),moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=e.target.checked?'none':''; if(moon) moon.style.display=e.target.checked?'':'none'; this._dashDataFingerprint=null; if(document.getElementById('page-dashboard')?.classList.contains('active')) this.loadDashboard(); });
-    document.querySelectorAll('.swatch[data-primary]').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); this.applyThemeColors(s.dataset.primary,s.dataset.teal); }));
+    document.querySelectorAll('.swatch[data-primary]').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); this.applyThemeColors(s.dataset.primary,s.dataset.teal,true,s.dataset.themeName); }));
     document.getElementById('custom-primary')?.addEventListener('input',e=>{ document.getElementById('custom-primary-hex').value=e.target.value; });
     document.getElementById('custom-teal')?.addEventListener('input',e=>{ document.getElementById('custom-teal-hex').value=e.target.value; });
     document.getElementById('custom-primary-hex')?.addEventListener('input',e=>{ const v=e.target.value; if(/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('custom-primary').value=v; });
@@ -4032,8 +4032,8 @@ const SMS = {
     school.address=(document.getElementById('sc-address').value||'').trim();
     school.country=document.getElementById('sc-country').value;
     DB.set('school',school);
-    document.getElementById('topbar-school-name').textContent=school.name;
-    document.getElementById('sb-school-name').textContent=school.name;
+    document.getElementById('topbar-school-name')?.textContent && (document.getElementById('topbar-school-name').textContent=school.name);
+    document.getElementById('sb-school-name')?.textContent && (document.getElementById('sb-school-name').textContent=school.name);
     this.audit('Settings','settings',`School info updated: ${school.name}`);
     this.toast('School information saved!','success');
   },
@@ -4346,21 +4346,20 @@ const SMS = {
 
 
   openAddYearModal(){
-    // Suggest the previous year before the earliest recorded, or next after the latest
     const allYears=getAllAcademicYears();
     const school=DB.get('school',{});
-    let suggested, suggestStart, suggestEnd;
+    let suggestStart, suggestEnd;
     if(allYears.length>0){
-      // Suggest the year before the earliest
-      const earliest=allYears[allYears.length-1]?.year||school.academicYear||'2025/2026';
-      const parts=earliest.split('/');
-      suggestStart=+parts[0]-1; suggestEnd=+parts[1]-1;
+      // Suggest the year AFTER the latest recorded year (adding next year is the most common need)
+      const latest=allYears[0]?.year||school.academicYear||'2025/2026';
+      const parts=latest.split('/');
+      suggestStart=+parts[0]+1; suggestEnd=+parts[1]+1;
     } else {
       const cur=school.academicYear||'2025/2026';
       const parts=cur.split('/');
       suggestStart=+parts[0]-1; suggestEnd=+parts[1]-1;
     }
-    suggested=`${suggestStart}/${suggestEnd}`;
+    const suggested=`${suggestStart}/${suggestEnd}`;
     document.getElementById('new-ay-year').value=suggested;
     document.getElementById('new-ay-start').value=`${suggestStart}-09-01`;
     document.getElementById('new-ay-end').value=`${suggestEnd}-07-31`;
@@ -4539,7 +4538,11 @@ const SMS = {
 
   loadAppearanceSettings(){
     const dark=DB.get('darkMode',false); document.getElementById('dark-mode-toggle').checked=dark;
-    const savedColors=DB.get('themeColors'); if(savedColors){ document.getElementById('custom-primary').value=savedColors.primary; document.getElementById('custom-primary-hex').value=savedColors.primary; document.getElementById('custom-teal').value=savedColors.teal; document.getElementById('custom-teal-hex').value=savedColors.teal; }
+    const savedColors=DB.get('themeColors'); if(savedColors){ document.getElementById('custom-primary').value=savedColors.primary; document.getElementById('custom-primary-hex').value=savedColors.primary; document.getElementById('custom-teal').value=savedColors.teal; document.getElementById('custom-teal-hex').value=savedColors.teal;
+      // Restore the active swatch highlight
+      const savedName=savedColors.name;
+      if(savedName){ document.querySelectorAll('.swatch').forEach(sw=>sw.classList.toggle('active',sw.dataset.themeName===savedName)); }
+    }
     const savedFont=DB.get('fontSize'); if(savedFont) document.querySelectorAll('.fsz-btn').forEach(b=>b.classList.toggle('active',b.dataset.size===savedFont));
   },
 
@@ -4551,7 +4554,9 @@ const SMS = {
     const secret=document.getElementById('sms-secret'); if(secret) secret.value=s.secret||'';
     const master=document.getElementById('sms-master'); if(master) master.checked=!!s.masterEnabled;
     const toggles={admission:'smt-admission',fee:'smt-fee',reminder:'smt-reminder',results:'smt-results',attendance:'smt-attendance',events:'smt-events'};
-    Object.entries(toggles).forEach(([k,id])=>{ const el=document.getElementById(id); if(el) el.checked=s[`notify${k.charAt(0).toUpperCase()+k.slice(1)}`]!==false; });
+    // admission/fee/reminder/attendance default ON; results/events default OFF
+    const defaultOn=new Set(['admission','fee','reminder','attendance']);
+    Object.entries(toggles).forEach(([k,id])=>{ const el=document.getElementById(id); if(!el) return; const stored=s[`notify${k.charAt(0).toUpperCase()+k.slice(1)}`]; el.checked=stored!==undefined?!!stored:defaultOn.has(k); });
     this._updateSmsBadge(s);
   },
 
@@ -4585,11 +4590,11 @@ const SMS = {
         <td style="font-size:.8rem">${sanitize(u.email)}</td>
         <td><span class="badge ${roleBadge}">${roleLabel}</span></td>
         <td style="font-size:.78rem;color:var(--t4)">${u.lastLogin?fmtDate(u.lastLogin):'Never'}</td>
-        <td>${statusBadge('active')}</td>
+        <td>${statusBadge(u.status||'active')}</td>
         <td><div style="display:flex;gap:.3rem;justify-content:flex-end">
           <button class="btn btn-ghost btn-sm" title="Edit user" onclick="SMS.openEditUserModal('${u.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
           ${_hasFirebase&&!isSelf?`<button class="btn btn-ghost btn-sm" title="Send password reset email" onclick="SMS.resetUserPassword('${sanitize(u.email)}')" style="padding:.3rem .5rem;color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>`:''}
-          ${!isSelf?`<button class="btn btn-ghost btn-sm" title="Remove user" onclick="SMS.confirmDelete('Remove user ${sanitize(u.name)}? This cannot be undone.',()=>SMS.deleteUser('${u.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
+          ${!isSelf?`<button class="btn btn-ghost btn-sm" title="Remove user" onclick="SMS.confirmDeleteUser('${u.id}')" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
         </div></td>
       </tr>`;
     }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--t4);padding:2rem">No users yet. Click “+ Add User” to get started.</td></tr>';
@@ -4710,6 +4715,8 @@ const SMS = {
     this.renderUsers();
   },
 
+  confirmDeleteUser(id){ const u=DB.get('users',[]).find(x=>x.id===id); if(!u) return; this.confirmDelete(`Remove user "${u.name}"? This cannot be undone.`,()=>this.deleteUser(id)); },
+
   deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB){ FDB.delete(_sid,'users',id).catch(()=>{}); if(u?.email) FDB.deleteUserIndex(u.email).catch(()=>{}); } this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },
 
   renderBackupStats(){
@@ -4729,7 +4736,7 @@ const SMS = {
 
   uploadLogo(e){ const file=e.target.files[0]; if(!file) return; if(file.size>500*1024){ this.toast('Logo file is too large — please use an image under 500 KB.','danger'); e.target.value=''; return; } const reader=new FileReader(); reader.onload=ev=>{ const preview=document.getElementById('school-logo-preview'); if(preview) preview.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`; const school=DB.get('school',{}); school.logo=ev.target.result; DB.set('school',school); this.audit('Settings','settings','School logo updated'); this.toast('Logo uploaded!','success'); }; reader.readAsDataURL(file); },
 
-  uploadAvatar(e){ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>{ const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===this.currentUser.id); if(i>-1){ users[i].avatar=ev.target.result; DB.set('users',users); this.currentUser=users[i]; } ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; }); const av=document.getElementById('av-preview'); if(av) av.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; this.toast('Profile photo updated!','success'); }; reader.readAsDataURL(file); },
+  uploadAvatar(e){ const file=e.target.files[0]; if(!file) return; if(!file.type.startsWith('image/')){ this.toast('Please upload a valid image file (PNG, JPG, etc.).','danger'); e.target.value=''; return; } if(file.size>500*1024){ this.toast('Profile photo is too large — please use an image under 500 KB.','danger'); e.target.value=''; return; } const reader=new FileReader(); reader.onload=ev=>{ const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===this.currentUser.id); if(i>-1){ users[i].avatar=ev.target.result; DB.set('users',users); this.currentUser=users[i]; } ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; }); const av=document.getElementById('av-preview'); if(av) av.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; this.toast('Profile photo updated!','success'); }; reader.readAsDataURL(file); },
 
   // ══ GLOBAL SEARCH ══
   globalSearch(q){
@@ -4973,7 +4980,10 @@ const SMS = {
     const sz=DB.get('fontSize'); if(sz){ const sizes={small:'13px',medium:'15px',large:'17px'}; document.documentElement.style.fontSize=sizes[sz]; }
   },
 
-  applyThemeColors(primary,teal,save=true){
+  applyThemeColors(primary,teal,save=true,name=null){
+    // Validate hex colors before applying to avoid broken CSS variables
+    const hexRe=/^#[0-9a-fA-F]{6}$/;
+    if(!hexRe.test(primary)||!hexRe.test(teal)){ console.warn('applyThemeColors: invalid hex',primary,teal); return; }
     const isDark=document.documentElement.dataset.theme==='dark';
     // In dark mode, brand color must be lightened so text using var(--brand) is visible on dark backgrounds
     const brandDisplay=isDark?this.lighten(primary,0.55):primary;
@@ -4988,11 +4998,11 @@ const SMS = {
     // Store the original base colors (not the lightened display colors)
     document.documentElement.style.setProperty('--brand-base',primary);
     document.documentElement.style.setProperty('--brand-teal-base',teal);
-    if(save) DB.set('themeColors',{primary,teal});
+    if(save) DB.set('themeColors',{primary,teal,name:name||null});
     this._dashDataFingerprint=null;
   },
 
-  applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value; const t=document.getElementById('custom-teal-hex')?.value; if(p&&t){ this.applyThemeColors(p,t); this.toast('Custom theme applied!','success'); } },
+  applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value?.trim(); const t=document.getElementById('custom-teal-hex')?.value?.trim(); const hexRe=/^#[0-9a-fA-F]{6}$/; if(!hexRe.test(p)||!hexRe.test(t)){ this.toast('Please enter valid 6-digit hex colors (e.g. #1a3a6b).','danger'); return; } document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); this.applyThemeColors(p,t,true,null); this.toast('Custom theme applied!','success'); },
 
   toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog){ tog.checked=!isDark; tog.dispatchEvent(new Event('change')); } if(this.currentPage&&['expenses','events'].includes(this.currentPage)){ this.nav(this.currentPage); }
     // Re-apply theme colors now that the theme has switched, so --brand adapts correctly

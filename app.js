@@ -685,7 +685,7 @@ const SMS = {
     const school=DB.get('school',{});
     document.getElementById('topbar-school-name')?.textContent && (document.getElementById('topbar-school-name').textContent=school.name||'School');
     document.getElementById('sb-school-name')?.textContent && (document.getElementById('sb-school-name').textContent=school.name||'School');
-    const topbarLogo=document.getElementById('topbar-logo-img'); if(topbarLogo&&school.logo) topbarLogo.src=school.logo;
+    const topbarLogo=document.getElementById('topbar-logo-img'); if(topbarLogo&&school.logo) topbarLogo.src=school.logo; const sidebarLogo=document.getElementById('sidebar-logo-img'); if(sidebarLogo&&school.logo) sidebarLogo.src=school.logo;
     const u=this.currentUser;
     const initials=(u.name||'User').split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()||'U';
     ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=initials; if(u.avatar){ el.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; } }});
@@ -3650,6 +3650,7 @@ const SMS = {
     document.getElementById('receipt-title').textContent='Fee Receipt';
     document.getElementById('receipt-body').innerHTML=`
       <div style="text-align:center;margin-bottom:1rem;padding-bottom:1rem;border-bottom:2px solid var(--border)">
+        ${school.logo?`<img src="${school.logo}" alt="School Logo" style="width:56px;height:56px;border-radius:50%;object-fit:contain;margin:0 auto .5rem;display:block;border:2px solid var(--border)">`:''}
         <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--brand)">${school.name||'School'}</div>
         <div style="font-size:.72rem;color:var(--t4)">${school.address||''}</div>
         <div style="font-size:.72rem;color:var(--t4)">${school.phone||''} · ${school.email||''}</div>
@@ -4735,7 +4736,7 @@ const SMS = {
     this.toast('Full backup downloaded!','success');
   },
 
-  uploadLogo(e){ const file=e.target.files[0]; if(!file) return; if(file.size>500*1024){ this.toast('Logo file is too large — please use an image under 500 KB.','danger'); e.target.value=''; return; } const reader=new FileReader(); reader.onload=ev=>{ const preview=document.getElementById('school-logo-preview'); if(preview) preview.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`; const topbarLogo=document.getElementById('topbar-logo-img'); if(topbarLogo) topbarLogo.src=ev.target.result; const school=DB.get('school',{}); school.logo=ev.target.result; DB.set('school',school); this.audit('Settings','settings','School logo updated'); this.toast('Logo uploaded!','success'); }; reader.readAsDataURL(file); },
+  uploadLogo(e){ const file=e.target.files[0]; if(!file) return; if(file.size>500*1024){ this.toast('Logo file is too large — please use an image under 500 KB.','danger'); e.target.value=''; return; } const reader=new FileReader(); reader.onload=ev=>{ const preview=document.getElementById('school-logo-preview'); if(preview) preview.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`; const topbarLogo=document.getElementById('topbar-logo-img'); if(topbarLogo) topbarLogo.src=ev.target.result; const sidebarLogo=document.getElementById('sidebar-logo-img'); if(sidebarLogo) sidebarLogo.src=ev.target.result; const school=DB.get('school',{}); school.logo=ev.target.result; DB.set('school',school); this.audit('Settings','settings','School logo updated'); this.toast('Logo uploaded!','success'); }; reader.readAsDataURL(file); },
 
   uploadAvatar(e){ const file=e.target.files[0]; if(!file) return; if(!file.type.startsWith('image/')){ this.toast('Please upload a valid image file (PNG, JPG, etc.).','danger'); e.target.value=''; return; } if(file.size>500*1024){ this.toast('Profile photo is too large — please use an image under 500 KB.','danger'); e.target.value=''; return; } const reader=new FileReader(); reader.onload=ev=>{ const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===this.currentUser.id); if(i>-1){ users[i].avatar=ev.target.result; DB.set('users',users); this.currentUser=users[i]; } ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; }); const av=document.getElementById('av-preview'); if(av) av.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; this.toast('Profile photo updated!','success'); }; reader.readAsDataURL(file); },
 

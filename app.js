@@ -683,8 +683,8 @@ const SMS = {
 
   setupTopbar(){
     const school=DB.get('school',{});
-    document.getElementById('topbar-school-name')?.textContent && (document.getElementById('topbar-school-name').textContent=school.name||'School');
-    document.getElementById('sb-school-name')?.textContent && (document.getElementById('sb-school-name').textContent=school.name||'School');
+    document.getElementById('topbar-school-name') && (document.getElementById('topbar-school-name').textContent=school.name||'School');
+    document.getElementById('sb-school-name') && (document.getElementById('sb-school-name').textContent=school.name||'School');
     const topbarLogo=document.getElementById('topbar-logo-img'); if(topbarLogo&&school.logo) topbarLogo.src=school.logo; const sidebarLogo=document.getElementById('sidebar-logo-img'); if(sidebarLogo&&school.logo) sidebarLogo.src=school.logo;
     const u=this.currentUser;
     const initials=(u.name||'User').split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()||'U';
@@ -788,6 +788,7 @@ const SMS = {
     settingsTabs: {
       school:     ['admin','teacher','accountant','librarian','staff'],
       profile:    ['admin','teacher','accountant','librarian','staff'],
+      security:   ['admin','teacher','accountant','librarian','staff'],
       appearance: ['admin','teacher','accountant','librarian','staff'],
       academic:   ['admin'],
       users:      ['admin'],
@@ -3998,6 +3999,9 @@ const SMS = {
       if(pp) pp.classList.add('active');
     }
     this.loadSchoolSettings(); this.loadProfileSettings(); this.loadAcademicSettings(); this.loadAppearanceSettings();
+    // Clear password fields on every visit for security
+    ['pw-old','pw-new','pw-confirm'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    const pwErr=document.getElementById('pw-err'); if(pwErr){ pwErr.style.display='none'; pwErr.textContent=''; }
     // Refresh SMS badge state even if user doesn't click that tab
     const _smsS=DB.get('smsSettings',{}); this._updateSmsBadge(_smsS);
   },
@@ -4034,8 +4038,8 @@ const SMS = {
     school.address=(document.getElementById('sc-address').value||'').trim();
     school.country=document.getElementById('sc-country').value;
     DB.set('school',school);
-    document.getElementById('topbar-school-name')?.textContent && (document.getElementById('topbar-school-name').textContent=school.name);
-    document.getElementById('sb-school-name')?.textContent && (document.getElementById('sb-school-name').textContent=school.name);
+    document.getElementById('topbar-school-name') && (document.getElementById('topbar-school-name').textContent=school.name);
+    document.getElementById('sb-school-name') && (document.getElementById('sb-school-name').textContent=school.name);
     this.audit('Settings','settings',`School info updated: ${school.name}`);
     this.toast('School information saved!','success');
   },
@@ -4239,6 +4243,13 @@ const SMS = {
     DB.set('school',school);
     document.getElementById('ac-year').value=year;
     document.getElementById('ac-term').value='1';
+    // Refresh term date inputs to show the switched year's dates
+    const yEntry=(school.academicYears||[]).find(y=>y.year===year)||{};
+    ['t1','t2','t3'].forEach(t=>{
+      const s=document.getElementById(`ac-${t}-start`); const e=document.getElementById(`ac-${t}-end`);
+      if(s) s.value=yEntry[`${t}Start`]||'';
+      if(e) e.value=yEntry[`${t}End`]||'';
+    });
     this.toast(`Switched to ${year} — Term 1`,'success');
     this.setupTopbar();
     this.renderAcademicYearHistory();
@@ -4414,7 +4425,7 @@ const SMS = {
   },
 
   deleteAcademicYear(year){
-    if(!confirm(`Delete academic year ${year}? This will also remove all fee payments recorded for this year.`)) return;
+    this.confirmDelete(`Delete academic year ${year}? This will also remove all fee payments and fee structures recorded for this year.`,()=>{
     const school=DB.get('school',{});
     school.academicYears=(school.academicYears||[]).filter(y=>y.year!==year);
     DB.set('school',school);
@@ -4428,6 +4439,7 @@ const SMS = {
     DB.set('students',students);
     this.renderAcademicYearHistory();
     this.toast(`${year} deleted.`,'info');
+    });
   },
 
   openFeeStructureForYear(year){
@@ -4539,9 +4551,14 @@ const SMS = {
   },
 
   loadAppearanceSettings(){
-    const dark=DB.get('darkMode',false); document.getElementById('dark-mode-toggle').checked=dark;
-    const savedColors=DB.get('themeColors'); if(savedColors){ document.getElementById('custom-primary').value=savedColors.primary; document.getElementById('custom-primary-hex').value=savedColors.primary; document.getElementById('custom-teal').value=savedColors.teal; document.getElementById('custom-teal-hex').value=savedColors.teal;
-      // Restore the active swatch highlight
+    const dark=DB.get('darkMode',false);
+    const tog=document.getElementById('dark-mode-toggle'); if(tog) tog.checked=dark;
+    const savedColors=DB.get('themeColors');
+    if(savedColors){
+      const cp=document.getElementById('custom-primary'); if(cp) cp.value=savedColors.primary||'';
+      const cph=document.getElementById('custom-primary-hex'); if(cph) cph.value=savedColors.primary||'';
+      const ct=document.getElementById('custom-teal'); if(ct) ct.value=savedColors.teal||'';
+      const cth=document.getElementById('custom-teal-hex'); if(cth) cth.value=savedColors.teal||'';
       const savedName=savedColors.name;
       if(savedName){ document.querySelectorAll('.swatch').forEach(sw=>sw.classList.toggle('active',sw.dataset.themeName===savedName)); }
     }
@@ -4729,8 +4746,30 @@ const SMS = {
   exportBackup(){
     if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
     const wb=XLSX.utils.book_new();
-    const sheets={Students:DB.get('students',[]),Staff:DB.get('staff',[]),'Fee Payments':DB.get('feePayments',[]),Exams:DB.get('exams',[]),Events:DB.get('events',[]),Expenses:DB.get('expenses',[]),'Audit Log':DB.get('auditLog',[])};
-    Object.entries(sheets).forEach(([name,data])=>{ const ws=XLSX.utils.json_to_sheet(data); XLSX.utils.book_append_sheet(wb,ws,name); });
+    const schoolMeta={...DB.get('school',{})}; delete schoolMeta.logo;
+    const sheets={
+      'School Settings':[schoolMeta],
+      Students:DB.get('students',[]),
+      Classes:DB.get('classes',[]),
+      Staff:DB.get('staff',[]),
+      'Fee Payments':DB.get('feePayments',[]),
+      'Fee Structure':DB.get('feeStructure',[]),
+      Attendance:DB.get('attendance',[]),
+      Exams:DB.get('exams',[]),
+      Homework:DB.get('homework',[]),
+      Timetable:DB.get('timetable',[]),
+      Library:DB.get('libraryBooks',[]),
+      'Leave Requests':DB.get('leaveRequests',[]),
+      Events:DB.get('events',[]),
+      Expenses:DB.get('expenses',[]),
+      Messages:DB.get('messages',[]),
+      'Audit Log':DB.get('auditLog',[]),
+    };
+    Object.entries(sheets).forEach(([name,data])=>{
+      const rows=Array.isArray(data)?data:[data];
+      const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{}]);
+      XLSX.utils.book_append_sheet(wb,ws,name);
+    });
     XLSX.writeFile(wb,`BackupFull_${new Date().toISOString().split('T')[0]}.xlsx`);
     this.audit('Backup','settings','Full database backup downloaded');
     this.toast('Full backup downloaded!','success');

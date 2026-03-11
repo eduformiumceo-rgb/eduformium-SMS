@@ -926,7 +926,6 @@ const SMS = {
     // Try Firebase if available
     if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
     const result=await FAuth.login(email,pass);
-<<<<<<< HEAD
     if(!result.success){
       // Firebase Auth failed — check if this is an admin-created sub-user via userIndex
       if(window.FDB){
@@ -950,9 +949,6 @@ const SMS = {
       }
       errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return;
     }
-=======
-    if(!result.success){ errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
->>>>>>> parent of acf7c7b (ADMIN CAN ADD USERS)
     // Check school approval status — block anyone who is not explicitly 'active'
     const _profile = await FDB.getSchoolProfile(result.uid).catch(()=>null);
     const _status = _profile?.status || 'pending';
@@ -4337,7 +4333,6 @@ const SMS = {
     const newUser={id:uid('u'),email,passwordHash,name,role,phone:'',createdAt:new Date().toISOString(),lastLogin:null};
     users.push(newUser);
     DB.set('users',users);
-<<<<<<< HEAD
     const _sid=window.SMS&&window.SMS.schoolId;
     if(_sid&&window.FDB){
       FDB.batchWrite(_sid,'users',[newUser]).catch(()=>{});
@@ -4347,13 +4342,6 @@ const SMS = {
   },
 
   deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB){ FDB.delete(_sid,'users',id).catch(()=>{}); if(u?.email) FDB.deleteUserIndex(u.email).catch(()=>{}); } this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },
-=======
-    const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.batchWrite(_sid,'users',[newUser]).catch(()=>{});
-    this.audit('Add User','create',`New user: ${name} (${role})`); this.toast('User created!','success'); this.closeModal('m-user'); this.renderUsers();
-  },
-
-  deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'users',id).catch(()=>{}); this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },
->>>>>>> parent of acf7c7b (ADMIN CAN ADD USERS)
 
   renderBackupStats(){
     const s=DB.get('students',[]); const st=DB.get('staff',[]); const fp=DB.get('feePayments',[]); const al=DB.get('auditLog',[]);

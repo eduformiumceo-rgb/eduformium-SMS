@@ -87,7 +87,6 @@ const FDB = {
     }
   },
 
-<<<<<<< HEAD
   // ── userIndex: top-level collection mapping email → schoolId for sub-users ──
   _emailKey(email) { return email.toLowerCase().replace(/[.@]/g, '_'); },
 
@@ -106,8 +105,6 @@ const FDB = {
     catch(e){ return false; }
   },
 
-=======
->>>>>>> parent of acf7c7b (ADMIN CAN ADD USERS)
   async batchWrite(sid, colName, items) {
     try {
       const CHUNK = 400;

@@ -87,24 +87,6 @@ const FDB = {
     }
   },
 
-  // ── userIndex: top-level collection mapping email → schoolId for sub-users ──
-  _emailKey(email) { return email.toLowerCase().replace(/[.@]/g, '_'); },
-
-  async setUserIndex(email, schoolId, userId) {
-    try { await _db.collection('userIndex').doc(this._emailKey(email)).set({ email: email.toLowerCase(), schoolId, userId, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); return true; }
-    catch(e){ console.error('setUserIndex', e); return false; }
-  },
-
-  async getUserIndex(email) {
-    try { const d = await _db.collection('userIndex').doc(this._emailKey(email)).get(); return d.exists ? d.data() : null; }
-    catch(e){ return null; }
-  },
-
-  async deleteUserIndex(email) {
-    try { await _db.collection('userIndex').doc(this._emailKey(email)).delete(); return true; }
-    catch(e){ return false; }
-  },
-
   async batchWrite(sid, colName, items) {
     try {
       const CHUNK = 400;

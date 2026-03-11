@@ -467,37 +467,81 @@ const SMS = {
       if(this._demoMode) return;
       if(this._registering) return; // suppress during account creation
       if(firebaseUser){
-        this.schoolId=firebaseUser.uid;
-        // Clear leftover demo data before loading real account
-        const _demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
-          'exams','grades','attendance','events','messages','leaves','homework','books',
-          'expenses','payroll','auditLog','timetable','school','users'];
-        _demoCols.forEach(c=>{try{localStorage.removeItem('sms_'+c);}catch{}});
-        DB.del('seeded');
-        try{ await DB.loadFromFirestore(this.schoolId); }catch(e){ /* offline or network error — local data used */ }
-        try{ await Migration.run(this.schoolId); }catch(e){}
-        // Approval gate — block anyone who is not explicitly 'active'
-        const _sp = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
-        const _spStatus = _sp?.status || 'pending';
-        if(_spStatus === 'suspended'){
-          this._afterLoad(()=>this.showSuspendedScreen(_sp, firebaseUser.email));
-          return;
+        // ── Determine if this is a school admin (uid === schoolId) or an admin-invited sub-user ──
+        const _sp = await FDB.getSchoolProfile(firebaseUser.uid).catch(()=>null);
+
+        if(_sp){
+          // ══ SCHOOL ADMIN: their Firebase UID is the schoolId ══
+          this.schoolId=firebaseUser.uid;
+          const _demoCols=['students','staff','classes','subjects','feePayments','feeStructure',
+            'exams','grades','attendance','events','messages','leaves','homework','books',
+            'expenses','payroll','auditLog','timetable','school','users'];
+          _demoCols.forEach(c=>{try{localStorage.removeItem('sms_'+c);}catch{}});
+          DB.del('seeded');
+          try{ await DB.loadFromFirestore(this.schoolId); }catch(e){}
+          try{ await Migration.run(this.schoolId); }catch(e){}
+          // Approval gate
+          const _spStatus = _sp?.status || 'pending';
+          if(_spStatus === 'suspended'){
+            this._afterLoad(()=>this.showSuspendedScreen(_sp, firebaseUser.email));
+            return;
+          }
+          if(_spStatus !== 'active'){
+            this._afterLoad(()=>this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email));
+            return;
+          }
+          const school=DB.get('school',{});
+          _currency=school.currency||'GHS';
+          _currentTerm=school.currentTerm||'2';
+          _academicYear=school.academicYear||'2025/2026';
+          _passMark=school.passMark||50;
+          _gradeSystem=school.gradeSystem||'percentage';
+          migrateToYearFees();
+          migrateEnrollTerm();
+          const users=DB.get('users',[]);
+          this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
+          this._afterLoad(()=>this.boot());
+        } else {
+          // ══ SUB-USER: look up their schoolId via the userIndex collection ══
+          const _idx = await FDB.getUserIndex(firebaseUser.email).catch(()=>null);
+          if(_idx && _idx.schoolId){
+            this.schoolId=_idx.schoolId;
+            try{ await DB.loadFromFirestore(this.schoolId); }catch(e){}
+            // Check the school's approval status
+            const _schoolProfile = await FDB.getSchoolProfile(this.schoolId).catch(()=>null);
+            const _schoolStatus = _schoolProfile?.status || 'pending';
+            if(_schoolStatus === 'suspended'){
+              this._afterLoad(()=>this.showSuspendedScreen(_schoolProfile, firebaseUser.email));
+              return;
+            }
+            if(_schoolStatus !== 'active'){
+              this._afterLoad(()=>this.showPendingScreen(_schoolProfile||{status:'pending',name:'',adminEmail:firebaseUser.email}, firebaseUser.email));
+              return;
+            }
+            const school=DB.get('school',{});
+            _currency=school.currency||'GHS';
+            _currentTerm=school.currentTerm||'2';
+            _academicYear=school.academicYear||'2025/2026';
+            _passMark=school.passMark||50;
+            _gradeSystem=school.gradeSystem||'percentage';
+            migrateToYearFees();
+            migrateEnrollTerm();
+            // Find or build the sub-user record from the school's users collection
+            const _subUsers=DB.get('users',[]);
+            let _subUser=_subUsers.find(u=>u.email===firebaseUser.email||u.id===firebaseUser.uid);
+            if(!_subUser){ _subUser={id:firebaseUser.uid,email:firebaseUser.email,name:_idx.name||firebaseUser.email,role:_idx.role||'staff',phone:''}; }
+            _subUser.lastLogin=new Date().toISOString();
+            const _updatedSubUsers=_subUsers.find(u=>u.id===_subUser.id)?_subUsers.map(u=>u.id===_subUser.id?_subUser:u):[..._subUsers,_subUser];
+            DB.set('users',_updatedSubUsers);
+            DB.set('session',{userId:_subUser.id});
+            this.currentUser=_subUser;
+            this._afterLoad(()=>this.boot());
+          } else {
+            // Unknown Firebase account (not a school admin, not a sub-user) — sign out
+            await _auth.signOut().catch(()=>{});
+            this._afterLoad(()=>this.showLogin());
+          }
         }
-        if(_spStatus !== 'active'){
-          this._afterLoad(()=>this.showPendingScreen(_sp || {status:'pending', name:'', adminEmail:firebaseUser.email}, firebaseUser.email));
-          return;
-        }
-        const school=DB.get('school',{});
-        _currency=school.currency||'GHS';
-        _currentTerm=school.currentTerm||'2';
-        _academicYear=school.academicYear||'2025/2026';
-        _passMark=school.passMark||50;
-        _gradeSystem=school.gradeSystem||'percentage';
-        migrateToYearFees();
-        migrateEnrollTerm();
-        const users=DB.get('users',[]);
-        this.currentUser=users.find(u=>u.id===this.schoolId)||{id:this.schoolId,name:school.adminName||firebaseUser.email,email:firebaseUser.email,role:'admin'};
-        this._afterLoad(()=>this.boot());
       } else {
         this.schoolId=null; this.currentUser=null;
         // Only show login if pending/suspended screen is not already visible
@@ -927,43 +971,30 @@ const SMS = {
     if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
     const result=await FAuth.login(email,pass);
     if(!result.success){
-      // Firebase Auth failed — check if this is an admin-created sub-user via userIndex
-      if(window.FDB){
-        try{
-          const idx = await FDB.getUserIndex(email);
-          if(idx && idx.schoolId && idx.passwordHash === pwHash){
-            // Valid sub-user — sign in anonymously so Firestore rules pass
-            await firebase.auth().signInAnonymously().catch(()=>{});
-            this._demoMode = true;
-            this.schoolId = idx.schoolId;
-            await DB.loadFromFirestore(idx.schoolId).catch(()=>{});
-            // Build currentUser from userIndex data
-            const subUsers = DB.get('users',[]);
-            const subUser = subUsers.find(u=>u.email===email) || {id:idx.userId,email,name:idx.name,role:idx.role,phone:''};
-            subUser.lastLogin=new Date().toISOString(); DB.set('users', subUsers.length ? subUsers : [subUser]);
-            DB.set('session',{userId:subUser.id});
-            this.currentUser=subUser; this.audit('Login','login',`${subUser.name} signed in`);
-            this._afterLoad(()=>this.boot()); errEl.style.display='none'; return;
-          }
-        }catch(e){}
-      }
       errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return;
     }
-    // Check school approval status — block anyone who is not explicitly 'active'
+    // Firebase login succeeded. The onAuthStateChanged handler will now fire and handle
+    // both school admins (uid === schoolId) and sub-users (uid from userIndex).
+    // We only need to intercept here for school admins who are 'suspended' or 'pending'
+    // so the UI can show the right screen before onAuthStateChanged fires.
     const _profile = await FDB.getSchoolProfile(result.uid).catch(()=>null);
-    const _status = _profile?.status || 'pending';
-    if(_status === 'suspended'){
-      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
-      document.getElementById('login-screen').style.display='none';
-      this.showSuspendedScreen(_profile, email);
-      return;
+    if(_profile){
+      // This is a school admin — check approval status
+      const _status = _profile.status || 'pending';
+      if(_status === 'suspended'){
+        btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+        document.getElementById('login-screen').style.display='none';
+        this.showSuspendedScreen(_profile, email);
+        return;
+      }
+      if(_status !== 'active'){
+        btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+        document.getElementById('login-screen').style.display='none';
+        this.showPendingScreen(_profile || {status:'pending', name:'', adminEmail:email}, email);
+        return;
+      }
     }
-    if(_status !== 'active'){
-      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
-      document.getElementById('login-screen').style.display='none';
-      this.showPendingScreen(_profile || {status:'pending', name:'', adminEmail:email}, email);
-      return;
-    }
+    // For sub-users (no school profile under their uid), onAuthStateChanged will handle boot.
   },
 
   // ══ OTP FLOW ══
@@ -4306,39 +4337,138 @@ const SMS = {
 
   renderUsers(){
     const users=DB.get('users',[]);
-    document.getElementById('users-tbody').innerHTML=users.map(u=>`<tr>
-      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${u.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><div style="font-weight:600">${sanitize(u.name)}</div></div></td>
-      <td style="font-size:.8rem">${sanitize(u.email)}</td>
-      <td><span class="badge ${u.role==='admin'?'badge-brand':'badge-info'}">${u.role}</span></td>
-      <td style="font-size:.78rem;color:var(--t4)">${u.lastLogin?fmtDate(u.lastLogin):'Never'}</td>
-      <td>${statusBadge('active')}</td>
-      <td>${u.id!==this.currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove user ${sanitize(u.name)}?',()=>SMS.deleteUser('${u.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}</td>
-    </tr>`).join('');
+    const _hasFirebase=!!(window.SMS&&window.SMS.schoolId&&window.FAuth);
+    document.getElementById('users-tbody').innerHTML=users.map(u=>{
+      const initials=u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      const roleBadge=u.role==='admin'?'badge-brand':u.role==='teacher'?'badge-info':u.role==='accountant'?'badge-warn':'badge-secondary';
+      const roleLabel=u.role==='admin'?'Admin':u.role==='teacher'?'Teacher':u.role==='accountant'?'Accountant':u.role==='librarian'?'Librarian':'Staff';
+      const isSelf=u.id===this.currentUser.id;
+      return `<tr>
+        <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${initials}</div><div><div style="font-weight:600">${sanitize(u.name)}</div>${u.phone?`<div style="font-size:.75rem;color:var(--t4)">${sanitize(u.phone)}</div>`:''}</div></div></td>
+        <td style="font-size:.8rem">${sanitize(u.email)}</td>
+        <td><span class="badge ${roleBadge}">${roleLabel}</span></td>
+        <td style="font-size:.78rem;color:var(--t4)">${u.lastLogin?fmtDate(u.lastLogin):'Never'}</td>
+        <td>${statusBadge('active')}</td>
+        <td><div style="display:flex;gap:.3rem;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" title="Edit user" onclick="SMS.openEditUserModal('${u.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          ${_hasFirebase&&!isSelf?`<button class="btn btn-ghost btn-sm" title="Send password reset email" onclick="SMS.resetUserPassword('${sanitize(u.email)}')" style="padding:.3rem .5rem;color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>`:''}
+          ${!isSelf?`<button class="btn btn-ghost btn-sm" title="Remove user" onclick="SMS.confirmDelete('Remove user ${sanitize(u.name)}? This cannot be undone.',()=>SMS.deleteUser('${u.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}
+        </div></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--t4);padding:2rem">No users yet. Click “+ Add User” to get started.</td></tr>';
   },
 
   openUserModal(){
-    ['uf-id','uf-name','uf-email','uf-pwd'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
-    document.getElementById('uf-role').value='staff'; document.getElementById('uf-err').style.display='none';
-    document.getElementById('user-modal-title').textContent='Add User';
+    ['uf-id','uf-name','uf-email','uf-pwd','uf-phone'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+    document.getElementById('uf-role').value='staff';
+    document.getElementById('uf-err').style.display='none';
+    document.getElementById('user-modal-title').textContent='Add New User';
+    const emailField=document.getElementById('uf-email'); if(emailField) emailField.disabled=false;
+    const pwdField=document.getElementById('uf-pwd'); if(pwdField){ pwdField.parentElement.style.display=''; pwdField.placeholder='Min. 8 characters'; }
+    document.getElementById('save-user-btn').textContent='Create User';
     this.openModal('m-user');
   },
 
+  openEditUserModal(id){
+    const users=DB.get('users',[]);
+    const u=users.find(x=>x.id===id);
+    if(!u) return;
+    document.getElementById('uf-id').value=u.id;
+    document.getElementById('uf-name').value=u.name;
+    document.getElementById('uf-email').value=u.email;
+    if(document.getElementById('uf-phone')) document.getElementById('uf-phone').value=u.phone||'';
+    document.getElementById('uf-role').value=u.role||'staff';
+    document.getElementById('uf-err').style.display='none';
+    document.getElementById('user-modal-title').textContent='Edit User';
+    const emailField=document.getElementById('uf-email'); if(emailField) emailField.disabled=true;
+    const pwdWrap=document.getElementById('uf-pwd')?.parentElement; if(pwdWrap) pwdWrap.style.display='none';
+    document.getElementById('save-user-btn').textContent='Save Changes';
+    this.openModal('m-user');
+  },
+
+  async resetUserPassword(email){
+    if(!window.FAuth){ this.toast('Firebase not available','warn'); return; }
+    const result=await FAuth.sendPasswordReset(email);
+    if(result.success){
+      this.toast(`Password reset email sent to ${email}`,'success');
+      this.audit('Security','settings',`Password reset email sent to ${email}`);
+    } else {
+      this.toast(result.error||'Could not send reset email','error');
+    }
+  },
+
   async saveUser(){
-    const name=document.getElementById('uf-name').value.trim(); const email=document.getElementById('uf-email').value.trim(); const pwd=document.getElementById('uf-pwd').value; const role=document.getElementById('uf-role').value;
+    const id=document.getElementById('uf-id').value;
+    const name=document.getElementById('uf-name').value.trim();
+    const email=document.getElementById('uf-email').value.trim();
+    const pwd=document.getElementById('uf-pwd').value;
+    const role=document.getElementById('uf-role').value;
+    const phone=document.getElementById('uf-phone')?.value.trim()||'';
     const errEl=document.getElementById('uf-err');
-    if(!name||!email||!pwd){ errEl.style.display='block'; errEl.textContent='All fields required.'; return; }
+    const saveBtn=document.getElementById('save-user-btn');
+
+    // ── EDIT MODE ──
+    if(id){
+      if(!name){ errEl.style.display='block'; errEl.textContent='Name is required.'; return; }
+      const users=DB.get('users',[]);
+      const idx=users.findIndex(u=>u.id===id);
+      if(idx>-1){
+        users[idx].name=name; users[idx].role=role; users[idx].phone=phone;
+        DB.set('users',users);
+        const _sid=window.SMS&&window.SMS.schoolId;
+        if(_sid&&window.FDB){
+          FDB.batchWrite(_sid,'users',[users[idx]]).catch(()=>{});
+          FDB.setUserIndex(users[idx].email,_sid,users[idx].id,users[idx].passwordHash,name,role).catch(()=>{});
+        }
+        this.audit('Edit User','edit',`Updated user: ${name} (${role})`);
+        this.toast('User updated!','success');
+        this.closeModal('m-user');
+        this.renderUsers();
+      }
+      return;
+    }
+
+    // ── CREATE MODE ──
+    if(!name||!email||!pwd){ errEl.style.display='block'; errEl.textContent='Name, email and password are required.'; return; }
     if(pwd.length<8){ errEl.style.display='block'; errEl.textContent='Password must be at least 8 characters.'; return; }
-    const users=DB.get('users',[]); if(users.find(u=>u.email===email)){ errEl.style.display='block'; errEl.textContent='Email already exists.'; return; }
+    const users=DB.get('users',[]);
+    if(users.find(u=>u.email===email)){ errEl.style.display='block'; errEl.textContent='A user with this email already exists.'; return; }
+
+    saveBtn.disabled=true;
+    const _origLabel=saveBtn.textContent;
+    saveBtn.innerHTML='<span style="display:inline-flex;align-items:center;gap:.4rem"><svg style="animation:spin 1s linear infinite;width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Creating…</span>';
+    errEl.style.display='none';
+
     const passwordHash=await hashPassword(pwd);
-    const newUser={id:uid('u'),email,passwordHash,name,role,phone:'',createdAt:new Date().toISOString(),lastLogin:null};
+    let firebaseUid=null;
+    const _sid=window.SMS&&window.SMS.schoolId;
+
+    // Try to create a real Firebase Auth account so the user can log in properly
+    if(window.FAuth && _sid){
+      const createResult=await FAuth.createSubUser(email,pwd);
+      if(!createResult.success){
+        errEl.style.display='block';
+        errEl.textContent=createResult.error;
+        saveBtn.disabled=false; saveBtn.textContent=_origLabel;
+        return;
+      }
+      firebaseUid=createResult.uid;
+    }
+
+    const newUser={id:firebaseUid||uid('u'),email,passwordHash,name,role,phone,createdAt:new Date().toISOString(),lastLogin:null};
     users.push(newUser);
     DB.set('users',users);
-    const _sid=window.SMS&&window.SMS.schoolId;
+
     if(_sid&&window.FDB){
       FDB.batchWrite(_sid,'users',[newUser]).catch(()=>{});
       FDB.setUserIndex(email,_sid,newUser.id,passwordHash,name,role).catch(()=>{});
     }
-    this.audit('Add User','create',`New user: ${name} (${role})`); this.toast('User created!','success'); this.closeModal('m-user'); this.renderUsers();
+
+    saveBtn.disabled=false; saveBtn.textContent=_origLabel;
+    this.audit('Add User','create',`New user: ${name} (${role})`);
+    this.toast(`✓ ${name} can now log in with ${email}`,'success');
+    this.closeModal('m-user');
+    this.renderUsers();
   },
 
   deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB){ FDB.delete(_sid,'users',id).catch(()=>{}); if(u?.email) FDB.deleteUserIndex(u.email).catch(()=>{}); } this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },

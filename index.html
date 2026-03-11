@@ -2407,15 +2407,19 @@
 <div id="m-user" class="modal-bg" style="display:none">
   <div class="modal">
     <div class="modal-hd">
-      <span class="modal-title" id="user-modal-title">Add User</span>
+      <span class="modal-title" id="user-modal-title">Add New User</span>
       <button class="modal-close" aria-label="Close dialog" onclick="SMS.closeModal('m-user')">&#x2715;</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="uf-id"/>
+      <div class="info-banner" style="margin-bottom:1rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>The user will log in at <strong>this same URL</strong> using their email &amp; password. Share the credentials with them securely.</span>
+      </div>
       <div class="form-grid-2">
-        <div class="form-field"><label class="form-label">Full Name *</label><input class="form-input" id="uf-name" placeholder="Full name"/></div>
-        <div class="form-field"><label class="form-label">Email *</label><input class="form-input" type="email" id="uf-email" placeholder="Email address"/></div>
-        <div class="form-field"><label class="form-label">Password *</label><input class="form-input" type="password" id="uf-pwd" placeholder="Min. 6 characters"/></div>
+        <div class="form-field"><label class="form-label">Full Name *</label><input class="form-input" id="uf-name" placeholder="e.g. Kofi Mensah"/></div>
+        <div class="form-field"><label class="form-label">Email Address *</label><input class="form-input" type="email" id="uf-email" placeholder="e.g. kofi@school.edu.gh"/></div>
+        <div class="form-field"><label class="form-label">Phone (optional)</label><input class="form-input" type="tel" id="uf-phone" placeholder="e.g. 0244 123 456"/></div>
         <div class="form-field"><label class="form-label">Role *</label>
           <select class="form-input" id="uf-role">
             <option value="admin">Administrator</option>
@@ -2425,6 +2429,7 @@
             <option value="staff">General Staff</option>
           </select>
         </div>
+        <div class="form-field" style="grid-column:1/-1"><label class="form-label">Initial Password *</label><input class="form-input" type="password" id="uf-pwd" placeholder="Min. 8 characters — user can change this after login"/></div>
       </div>
       <div id="uf-err" class="form-err" style="display:none"></div>
     </div>

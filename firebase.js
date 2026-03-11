@@ -146,6 +146,31 @@ const FAuth = {
     catch(e){ return {success:false,error:this._err(e.code)}; }
   },
 
+  // Create a Firebase Auth account for an admin-invited sub-user WITHOUT signing out the current admin.
+  // Uses a temporary secondary Firebase app instance.
+  async createSubUser(email, password) {
+    let secondaryApp;
+    try {
+      const appName = 'sub_' + Date.now();
+      secondaryApp = firebase.initializeApp(firebaseConfig, appName);
+      const secondaryAuth = secondaryApp.auth();
+      const cred = await secondaryAuth.createUserWithEmailAndPassword(email, password);
+      const subUid = cred.user.uid;
+      await secondaryAuth.signOut();
+      return { success: true, uid: subUid };
+    } catch(e) {
+      return { success: false, error: this._err(e.code) };
+    } finally {
+      if (secondaryApp) secondaryApp.delete().catch(() => {});
+    }
+  },
+
+  // Send a password reset email to a sub-user
+  async sendPasswordReset(email) {
+    try { await _auth.sendPasswordResetEmail(email); return { success: true }; }
+    catch(e) { return { success: false, error: this._err(e.code) }; }
+  },
+
   async logout() {
     try { await _auth.signOut(); return {success:true}; }
     catch(e){ return {success:false}; }

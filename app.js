@@ -918,7 +918,7 @@ const SMS = {
     document.getElementById('notif-btn')?.addEventListener('click',()=>{ const p=document.getElementById('notif-panel'); p.style.display=p.style.display==='none'?'block':'none'; });
     document.getElementById('notif-clear')?.addEventListener('click',()=>this.clearAllNotifs());
     document.addEventListener('click',e=>{ if(!document.getElementById('notif-wrap')?.contains(e.target)) document.getElementById('notif-panel').style.display='none'; });
-    document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); }));
+    document.querySelectorAll('.stab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.stab').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.spane').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const p=document.getElementById('sp-'+t.dataset.stab); if(p) p.classList.add('active'); if(t.dataset.stab==='users') this.renderUsers(); if(t.dataset.stab==='data') this.renderBackupStats(); if(t.dataset.stab==='school') this.loadSchoolSettings(); if(t.dataset.stab==='appearance') this.loadAppearanceSettings(); if(t.dataset.stab==='sms-notif') this.loadSmsSettings(); }));
     document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ const g=t.closest('.tabs'); if(!g) return; g.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); const panes=t.closest('.page')?.querySelectorAll('.tab-pane'); panes?.forEach(p=>{ p.classList.remove('active'); if(p.id===t.dataset.tab) p.classList.add('active'); }); }));
     document.querySelectorAll('.mtab').forEach(t=>t.addEventListener('click',()=>{ const mb=t.closest('.modal-body'); mb?.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); mb?.querySelectorAll('.modal-tab-pane').forEach(p=>{ p.classList.remove('active'); if(p.id===t.dataset.mtab) p.classList.add('active'); }); }));
     document.querySelectorAll('.msg-tab').forEach(t=>t.addEventListener('click',()=>{ document.querySelectorAll('.msg-tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); this.renderMessages(t.dataset.mtab); }));
@@ -1050,28 +1050,36 @@ const SMS = {
     document.querySelectorAll('.swatch[data-primary]').forEach(s=>s.addEventListener('click',()=>{ document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('active')); s.classList.add('active'); this.applyThemeColors(s.dataset.primary,s.dataset.teal); }));
     document.getElementById('custom-primary')?.addEventListener('input',e=>{ document.getElementById('custom-primary-hex').value=e.target.value; });
     document.getElementById('custom-teal')?.addEventListener('input',e=>{ document.getElementById('custom-teal-hex').value=e.target.value; });
+    document.getElementById('custom-primary-hex')?.addEventListener('input',e=>{ const v=e.target.value; if(/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('custom-primary').value=v; });
+    document.getElementById('custom-teal-hex')?.addEventListener('input',e=>{ const v=e.target.value; if(/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('custom-teal').value=v; });
     document.querySelectorAll('.fsz-btn').forEach(b=>b.addEventListener('click',()=>{ document.querySelectorAll('.fsz-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); const sizes={small:'13px',medium:'15px',large:'17px'}; document.documentElement.style.fontSize=sizes[b.dataset.size]; DB.set('fontSize',b.dataset.size); }));
     document.getElementById('add-user-btn')?.addEventListener('click',()=>this.openUserModal());
     document.getElementById('save-user-btn')?.addEventListener('click',()=>this.saveUser());
     document.getElementById('save-sms-btn')?.addEventListener('click',()=>{
-      const key=document.getElementById('sms-key')?.value.trim();
-      const badge=document.getElementById('sms-status-badge');
-      const testBtn=document.getElementById('test-sms-btn');
+      const key=(document.getElementById('sms-key')?.value||'').trim();
       const settings=DB.get('smsSettings',{});
-      settings.provider=document.getElementById('sms-provider')?.value;
+      settings.provider=document.getElementById('sms-provider')?.value||'hubtel';
+      settings.sender=(document.getElementById('sms-sender')?.value||'').trim();
       settings.key=key;
-      settings.secret=document.getElementById('sms-secret')?.value;
-      settings.configured=!!key;
+      settings.secret=(document.getElementById('sms-secret')?.value||'').trim();
+      settings.configured=!!(key);
+      settings.masterEnabled=document.getElementById('sms-master')?.checked||false;
+      settings.notifyAdmission=document.getElementById('smt-admission')?.checked||false;
+      settings.notifyFee=document.getElementById('smt-fee')?.checked||false;
+      settings.notifyReminder=document.getElementById('smt-reminder')?.checked||false;
+      settings.notifyResults=document.getElementById('smt-results')?.checked||false;
+      settings.notifyAttendance=document.getElementById('smt-attendance')?.checked||false;
+      settings.notifyEvents=document.getElementById('smt-events')?.checked||false;
       DB.set('smsSettings',settings);
-      if(key){
-        if(badge){badge.textContent='Configured';badge.style.background='var(--success)';badge.style.color='#fff';}
-        if(testBtn){const sp=testBtn.querySelector('.badge');if(sp){sp.textContent='Active';sp.className='badge badge-success';}testBtn.disabled=false;}
-      } else {
-        if(badge){badge.textContent='Disabled';badge.style.background='var(--surface-3)';badge.style.color='var(--t3)';}
-      }
+      this._updateSmsBadge(settings);
+      this.audit('Settings','settings','SMS notification settings updated');
       this.toast('SMS settings saved','success');
     });
-    document.getElementById('test-sms-btn')?.addEventListener('click',()=>this.toast('SMS gateway not yet configured — connect your provider in Settings to enable sending.','warn'));
+    document.getElementById('test-sms-btn')?.addEventListener('click',()=>{
+      const s=DB.get('smsSettings',{});
+      if(!s.configured||!s.key){ this.toast('SMS gateway not configured — enter your API key and save first.','warn'); return; }
+      this.toast(`Test SMS would be sent via ${s.provider||'your provider'} (live sending not yet active in this build).`,'info');
+    });
     document.getElementById('backup-btn')?.addEventListener('click',()=>this.exportBackup());
     document.getElementById('upload-logo-btn')?.addEventListener('click',()=>document.getElementById('logo-file').click());
     document.getElementById('logo-file')?.addEventListener('change',e=>this.uploadLogo(e));
@@ -3987,12 +3995,13 @@ const SMS = {
       if(pt) pt.classList.add('active');
       if(pp) pp.classList.add('active');
     }
-    this.loadSchoolSettings(); this.loadProfileSettings(); this.loadAcademicSettings();
+    this.loadSchoolSettings(); this.loadProfileSettings(); this.loadAcademicSettings(); this.loadAppearanceSettings();
+    // Refresh SMS badge state even if user doesn't click that tab
+    const _smsS=DB.get('smsSettings',{}); this._updateSmsBadge(_smsS);
   },
 
   loadSchoolSettings(){
     const school=DB.get('school',{});
-    ['sc-name','sc-motto','sc-phone','sc-email','sc-web','sc-address'].forEach(id=>{ const k=id.replace('sc-','').replace('-',''); const e=document.getElementById(id); if(e) e.value=school[k]||school[id.replace('sc-','')]||''; });
     document.getElementById('sc-name').value=school.name||'';
     document.getElementById('sc-motto').value=school.motto||'';
     document.getElementById('sc-phone').value=school.phone||'';
@@ -4000,16 +4009,27 @@ const SMS = {
     document.getElementById('sc-web').value=school.website||'';
     document.getElementById('sc-address').value=school.address||'';
     document.getElementById('sc-country').value=school.country||'GH';
+    // Restore logo preview if saved
+    const logoPreview=document.getElementById('school-logo-preview');
+    if(logoPreview&&school.logo){
+      logoPreview.innerHTML=`<img src="${school.logo}" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`;
+    }
   },
 
   saveSchool(){
+    const name=(document.getElementById('sc-name').value||'').trim();
+    if(!name){ this.toast('School name is required.','danger'); document.getElementById('sc-name').focus(); return; }
+    const email=(document.getElementById('sc-email').value||'').trim();
+    if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ this.toast('Please enter a valid school email address.','danger'); document.getElementById('sc-email').focus(); return; }
+    const website=(document.getElementById('sc-web').value||'').trim();
+    if(website&&!/^https?:\/\/.+/.test(website)){ this.toast('Website URL must start with http:// or https://','danger'); document.getElementById('sc-web').focus(); return; }
     const school=DB.get('school',{});
-    school.name=document.getElementById('sc-name').value;
-    school.motto=document.getElementById('sc-motto').value;
-    school.phone=document.getElementById('sc-phone').value;
-    school.email=document.getElementById('sc-email').value;
-    school.website=document.getElementById('sc-web').value;
-    school.address=document.getElementById('sc-address').value;
+    school.name=name;
+    school.motto=(document.getElementById('sc-motto').value||'').trim();
+    school.phone=(document.getElementById('sc-phone').value||'').trim();
+    school.email=email;
+    school.website=website;
+    school.address=(document.getElementById('sc-address').value||'').trim();
     school.country=document.getElementById('sc-country').value;
     DB.set('school',school);
     document.getElementById('topbar-school-name').textContent=school.name;
@@ -4021,7 +4041,8 @@ const SMS = {
   loadProfileSettings(){
     const u=this.currentUser;
     document.getElementById('p-name').value=u.name||'';
-    document.getElementById('p-email').value=u.email||'';
+    const emailEl=document.getElementById('p-email');
+    if(emailEl){ emailEl.value=u.email||''; emailEl.readOnly=true; emailEl.title='Email cannot be changed here — contact your administrator.'; emailEl.style.opacity='0.65'; emailEl.style.cursor='not-allowed'; }
     document.getElementById('p-phone').value=u.phone||'';
     document.getElementById('p-role').value=this.roleLabel(u.role);
   },
@@ -4100,10 +4121,19 @@ const SMS = {
 
   saveAcademic(){
     const school=DB.get('school',{});
-    school.academicYear=document.getElementById('ac-year').value;
+    const yearVal=(document.getElementById('ac-year').value||'').trim();
+    if(!yearVal||!/^\d{4}\/\d{4}$/.test(yearVal)){
+      this.toast('Academic year must be in format YYYY/YYYY (e.g. 2025/2026)','danger');
+      document.getElementById('ac-year').focus(); return;
+    }
+    const [yStart,yEnd]=yearVal.split('/').map(Number);
+    if(yEnd!==yStart+1){ this.toast('Academic year end must be exactly 1 year after start (e.g. 2025/2026)','danger'); document.getElementById('ac-year').focus(); return; }
+    const passVal=+document.getElementById('ac-pass').value;
+    if(isNaN(passVal)||passVal<0||passVal>100){ this.toast('Pass mark must be between 0 and 100.','danger'); document.getElementById('ac-pass').focus(); return; }
+    school.academicYear=yearVal;
     school.currentTerm=document.getElementById('ac-term').value;
     school.gradeSystem=document.getElementById('ac-grade-sys').value;
-    school.passMark=+document.getElementById('ac-pass').value;
+    school.passMark=passVal;
     school.currency=document.getElementById('ac-currency').value;
     school.type=document.getElementById('ac-type').value;
     _currency=school.currency;
@@ -4314,12 +4344,21 @@ const SMS = {
 
 
   openAddYearModal(){
+    // Suggest the previous year before the earliest recorded, or next after the latest
+    const allYears=getAllAcademicYears();
     const school=DB.get('school',{});
-    // Suggest the next logical year
-    const latest=getAllAcademicYears()[0]?.year||'2025/2026';
-    const parts=latest.split('/');
-    const suggestStart=+parts[0]+1; const suggestEnd=+parts[1]+1;
-    const suggested=`${suggestStart}/${suggestEnd}`;
+    let suggested, suggestStart, suggestEnd;
+    if(allYears.length>0){
+      // Suggest the year before the earliest
+      const earliest=allYears[allYears.length-1]?.year||school.academicYear||'2025/2026';
+      const parts=earliest.split('/');
+      suggestStart=+parts[0]-1; suggestEnd=+parts[1]-1;
+    } else {
+      const cur=school.academicYear||'2025/2026';
+      const parts=cur.split('/');
+      suggestStart=+parts[0]-1; suggestEnd=+parts[1]-1;
+    }
+    suggested=`${suggestStart}/${suggestEnd}`;
     document.getElementById('new-ay-year').value=suggested;
     document.getElementById('new-ay-start').value=`${suggestStart}-09-01`;
     document.getElementById('new-ay-end').value=`${suggestEnd}-07-31`;
@@ -4335,6 +4374,8 @@ const SMS = {
     if(!year||!/^\d{4}\/\d{4}$/.test(year)){
       errEl.style.display='block'; errEl.textContent='Year must be in format YYYY/YYYY (e.g. 2023/2024)'; return;
     }
+    const [ys,ye]=year.split('/').map(Number);
+    if(ye!==ys+1){ errEl.style.display='block'; errEl.textContent='End year must be exactly 1 year after start year (e.g. 2024/2025).'; return; }
     const school=DB.get('school',{});
     if(!school.academicYears) school.academicYears=[];
     if(school.academicYears.find(y=>y.year===year)){
@@ -4445,7 +4486,7 @@ const SMS = {
 
   _histRowUpdate(sid,year){
     const s=DB.get('students',[]).find(x=>x.id===sid); if(!s) return;
-    const fss=getYearStructure(sid?s.classId:null,year)||{term1:0,term2:0,term3:0};
+    const fss=getYearStructure(s.classId,year)||{term1:0,term2:0,term3:0};
     const p1=+document.querySelector(`[data-sid="${sid}"][data-term="term1"]`)?.value||0;
     const p2=+document.querySelector(`[data-sid="${sid}"][data-term="term2"]`)?.value||0;
     const p3=+document.querySelector(`[data-sid="${sid}"][data-term="term3"]`)?.value||0;
@@ -4497,6 +4538,35 @@ const SMS = {
     const dark=DB.get('darkMode',false); document.getElementById('dark-mode-toggle').checked=dark;
     const savedColors=DB.get('themeColors'); if(savedColors){ document.getElementById('custom-primary').value=savedColors.primary; document.getElementById('custom-primary-hex').value=savedColors.primary; document.getElementById('custom-teal').value=savedColors.teal; document.getElementById('custom-teal-hex').value=savedColors.teal; }
     const savedFont=DB.get('fontSize'); if(savedFont) document.querySelectorAll('.fsz-btn').forEach(b=>b.classList.toggle('active',b.dataset.size===savedFont));
+  },
+
+  loadSmsSettings(){
+    const s=DB.get('smsSettings',{});
+    const prov=document.getElementById('sms-provider'); if(prov&&s.provider) prov.value=s.provider;
+    const sender=document.getElementById('sms-sender'); if(sender) sender.value=s.sender||'';
+    const key=document.getElementById('sms-key'); if(key) key.value=s.key||'';
+    const secret=document.getElementById('sms-secret'); if(secret) secret.value=s.secret||'';
+    const master=document.getElementById('sms-master'); if(master) master.checked=!!s.masterEnabled;
+    const toggles={admission:'smt-admission',fee:'smt-fee',reminder:'smt-reminder',results:'smt-results',attendance:'smt-attendance',events:'smt-events'};
+    Object.entries(toggles).forEach(([k,id])=>{ const el=document.getElementById(id); if(el) el.checked=s[`notify${k.charAt(0).toUpperCase()+k.slice(1)}`]!==false; });
+    this._updateSmsBadge(s);
+  },
+
+  _updateSmsBadge(settings){
+    const badge=document.getElementById('sms-status-badge');
+    const testBtn=document.getElementById('test-sms-btn');
+    const configured=settings&&settings.configured&&settings.key;
+    const active=configured&&settings.masterEnabled;
+    if(badge){
+      if(active){ badge.textContent='Active'; badge.style.background='var(--success)'; badge.style.color='#fff'; }
+      else if(configured){ badge.textContent='Configured'; badge.style.background='var(--warn)'; badge.style.color='#fff'; }
+      else { badge.textContent='Disabled'; badge.style.background='var(--surface-3)'; badge.style.color='var(--t3)'; }
+    }
+    if(testBtn){
+      const sp=testBtn.querySelector('.badge');
+      if(configured){ if(sp){ sp.textContent='Ready'; sp.className='badge badge-success'; } testBtn.disabled=false; }
+      else { if(sp){ sp.textContent='Setup Required'; sp.className='badge badge-warn'; } }
+    }
   },
 
   renderUsers(){

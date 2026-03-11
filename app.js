@@ -657,8 +657,10 @@ const SMS = {
     this.bindNav();
     this.bindForms();
     this.loadTheme();
-    this.checkAdminOnly();
-    this.nav('dashboard');
+    this.applyRolePermissions();
+    // Navigate to first accessible page for this role
+    const _firstPage = Object.keys(this.PERMISSIONS.nav).find(p=>this.canAccess(p))||'dashboard';
+    this.nav(_firstPage);
     this.loadNotifications();
     // ── Real-time suspension listener ──
     // Watches Firestore for status changes while app is open
@@ -705,12 +707,150 @@ const SMS = {
 
   roleLabel(r){ return {admin:'Administrator',teacher:'Teacher',accountant:'Accountant',librarian:'Librarian',staff:'Staff'}[r]||r; },
 
-  checkAdminOnly(){
-    const isAdmin=this.currentUser.role==='admin';
-    document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display=isAdmin?'':'none'; });
+  // ══ ROLE-BASED ACCESS CONTROL ══
+  // Single source of truth for all permissions across the app.
+  // Roles: admin | teacher | accountant | librarian | staff
+
+  PERMISSIONS: {
+    nav: {
+      dashboard:  ['admin','teacher','accountant','librarian','staff'],
+      students:   ['admin','teacher','accountant'],
+      classes:    ['admin','teacher'],
+      attendance: ['admin','teacher'],
+      exams:      ['admin','teacher'],
+      timetable:  ['admin','teacher'],
+      homework:   ['admin','teacher'],
+      staff:      ['admin'],
+      payroll:    ['admin','accountant'],
+      leave:      ['admin','teacher','accountant','librarian','staff'],
+      fees:       ['admin','accountant'],
+      expenses:   ['admin','accountant'],
+      messages:   ['admin','teacher','accountant','librarian','staff'],
+      library:    ['admin','teacher','librarian'],
+      events:     ['admin','teacher','accountant','librarian','staff'],
+      reports:    ['admin','teacher','accountant'],
+      audit:      ['admin'],
+      settings:   ['admin','teacher','accountant','librarian','staff'],
+    },
+    buttons: {
+      // Students
+      'add-student-btn':     ['admin'],
+      'import-students-btn': ['admin'],
+      'promote-btn':         ['admin'],
+      'exp-students-btn':    ['admin'],
+      'send-reminder-btn':   ['admin','accountant'],
+      // Classes
+      'add-class-btn':       ['admin'],
+      'add-subject-btn':     ['admin'],
+      // Attendance
+      'take-att-btn':        ['admin','teacher'],
+      'save-attendance-btn': ['admin','teacher'],
+      'print-att-btn':       ['admin','teacher'],
+      // Exams
+      'add-exam-btn':        ['admin','teacher'],
+      'save-grades-btn':     ['admin','teacher'],
+      // Timetable
+      'tt-design-btn':       ['admin'],
+      'edit-tt-btn':         ['admin'],
+      // Homework
+      'add-hw-btn':          ['admin','teacher'],
+      // Staff
+      'add-staff-btn':       ['admin'],
+      'exp-staff-btn':       ['admin'],
+      // Payroll
+      'process-payroll-btn': ['admin','accountant'],
+      'exp-payroll-btn':     ['admin','accountant'],
+      // Leave
+      'add-leave-btn':       ['admin','teacher','accountant','librarian','staff'],
+      // Fees
+      'add-fee-btn':         ['admin','accountant'],
+      'add-fee-struct-btn':  ['admin','accountant'],
+      'exp-fees-btn':        ['admin','accountant'],
+      // Expenses
+      'add-expense-btn':     ['admin','accountant'],
+      // Messages
+      'compose-btn':         ['admin','teacher','accountant','librarian','staff'],
+      // Library
+      'add-book-btn':        ['admin','librarian'],
+      'borrow-btn':          ['admin','librarian','teacher'],
+      // Events
+      'add-event-btn':       ['admin'],
+      // Audit
+      'clear-audit-btn':     ['admin'],
+      'exp-audit-btn':       ['admin'],
+      // Settings
+      'add-user-btn':        ['admin'],
+      'backup-btn':          ['admin'],
+      'save-school-btn':     ['admin'],
+      'save-academic-btn':   ['admin'],
+    },
+    settingsTabs: {
+      school:     ['admin','teacher','accountant','librarian','staff'],
+      profile:    ['admin','teacher','accountant','librarian','staff'],
+      appearance: ['admin','teacher','accountant','librarian','staff'],
+      academic:   ['admin'],
+      users:      ['admin'],
+      'sms-notif':['admin'],
+      data:       ['admin'],
+    },
+  },
+
+  // Check if current user has one of the given roles
+  hasRole(...roles){ return roles.includes(this.currentUser?.role||'staff'); },
+
+  // Check if current user can access a nav page
+  canAccess(page){
+    const allowed = this.PERMISSIONS.nav[page];
+    return !allowed || allowed.includes(this.currentUser?.role||'staff');
+  },
+
+  // Apply all role-based permissions (sidebar, buttons, settings tabs)
+  applyRolePermissions(){
+    const role = this.currentUser?.role || 'staff';
+
+    // ── 1. Sidebar navigation items ──
+    document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+      const page = el.dataset.page;
+      const allowed = this.PERMISSIONS.nav[page];
+      el.style.display = (!allowed || allowed.includes(role)) ? '' : 'none';
+    });
+    // Hide empty nav group labels
+    document.querySelectorAll('.nav-group').forEach(group=>{
+      const items = group.querySelectorAll('.nav-item[data-page]');
+      const anyVisible = Array.from(items).some(i=>i.style.display!=='none');
+      const label = group.querySelector('.nav-label');
+      if(label) label.style.display = anyVisible ? '' : 'none';
+    });
+
+    // ── 2. Action buttons ──
+    Object.entries(this.PERMISSIONS.buttons).forEach(([id, roles])=>{
+      const el = document.getElementById(id);
+      if(el) el.style.display = roles.includes(role) ? '' : 'none';
+    });
+
+    // ── 3. Legacy admin-only elements not in the buttons map ──
+    document.querySelectorAll('.admin-only').forEach(el=>{
+      // Only apply if not already controlled by the buttons map above
+      if(!el.id || !this.PERMISSIONS.buttons[el.id]){
+        el.style.display = role==='admin' ? '' : 'none';
+      }
+    });
+
+    // ── 4. Settings tabs ──
+    document.querySelectorAll('.stab[data-stab]').forEach(tab=>{
+      const stab = tab.dataset.stab;
+      const allowed = this.PERMISSIONS.settingsTabs[stab];
+      tab.style.display = (!allowed || allowed.includes(role)) ? '' : 'none';
+    });
   },
 
   nav(page){
+    // Guard: redirect unauthorized access to first allowed page
+    if(this.currentUser && !this.canAccess(page)){
+      const _fallback=Object.keys(this.PERMISSIONS.nav).find(p=>this.canAccess(p))||'dashboard';
+      this.toast(`You don't have access to that page`,'warn');
+      page=_fallback;
+    }
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     const pe=document.getElementById('page-'+page); if(pe) pe.classList.add('active');
@@ -2054,8 +2194,7 @@ const SMS = {
         <td>
           <div style="display:flex;gap:.3rem">
             <button class="btn btn-ghost btn-sm" onclick="SMS.viewStudent('${s.id}')" style="padding:.3rem .5rem" title="View Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-            <button class="btn btn-ghost btn-sm" onclick="SMS.openStudentModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-            <button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete student ${sanitize(s.fname)} ${sanitize(s.lname)}?',()=>SMS.deleteStudent('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+            ${SMS.hasRole('admin')?`<button class="btn btn-ghost btn-sm" onclick="SMS.openStudentModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete student ${sanitize(s.fname)} ${sanitize(s.lname)}?',()=>SMS.deleteStudent('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:``}
           </div>
         </td>
       </tr>`;
@@ -2195,6 +2334,7 @@ const SMS = {
   },
 
   saveStudent(){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; }
     const fname=document.getElementById('sf-fname').value.trim();
     const lname=document.getElementById('sf-lname').value.trim();
     const classId=document.getElementById('sf-class').value;
@@ -2233,6 +2373,7 @@ const SMS = {
   },
 
   deleteStudent(id){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; }
     const students=DB.get('students',[]);
     const s=students.find(x=>x.id===id);
     DB.set('students',students.filter(x=>x.id!==id));
@@ -2285,7 +2426,7 @@ const SMS = {
       <td>${sanitize(s.phone)}</td>
       <td style="font-weight:600;color:var(--brand)">${fmt(s.salary)}</td>
       <td>${statusBadge(s.status||'active')}</td>
-      <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openStaffModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove staff member ${sanitize(s.fname)} ${sanitize(s.lname)}?',()=>SMS.deleteStaff('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
+      <td><div style="display:flex;gap:.3rem">${SMS.hasRole('admin')?`<button class="btn btn-ghost btn-sm" onclick="SMS.openStaffModal('${s.id}')" style="padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Remove staff member ${sanitize(s.fname)} ${sanitize(s.lname)}?',()=>SMS.deleteStaff('${s.id}'))" style="padding:.3rem .5rem;color:var(--danger)" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}</div></td>
     </tr>`).join('')||SMS._emptyState('staff','No Staff Members Found','Add your first staff member or adjust your search filters.','+ Add Staff',"SMS.openStaffModal()");
   },
 
@@ -2313,6 +2454,7 @@ const SMS = {
   },
 
   saveStaff(){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; }
     const fname=document.getElementById('stf-fname').value.trim();
     const lname=document.getElementById('stf-lname').value.trim();
     const role=document.getElementById('stf-role').value;
@@ -2329,7 +2471,8 @@ const SMS = {
     this.closeModal('m-staff'); this.renderStaff(); this.renderStaffStats();
   },
 
-  deleteStaff(id){ const staff=DB.get('staff',[]); const s=staff.find(x=>x.id===id); DB.set('staff',staff.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'staff',id).catch(()=>{}); this.audit('Delete Staff','delete',`Removed: ${s?.fname} ${s?.lname}`); this.toast('Staff removed','warn'); this.renderStaff(); },
+  deleteStaff(id){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; } const staff=DB.get('staff',[]); const s=staff.find(x=>x.id===id); DB.set('staff',staff.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'staff',id).catch(()=>{}); this.audit('Delete Staff','delete',`Removed: ${s?.fname} ${s?.lname}`); this.toast('Staff removed','warn'); this.renderStaff(); },
 
   exportStaff(){
     if(typeof XLSX==='undefined'){ this.toast('Export library not loaded','error'); return; }
@@ -2388,7 +2531,7 @@ const SMS = {
         <td>${cls?.name||'—'}</td>
         <td>${teacher?teacher.fname+' '+teacher.lname:'—'}</td>
         <td>${s.periods||'—'}/week</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete subject ${sanitize(s.name)}?',()=>SMS.deleteSubject('${s.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+        <td>${SMS.hasRole('admin')?`<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete subject ${sanitize(s.name)}?',()=>SMS.deleteSubject('${s.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:`<span></span>`}</td>
       </tr>`;
     }).join('')||SMS._emptyState('default','No Subjects Added','Add subjects to your classes so you can assign exams and track grades.','+ Add Subject',"SMS.openSubjectModal()");
   },
@@ -2413,6 +2556,7 @@ const SMS = {
   },
 
   saveClass(){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; }
     const name=document.getElementById('clf-name').value.trim(); if(!name){ this.toast('Class name required','error'); return; }
     const classes=DB.get('classes',[]);
     const existId=document.getElementById('clf-id').value;
@@ -2492,6 +2636,7 @@ const SMS = {
   },
 
   saveAttendance(){
+    if(!this.hasRole('admin','teacher')){ this.toast('You do not have permission to perform this action','error'); return; }
     const formCard=document.getElementById('att-form-card');
     const classId=formCard.dataset.classId, date=formCard.dataset.date;
     const students=DB.get('students',[]).filter(s=>s.classId===classId&&s.status==='active');
@@ -2518,7 +2663,7 @@ const SMS = {
       <td style="color:var(--danger);font-weight:700">${a.absent}</td>
       <td style="color:var(--warn);font-weight:700">${a.late}</td>
       <td><span class="badge ${a.present/a.total>=0.9?'badge-success':'badge-warn'}">${Math.round(a.present/a.total*100)||0}%</span></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this attendance record?',()=>SMS.deleteAtt('${a.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+      <td>${SMS.hasRole('admin','teacher')?`<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this attendance record?',()=>SMS.deleteAtt('${a.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:`<span></span>`}</td>
     </tr>`).join('')||SMS._emptyState('attendance','No Attendance Records','No records match your date range. Take attendance for today using the form above.','');
   },
 
@@ -2544,7 +2689,7 @@ const SMS = {
         <td>${fmtDate(e.date)}</td>
         <td style="font-weight:700">${e.maxScore}</td>
         <td>${statusBadge(e.status)}</td>
-        <td><div style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openExamModal('${e.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete exam ${sanitize(e.name)}?',()=>SMS.deleteExam('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></div></td>
+        <td><div style="display:flex;gap:.3rem">${SMS.hasRole('admin','teacher')?`<button class="btn btn-ghost btn-sm" onclick="SMS.openExamModal('${e.id}')" style="padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete exam ${sanitize(e.name)}?',()=>SMS.deleteExam('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:''}</div></td>
       </tr>`;
     }).join('')||SMS._emptyState('exams','No Exams Created','Create your first exam to start tracking student performance.','+ Create Exam',"SMS.openExamModal()");
     // Populate grade exam selector
@@ -2565,6 +2710,7 @@ const SMS = {
   },
 
   saveExam(){
+    if(!this.hasRole('admin','teacher')){ this.toast('You do not have permission to perform this action','error'); return; }
     const name=document.getElementById('ex-name').value.trim(); const classId=document.getElementById('ex-class').value; const date=document.getElementById('ex-date').value;
     if(!name||!classId||!date){ this.toast('Fill in required fields','error'); return; }
     const exams=DB.get('exams',[]);
@@ -2603,6 +2749,7 @@ const SMS = {
   },
 
   saveGrades(){
+    if(!this.hasRole('admin','teacher')){ this.toast('You do not have permission to perform this action','error'); return; }
     const examId=document.getElementById('save-grades-btn').dataset.examId;
     const exam=DB.get('exams',[]).find(e=>e.id===examId);
     const inputs=document.querySelectorAll('#grade-entry-list input[data-student]');
@@ -2847,7 +2994,7 @@ const SMS = {
         <div class="hw-card-footer">
           <span>Due: <strong>${fmtDate(h.dueDate)}</strong></span>
           <span>Assigned: ${fmtDate(h.assignedDate)}</span>
-          <div style="display:flex;gap:.4rem;margin-left:auto"><button class="btn btn-ghost btn-sm" onclick="SMS.openHomeworkModal('${h.id}')" style="color:var(--brand);padding:.25rem .5rem;font-size:.72rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:.25rem;vertical-align:-.1em"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this homework?',()=>SMS.deleteHomework('${h.id}'))" style="color:var(--danger);padding:.25rem .5rem;font-size:.72rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:.25rem;vertical-align:-.1em"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Delete</button></div>
+          <div style="display:flex;gap:.4rem;margin-left:auto">${SMS.hasRole('admin','teacher')?`<button class="btn btn-ghost btn-sm" onclick="SMS.openHomeworkModal('${h.id}')" style="color:var(--brand);padding:.25rem .5rem;font-size:.72rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:.25rem;vertical-align:-.1em"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this homework?',()=>SMS.deleteHomework('${h.id}'))" style="color:var(--danger);padding:.25rem .5rem;font-size:.72rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:.25rem;vertical-align:-.1em"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>Delete</button>`:`<span></span>`}</div>
         </div>
       </div>`).join('')||'<div style="color:var(--t4);padding:1.5rem">No homework assignments found.</div>';
   },
@@ -2882,6 +3029,7 @@ const SMS = {
   },
 
   processPayroll(){
+    if(!this.hasRole('admin','accountant')){ this.toast('You do not have permission to perform this action','error'); return; }
     const staff=DB.get('staff',[]); const month=document.getElementById('pay-month')?.value; const year=document.getElementById('pay-year')?.value;
     const payroll=DB.get('payroll',[]); let count=0;
     staff.forEach(s=>{ if(!payroll.find(p=>p.staffId===s.id&&p.month==month&&p.year==year)){ const basic=+s.salary||0,allow=basic*0.15,deduct=basic*0.05,net=basic+allow-deduct; payroll.push({id:uid('pr'),staffId:s.id,month,year,basic,allowances:allow,deductions:deduct,net,date:new Date().toISOString(),paidBy:this.currentUser.id}); count++; } });
@@ -3424,6 +3572,7 @@ const SMS = {
   },
 
   saveFee(){
+    if(!this.hasRole('admin','accountant')){ this.toast('You do not have permission to perform this action','error'); return; }
     const studentId=document.getElementById('fee-student').value;
     const term=document.getElementById('fee-term').value;
     const amount=+document.getElementById('fee-amount').value;
@@ -3607,7 +3756,7 @@ const SMS = {
       <td style="font-weight:700;color:var(--danger)">${fmt(e.amount)}</td>
       <td>${e.paidTo}</td>
       <td>${e.approvedBy}</td>
-      <td style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openExpenseModal('${e.id}')" style="color:var(--brand);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this expense?',()=>SMS.deleteExpense('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+      <td style="display:flex;gap:.3rem">${SMS.hasRole('admin','accountant')?`<button class="btn btn-ghost btn-sm" onclick="SMS.openExpenseModal('${e.id}')" style="color:var(--brand);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this expense?',()=>SMS.deleteExpense('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:`<span></span>`}</td>
     </tr>`).join('')||SMS._emptyState('expenses','No Expenses Recorded','Track school expenditure here. Add your first expense entry.','');
     this.renderExpenseCharts(bycat,expenses);
   },
@@ -3695,7 +3844,7 @@ const SMS = {
       <td style="text-align:center">${b.copies}</td>
       <td style="text-align:center;font-weight:700;color:${b.available>0?'var(--success)':'var(--danger)'}">${b.available}</td>
       <td>${b.available>0?statusBadge('available'):statusBadge('borrowed')}</td>
-      <td style="display:flex;gap:.3rem"><button class="btn btn-ghost btn-sm" onclick="SMS.openBookModal('${b.id}')" style="color:var(--brand);padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>${b.available>0?`<button class="btn btn-ghost btn-sm" onclick="SMS.openBookIssueModal('${b.id}')" style="color:var(--teal);padding:.3rem .5rem;font-size:.7rem;font-weight:600">Issue</button>`:''}<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this book?',()=>SMS.deleteBook('${b.id}'))" style="color:var(--danger);padding:.3rem .5rem" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+      <td style="display:flex;gap:.3rem">${SMS.hasRole('admin','librarian')?`<button class="btn btn-ghost btn-sm" onclick="SMS.openBookModal('${b.id}')" style="color:var(--brand);padding:.3rem .5rem" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>${b.available>0?`<button class="btn btn-ghost btn-sm" onclick="SMS.openBookIssueModal('${b.id}')" style="color:var(--teal);padding:.3rem .5rem;font-size:.7rem;font-weight:600">Issue</button>`:''}<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete this book?',()=>SMS.deleteBook('${b.id}'))" style="color:var(--danger);padding:.3rem .5rem" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:`<span></span>`}</td>
     </tr>`).join('')||SMS._emptyState('books','No Books Found','Try a different search or category filter.','');
   },
 
@@ -3745,13 +3894,15 @@ const SMS = {
   openEventModal(){ ['ev-title','ev-start','ev-end','ev-time','ev-venue','ev-desc'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; }); document.getElementById('ev-type').value='academic'; this.openModal('m-event'); },
 
   saveEvent(){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; }
     const title=document.getElementById('ev-title').value.trim(); const start=document.getElementById('ev-start').value;
     if(!title||!start){ this.toast('Title and start date required','error'); return; }
     const events=DB.get('events',[]); events.push({id:uid('ev'),title,type:document.getElementById('ev-type').value,start,end:document.getElementById('ev-end').value,time:document.getElementById('ev-time').value,venue:document.getElementById('ev-venue').value,desc:document.getElementById('ev-desc').value});
     DB.set('events',events); this.audit('Add Event','create',`New event: ${title}`); this.toast('Event added','success'); this.closeModal('m-event'); this.renderCalendar(); this.renderEventsList();
   },
 
-  deleteEvent(id){ DB.set('events',DB.get('events',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'events',id).catch(()=>{}); this.toast('Event deleted','warn'); this.renderCalendar(); this.renderEventsList(); },
+  deleteEvent(id){
+    if(!this.hasRole('admin')){ this.toast('You do not have permission to perform this action','error'); return; } DB.set('events',DB.get('events',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'events',id).catch(()=>{}); this.toast('Event deleted','warn'); this.renderCalendar(); this.renderEventsList(); },
 
   // ══ REPORTS ══
   openReport(type){
@@ -3823,6 +3974,15 @@ const SMS = {
 
   // ══ SETTINGS ══
   loadSettings(){
+    // Non-admins default to Profile tab (not School Info)
+    if(!this.hasRole('admin')){
+      document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.spane').forEach(p=>p.classList.remove('active'));
+      const pt=document.querySelector('.stab[data-stab="profile"]');
+      const pp=document.getElementById('sp-profile');
+      if(pt) pt.classList.add('active');
+      if(pp) pp.classList.add('active');
+    }
     this.loadSchoolSettings(); this.loadProfileSettings(); this.loadAcademicSettings();
   },
 
@@ -4848,6 +5008,7 @@ const SMS = {
   },
 
   saveExpense(){
+    if(!this.hasRole('admin','accountant')){ this.toast('You do not have permission to perform this action','error'); return; }
     const date=document.getElementById('exp-date').value;
     const category=document.getElementById('exp-category').value;
     const desc=document.getElementById('exp-desc').value.trim();
@@ -4889,6 +5050,7 @@ const SMS = {
   },
 
   saveHomework(){
+    if(!this.hasRole('admin','teacher')){ this.toast('You do not have permission to perform this action','error'); return; }
     const title=document.getElementById('hw-title').value.trim(); const classId=document.getElementById('hw-class-sel').value; const dueDate=document.getElementById('hw-due').value;
     const errEl=document.getElementById('hw-err');
     if(!title||!classId||!dueDate){ errEl.style.display='block'; errEl.textContent='Title, class, and due date are required.'; return; }
@@ -4946,6 +5108,7 @@ const SMS = {
   },
 
   saveBook(){
+    if(!this.hasRole('admin','librarian')){ this.toast('You do not have permission to perform this action','error'); return; }
     const title=document.getElementById('bk-title').value.trim(); const author=document.getElementById('bk-author').value.trim(); const category=document.getElementById('bk-cat').value; const copies=+document.getElementById('bk-copies').value||1;
     const errEl=document.getElementById('bk-err');
     if(!title||!author||!category){ errEl.style.display='block'; errEl.textContent='Title, author, and category are required.'; return; }
@@ -5012,6 +5175,7 @@ const SMS = {
   },
 
   saveFeeStruct(){
+    if(!this.hasRole('admin','accountant')){ this.toast('You do not have permission to perform this action','error'); return; }
     const classId=document.getElementById('fs-class-id').value; const t1=+document.getElementById('fs-term1').value; const t2=+document.getElementById('fs-term2').value; const t3=+document.getElementById('fs-term3').value;
     const errEl=document.getElementById('fs-err'); if(!classId||(!t1&&!t2&&!t3)){ errEl.style.display='block'; errEl.textContent='Please enter at least one term fee.'; return; } errEl.style.display='none';
     const feeStr=DB.get('feeStructure',[]); const i=feeStr.findIndex(f=>f.classId===classId);

@@ -4,16 +4,46 @@
 // ══════════════════════════════════════════
 
 const DB = {
+  _pending: 0,
+  _errored: false,
+  _skipKeys: new Set(['session','seeded','darkMode','themeColors','fontSize','smsSettings','sms_dismissed','readNotifIds']),
+
   get: (k, def=null)=>{ try{ const v=localStorage.getItem('sms_'+k); return v?JSON.parse(v):def; }catch{ return def; } },
+
   set: (k,v)=>{
     try{ localStorage.setItem('sms_'+k,JSON.stringify(v)); }catch{}
     const sid=window.SMS&&window.SMS.schoolId;
-    if(sid&&k!=='session'&&k!=='seeded'&&k!=='darkMode'&&k!=='themeColors'&&k!=='fontSize'){
-      if(k==='school') window.FDB&&FDB.saveSchoolProfile(sid,v).catch(()=>{});
-      else if(Array.isArray(v)) window.FDB&&FDB.batchWrite(sid,k,v).catch(()=>{});
+    const isDemo=window.SMS&&window.SMS._demoMode;
+    if(sid && !isDemo && !DB._skipKeys.has(k) && window.FDB){
+      DB._pending++;
+      DB._updateSync();
+      let writePromise;
+      if(k==='school') writePromise=FDB.saveSchoolProfile(sid,v);
+      else if(Array.isArray(v)) writePromise=FDB.batchWrite(sid,k,v);
+      else writePromise=Promise.resolve(true);
+      writePromise
+        .then(()=>{ DB._pending=Math.max(0,DB._pending-1); if(!DB._pending) DB._errored=false; DB._updateSync(); })
+        .catch(()=>{ DB._pending=Math.max(0,DB._pending-1); DB._errored=true; DB._updateSync(); });
     }
   },
+
   del:(k)=>{ try{ localStorage.removeItem('sms_'+k); }catch{} },
+
+  _updateSync:()=>{
+    const el=document.getElementById('sync-status');
+    if(!el) return;
+    if(DB._errored){
+      el.textContent='⚠ Sync error'; el.className='sync-badge sync-error';
+      el.title='Some changes failed to save to cloud. Check your connection.';
+    } else if(DB._pending>0){
+      el.textContent='↑ Saving...'; el.className='sync-badge sync-saving';
+      el.title='Saving changes to cloud...';
+    } else {
+      el.textContent='✓ Saved'; el.className='sync-badge sync-ok';
+      el.title='All changes saved to cloud';
+    }
+  },
+
   loadFromFirestore: async (sid)=>{
     if(!window.FDB) return;
     const cols=['students','staff','classes','subjects','feePayments','feeStructure',
@@ -653,6 +683,8 @@ const SMS = {
     document.getElementById('login-screen').style.display='none';
     const app=document.getElementById('app');
     app.style.display='grid';
+    const syncEl=document.getElementById('sync-status');
+    if(syncEl) syncEl.style.display=this._demoMode?'none':'inline-flex';
     this.setupTopbar();
     this.bindNav();
     this.bindForms();
@@ -931,6 +963,8 @@ const SMS = {
     this.audit('Logout','login',`${this.currentUser.name} signed out`);
     if(window.FAuth) await FAuth.logout();
     DB.del('session'); this.currentUser=null; this.schoolId=null;
+    const syncEl=document.getElementById('sync-status');
+    if(syncEl) syncEl.style.display='none';
     if(this._demoMode){
       const _dc=['students','staff','classes','subjects','feePayments','feeStructure',
         'exams','grades','attendance','events','messages','leaves','homework','books',

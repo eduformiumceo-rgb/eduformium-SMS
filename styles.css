@@ -3037,3 +3037,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 @media (max-width: 480px) {
   .dash-today-strip { grid-template-columns: 1fr 1fr; gap: .5rem; }
 }
+/* ── Cloud Sync Status Badge ── */
+.sync-badge {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all .3s;
+  white-space: nowrap;
+  cursor: default;
+  letter-spacing: .01em;
+}
+.sync-ok      { background: #e8f5e9; color: #2e7d32; }
+.sync-saving  { background: #fff8e1; color: #b45309; }
+.sync-error   { background: #ffebee; color: #c62828; }
+[data-theme="dark"] .sync-ok     { background: #1b5e20; color: #a5d6a7; }
+[data-theme="dark"] .sync-saving { background: #3d2e00; color: #ffe082; }
+[data-theme="dark"] .sync-error  { background: #3e0000; color: #ef9a9a; }

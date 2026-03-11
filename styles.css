@@ -2073,14 +2073,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 /* ── Professional chart card headers ── */
 .dash-chart-hd {
-  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  display: flex; align-items: flex-start; gap: .75rem;
   padding: 1rem 1.25rem .85rem;
   border-bottom: 1px solid var(--border);
 }
-.dash-chart-hd-left { flex: 1; min-width: 0; }
+.dash-chart-hd-left  { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .18rem; }
 .dash-chart-title { font-size: .88rem; font-weight: 700; color: var(--t1); letter-spacing: -.01em; }
-.dash-chart-sub   { font-size: .72rem; color: var(--t3); margin-top: .1rem; font-weight: 500; }
-.dash-chart-hd-right { text-align: right; }
+.dash-chart-sub   { font-size: .72rem; color: var(--t3); font-weight: 500; }
+.dash-chart-hd-right { display: flex; flex-direction: column; align-items: flex-end; gap: .1rem; flex-shrink: 0; }
 .dash-chart-stat  { font-size: 1.15rem; font-weight: 800; color: var(--brand-teal); letter-spacing: -.03em; line-height: 1; }
 .dash-chart-stat-lbl { font-size: .65rem; color: var(--t4); font-weight: 500; margin-top: .15rem; text-transform: uppercase; letter-spacing: .04em; }
 .dash-live-badge  {
@@ -2248,43 +2248,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   #page-dashboard .dash-panels[data-cols="3"] { grid-template-columns:1fr; }
   .dash-hero-actions .btn-white { padding:.3rem .5rem; font-size:.64rem; }
   .page-wrap                    { padding:.75rem; }
-
-  /* ── Fix: Fee Collection card header on mobile ── */
-  .dash-chart-hd {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap: .2rem .5rem;
-    padding: .85rem 1rem .75rem;
-    align-items: start;
-    flex-wrap: unset;
-  }
-  .dash-chart-hd-left {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-  .dash-chart-hd-right {
-    grid-column: 2;
-    grid-row: 1;
-    text-align: right;
-    align-self: start;
-  }
-  .dash-chart-stat { font-size: 1.05rem; }
-  .dash-live-badge {
-    grid-column: 1;
-    grid-row: 2;
-    align-self: center;
-    margin-top: .15rem;
-  }
-  .dash-freshness {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: center;
-    margin-left: 0;
-    text-align: right;
-    padding-bottom: 0;
-  }
 }
 
 /* ══════════════════════════════════════════════
@@ -2797,7 +2760,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .dash-gs-title { color: #93c5fd; }
 
 /* ── Chart freshness timestamp ── */
-.dash-freshness { font-size: .61rem; color: var(--t4); font-weight: 500; white-space: nowrap; margin-left: auto; align-self: flex-end; padding-bottom: .1rem; }
+.dash-freshness { font-size: .61rem; color: var(--t4); font-weight: 500; white-space: nowrap; }
 
 /* ── Sparkline hover tooltip ── */
 .kpi-sparkline-wrap {

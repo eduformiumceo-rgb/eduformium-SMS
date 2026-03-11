@@ -1071,7 +1071,7 @@ img { max-width: 100%; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 .btn-primary { background: var(--brand); color: white; }
-.btn-primary:hover { background: var(--brand-dk); box-shadow: 0 4px 12px rgba(26,58,107,.3); }
+.btn-primary:hover { background: var(--brand-dk); box-shadow: 0 4px 12px rgba(59,130,246,.28); }
 .btn-secondary { background: var(--surface); color: var(--t2); border-color: var(--border-2); }
 .btn-secondary:hover { background: var(--surface-3); }
 .btn-danger { background: var(--danger); color: white; }
@@ -2618,8 +2618,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background:var(--surface-2);
 }
 .hist-tbl tbody tr:hover { background:var(--surface-2); }
-.hist-row-has-data td { background:rgba(26,58,107,.04); }
-.hist-row-has-data:hover td { background:rgba(26,58,107,.08); }
+.hist-row-has-data td { background: var(--brand-lt); }
+.hist-row-has-data:hover td { background: var(--brand-lt2); }
 .hist-tbl .hist-amt {
   border:1px solid var(--border);
   border-radius:6px;
@@ -2627,7 +2627,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .hist-tbl .hist-amt:focus {
   border-color:var(--brand);
-  box-shadow:0 0 0 3px rgba(26,58,107,.12);
+  box-shadow:0 0 0 3px var(--brand-lt2);
   outline:none;
 }
 .hist-tbl td { vertical-align:middle; }

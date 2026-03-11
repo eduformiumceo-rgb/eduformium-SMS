@@ -3764,7 +3764,8 @@ const SMS = {
   deleteExpense(id){ DB.set('expenses',DB.get('expenses',[]).filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB) FDB.delete(_sid,'expenses',id).catch(()=>{}); this.toast('Expense deleted','warn'); this.renderExpenses(); },
 
   renderExpenseCharts(bycat,expenses){
-    const ctx1=document.getElementById('chart-expenses'); if(ctx1){ if(this._charts.exp) this._charts.exp.destroy(); const labels=Object.keys(bycat); const data=labels.map(k=>bycat[k]); const colors=['#1a3a6b','#0d9488','#d97706','#dc2626','#7c3aed','#16a34a']; this._charts.exp=new Chart(ctx1,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}}); }
+    const isDark=document.documentElement.dataset.theme==='dark';
+    const ctx1=document.getElementById('chart-expenses'); if(ctx1){ if(this._charts.exp) this._charts.exp.destroy(); const labels=Object.keys(bycat); const data=labels.map(k=>bycat[k]); const colors=isDark?['#93c5fd','#2dd4bf','#fbbf24','#f87171','#c4b5fd','#4ade80']:['#1a3a6b','#0d9488','#d97706','#dc2626','#7c3aed','#16a34a']; this._charts.exp=new Chart(ctx1,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12,color:isDark?'#94a3b8':'#475569'}}}}}); }
     const ctx2=document.getElementById('chart-expense-trend'); if(ctx2){ if(this._charts.expTrend) this._charts.expTrend.destroy(); const months=['Jan','Feb','Mar','Apr','May']; const mData=months.map((_,i)=>expenses.filter(e=>new Date(e.date).getMonth()===i).reduce((s,e)=>s+(+e.amount||0),0)); this._charts.expTrend=new Chart(ctx2,{type:'bar',data:{labels:months,datasets:[{data:mData,backgroundColor:'rgba(224,82,82,0.75)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₵'+v.toLocaleString()}},x:{grid:{display:false}}}}}); }
   },
 
@@ -3878,7 +3879,10 @@ const SMS = {
 
   renderEventsList(){
     const events=DB.get('events',[]).sort((a,b)=>a.start.localeCompare(b.start));
-    const colors={exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
+    const isDark=document.documentElement.dataset.theme==='dark';
+    const colors=isDark
+      ?{exam:'#93c5fd',academic:'#2dd4bf',sports:'#4ade80',holiday:'#fbbf24',meeting:'#c4b5fd',cultural:'#f87171'}
+      :{exam:'#1a3a6b',academic:'#0d9488',sports:'#16a34a',holiday:'#d97706',meeting:'#7c3aed',cultural:'#dc2626'};
     document.getElementById('events-list').innerHTML=events.map(e=>`
       <div class="event-item">
         <div class="event-dot" style="background:${colors[e.type]||'#999'}"></div>
@@ -4908,7 +4912,7 @@ const SMS = {
 
   applyCustomTheme(){ const p=document.getElementById('custom-primary-hex')?.value; const t=document.getElementById('custom-teal-hex')?.value; if(p&&t){ this.applyThemeColors(p,t); this.toast('Custom theme applied!','success'); } },
 
-  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog){ tog.checked=!isDark; tog.dispatchEvent(new Event('change')); } },
+  toggleTheme(){ const isDark=document.documentElement.dataset.theme==='dark'; document.documentElement.dataset.theme=isDark?'light':'dark'; DB.set('darkMode',!isDark); const sun=document.querySelector('.icon-sun'), moon=document.querySelector('.icon-moon'); if(sun) sun.style.display=isDark?'':'none'; if(moon) moon.style.display=isDark?'none':''; const tog=document.getElementById('dark-mode-toggle'); if(tog){ tog.checked=!isDark; tog.dispatchEvent(new Event('change')); } if(this.currentPage&&['expenses','events'].includes(this.currentPage)){ this.nav(this.currentPage); } },
 
   darken(hex,pct){ hex=hex.replace('#',''); let r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); r=Math.max(0,Math.floor(r*(1-pct))); g=Math.max(0,Math.floor(g*(1-pct))); b=Math.max(0,Math.floor(b*(1-pct))); return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); },
 

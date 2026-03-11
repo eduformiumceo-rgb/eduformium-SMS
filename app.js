@@ -4048,10 +4048,12 @@ const SMS = {
   },
 
   saveProfile(){
+    const name=(document.getElementById('p-name').value||'').trim();
+    if(!name){ this.toast('Name is required.','danger'); document.getElementById('p-name').focus(); return; }
     const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===this.currentUser.id);
     if(i>-1){
-      users[i].name=document.getElementById('p-name').value;
-      users[i].phone=document.getElementById('p-phone').value;
+      users[i].name=name;
+      users[i].phone=(document.getElementById('p-phone').value||'').trim();
       DB.set('users',users); this.currentUser=users[i];
       this.setupTopbar(); this.audit('Profile','edit','Profile updated');
       this.toast('Profile saved!','success');
@@ -4376,6 +4378,7 @@ const SMS = {
     }
     const [ys,ye]=year.split('/').map(Number);
     if(ye!==ys+1){ errEl.style.display='block'; errEl.textContent='End year must be exactly 1 year after start year (e.g. 2024/2025).'; return; }
+    if(startDate&&endDate&&new Date(startDate)>=new Date(endDate)){ errEl.style.display='block'; errEl.textContent='Year start date must be before end date.'; return; }
     const school=DB.get('school',{});
     if(!school.academicYears) school.academicYears=[];
     if(school.academicYears.find(y=>y.year===year)){
@@ -4643,6 +4646,7 @@ const SMS = {
 
     // ── EDIT MODE ──
     if(id){
+      errEl.style.display='none';
       if(!name){ errEl.style.display='block'; errEl.textContent='Name is required.'; return; }
       const users=DB.get('users',[]);
       const idx=users.findIndex(u=>u.id===id);
@@ -4664,6 +4668,7 @@ const SMS = {
 
     // ── CREATE MODE ──
     if(!name||!email||!pwd){ errEl.style.display='block'; errEl.textContent='Name, email and password are required.'; return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.style.display='block'; errEl.textContent='Please enter a valid email address.'; return; }
     if(pwd.length<8){ errEl.style.display='block'; errEl.textContent='Password must be at least 8 characters.'; return; }
     const users=DB.get('users',[]);
     if(users.find(u=>u.email===email)){ errEl.style.display='block'; errEl.textContent='A user with this email already exists.'; return; }
@@ -4722,7 +4727,7 @@ const SMS = {
     this.toast('Full backup downloaded!','success');
   },
 
-  uploadLogo(e){ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>{ const preview=document.getElementById('school-logo-preview'); if(preview) preview.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain">`; const school=DB.get('school',{}); school.logo=ev.target.result; DB.set('school',school); this.toast('Logo uploaded!','success'); }; reader.readAsDataURL(file); },
+  uploadLogo(e){ const file=e.target.files[0]; if(!file) return; if(file.size>500*1024){ this.toast('Logo file is too large — please use an image under 500 KB.','danger'); e.target.value=''; return; } const reader=new FileReader(); reader.onload=ev=>{ const preview=document.getElementById('school-logo-preview'); if(preview) preview.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:50%">`; const school=DB.get('school',{}); school.logo=ev.target.result; DB.set('school',school); this.audit('Settings','settings','School logo updated'); this.toast('Logo uploaded!','success'); }; reader.readAsDataURL(file); },
 
   uploadAvatar(e){ const file=e.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=ev=>{ const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===this.currentUser.id); if(i>-1){ users[i].avatar=ev.target.result; DB.set('users',users); this.currentUser=users[i]; } ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; }); const av=document.getElementById('av-preview'); if(av) av.innerHTML=`<img src="${ev.target.result}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; this.toast('Profile photo updated!','success'); }; reader.readAsDataURL(file); },
 

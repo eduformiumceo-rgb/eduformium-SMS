@@ -1490,7 +1490,6 @@ const SMS = {
     // Set panel grid cols after all show/hide decisions are made
     const _panelsEl=document.querySelector('#page-dashboard .dash-panels');
     if(_panelsEl) _panelsEl.dataset.cols=d.isFinance?'3':'2';
-    this._updateSyncStatus();
     // ── Freshness timestamp ──
     this._dashRefreshedAt=Date.now();
     const _fEl=document.getElementById('dash-freshness');
@@ -1948,26 +1947,7 @@ const SMS = {
     el.style.display=(isEmpty&&isAdmin)?'':'none';
   },
 
-  // ── Sync status helper ──
-  _updateSyncStatus(){
-    const el=document.getElementById('dash-sync-status');
-    if(!el) return;
-    const isOnline=navigator.onLine;
-    const hasFirebase=!!window.FAuth;
-    let icon,label,cls;
-    if(!isOnline){
-      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>';
-      label='Offline — local data'; cls='sync-offline';
-    } else if(!hasFirebase){
-      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>';
-      label='Local mode'; cls='sync-local';
-    } else {
-      icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>';
-      label='Synced'; cls='sync-ok';
-    }
-    el.className=`dash-sync-pill ${cls}`;
-    el.innerHTML=`${icon}<span>${label}</span>`;
-  },
+
 
 
   renderDashCharts(students,classes,payments,attRecords,role='admin'){

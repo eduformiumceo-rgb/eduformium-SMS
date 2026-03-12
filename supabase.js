@@ -88,10 +88,11 @@ const FDB = {
     try {
       const {data,error} = await _supabase.from('user_index').select('*')
         .eq('email',email.toLowerCase()).maybeSingle();
-      if(error) throw error; if(!data) return null;
+      if(error){ console.error('getUserIndex RLS/error:', error.message, '| email:', email); return null; }
+      if(!data){ console.warn('getUserIndex: no row found for', email); return null; }
       return {email:data.email, schoolId:data.school_id, userId:data.user_id,
               passwordHash:data.password_hash, name:data.name, role:data.role};
-    } catch(e){ return null; }
+    } catch(e){ console.error('getUserIndex exception:', e.message); return null; }
   },
 
   async deleteUserIndex(email) {

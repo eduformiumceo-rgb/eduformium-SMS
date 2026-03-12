@@ -149,10 +149,12 @@ const FAuth = {
   // Uses Edge Function so admin session is NOT signed out
   async createSubUser(email, password) {
     try {
-      const {data:{session}} = await _supabase.auth.getSession();
+      // Get fresh session to ensure token is valid
+      const {data:{session}, error:sessErr} = await _supabase.auth.getSession();
+      if(sessErr || !session?.access_token) throw new Error('No active session — please log in again.');
       const res = await fetch(_config.url+'/functions/v1/create-sub-user',{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token},
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
         body:JSON.stringify({email,password}),
       });
       const result = await res.json();
@@ -186,12 +188,16 @@ const FAuth = {
 
   // Normalises Supabase user → {uid, email} — same shape as Firebase user
   onAuthChange(cb) {
-    _supabase.auth.onAuthStateChange((_e,session)=>{
+    // getSession() handles initial load — resolves immediately with current session
+    _supabase.auth.getSession().then(({data:{session}})=>{
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
       else             { FAuth._currentUser=null; cb(null); }
     });
-    _supabase.auth.getSession().then(({data:{session}})=>{
+    // onAuthStateChange handles subsequent changes (login/logout) — ignore INITIAL_SESSION event
+    _supabase.auth.onAuthStateChange((_e,session)=>{
+      if(_e==='INITIAL_SESSION') return; // already handled by getSession() above
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
+      else             { FAuth._currentUser=null; cb(null); }
     });
   },
 

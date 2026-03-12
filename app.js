@@ -682,8 +682,8 @@ const SMS = {
     const syncEl=document.getElementById('sync-status');
     if(syncEl) syncEl.style.display=this._demoMode?'none':'inline-flex';
     this.setupTopbar();
-    this.bindNav();
-    this.bindForms();
+    if(!this._navBound){ this.bindNav(); this._navBound=true; }
+    if(!this._formsBound){ this.bindForms(); this._formsBound=true; }
     this.loadTheme();
     this.applyRolePermissions();
     // Navigate to first accessible page for this role

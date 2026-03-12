@@ -489,10 +489,8 @@ const SMS = {
       if(session){ const user=DB.get('users',[]).find(u=>u.id===session.userId); if(user){ this.currentUser=user; this._afterLoad(()=>this.boot()); return; } }
       this._afterLoad(()=>this.showLogin()); return;
     }
-    // Keep loading overlay visible until Firebase confirms auth state
+    // Keep loading overlay visible until Supabase confirms auth state
     document.getElementById('loading-overlay').style.display='flex';
-    // Set persistence to LOCAL so session survives page refresh
-    _auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
     FAuth.onAuthChange(async (firebaseUser)=>{
       if(this._demoMode) return;
       if(this._registering) return; // suppress during account creation
@@ -1004,10 +1002,10 @@ const SMS = {
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
       const email=document.getElementById('l-user').value.trim();
       if(!email){ alert('Please enter your email address first.'); return; }
-      if(typeof firebase!=='undefined'&&firebase.auth){
-        firebase.auth().sendPasswordResetEmail(email)
-          .then(()=>alert('Password reset email sent. Please check your inbox.'))
-          .catch(()=>alert('Could not send reset email. Please contact your administrator.'));
+      if(window.FAuth){
+        FAuth.sendPasswordReset(email).then(r=>alert(r.success
+          ?'Password reset email sent. Please check your inbox.'
+          :'Could not send reset email. Please contact your administrator.'));
       } else {
         alert('Please contact your school administrator to reset your password.');
       }
@@ -4090,22 +4088,17 @@ const SMS = {
     if(newPw!==confirmPw){ errEl.style.display='block'; errEl.textContent='Passwords do not match.'; return; }
     errEl.style.display='none';
 
-    // Firebase account — re-authenticate then update via Firebase Auth
-    if(window.firebase&&firebase.auth().currentUser){
-      const fbUser=firebase.auth().currentUser;
-      const credential=firebase.auth.EmailAuthProvider.credential(fbUser.email,oldPw);
+    // Supabase account — re-authenticate then update password
+    if(window.FAuth&&FAuth._isSupabaseSession()){
       try{
-        await fbUser.reauthenticateWithCredential(credential);
-        await fbUser.updatePassword(newPw);
+        await FAuth.changePassword(oldPw,newPw);
         this.audit('Security','settings','Password changed');
         this.toast('Password updated!','success');
         ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
       }catch(e){
         errEl.style.display='block';
-        if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential') errEl.textContent='Current password is incorrect.';
-        else if(e.code==='auth/requires-recent-login') errEl.textContent='Session expired — please log out and log back in first.';
-        else if(e.code==='auth/weak-password') errEl.textContent='New password too weak — use at least 8 characters.';
-        else errEl.textContent=`Error: ${e.code||e.message}`;
+        if(e.message==='wrong-password') errEl.textContent='Current password is incorrect.';
+        else errEl.textContent='Error: '+e.message;
       }
       return;
     }

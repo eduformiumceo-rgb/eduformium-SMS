@@ -623,18 +623,16 @@ const SMS = {
     const soBtn = document.getElementById('ps-signout-btn');
     if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
 
-    // Watch for status changes while user is on pending screen
-    if(this._pendingUnsub) this._pendingUnsub();
-    if(this.schoolId && window._db){
-      this._pendingUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
-        if(!snap.exists) return;
-        const status = snap.data()?.status;
-        console.log('[pendingListener] status from Firestore:', status);
-        if(status === 'suspended'){
-          if(this._pendingUnsub) this._pendingUnsub();
-          this.showSuspendedScreen(snap.data(), email);
-        }
-      }, (err)=>{ console.warn('[pendingListener] error:', err.message); });
+    // Watch for status changes while user is on pending screen (poll Supabase every 10s)
+    if(this._pendingUnsub) { clearInterval(this._pendingUnsub); this._pendingUnsub=null; }
+    if(this.schoolId){
+      this._pendingUnsub = setInterval(async ()=>{
+        try{
+          const profile = await FDB.getSchoolProfile(this.schoolId);
+          if(profile?.status === 'active'){ clearInterval(this._pendingUnsub); this._pendingUnsub=null; location.reload(); }
+          else if(profile?.status === 'suspended'){ clearInterval(this._pendingUnsub); this._pendingUnsub=null; this.showSuspendedScreen(profile, email); }
+        }catch(e){}
+      }, 10000);
     }
   },
 
@@ -692,22 +690,19 @@ const SMS = {
     const _firstPage = Object.keys(this.PERMISSIONS.nav).find(p=>this.canAccess(p))||'dashboard';
     this.nav(_firstPage);
     this.loadNotifications();
-    // ── Real-time suspension listener ──
-    // Watches Firestore for status changes while app is open
-    if(this.schoolId && window._db){
-      this._statusUnsub = window._db.collection('schools').doc(this.schoolId).onSnapshot(snap => {
-        if(!snap.exists) return;
-        const status = snap.data()?.status;
-        if(status && status !== 'active'){
-          // Status changed — kick them out immediately
-          if(this._statusUnsub) this._statusUnsub();
-          if(status === 'suspended'){
-            this.showSuspendedScreen(snap.data(), this.currentUser?.email || '');
-          } else {
-            this.showPendingScreen(snap.data(), this.currentUser?.email || '');
+    // ── Status listener — poll Supabase every 30s ──
+    if(this._statusUnsub) { clearInterval(this._statusUnsub); this._statusUnsub=null; }
+    if(this.schoolId){
+      this._statusUnsub = setInterval(async ()=>{
+        try{
+          const profile = await FDB.getSchoolProfile(this.schoolId);
+          if(profile && profile.status && profile.status !== 'active'){
+            clearInterval(this._statusUnsub); this._statusUnsub=null;
+            if(profile.status === 'suspended') this.showSuspendedScreen(profile, this.currentUser?.email||'');
+            else this.showPendingScreen(profile, this.currentUser?.email||'');
           }
-        }
-      }, ()=>{}); // silently ignore listener errors (e.g. offline)
+        }catch(e){}
+      }, 30000);
     }
   },
 

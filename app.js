@@ -1128,11 +1128,11 @@ const SMS = {
     if(!email||!pass){ errEl.style.display='flex'; errEl.textContent='Please enter your email and password.'; return; }
     btn.disabled=true; btn.querySelector('span').textContent='Signing in…'; errEl.style.display='none';
 
-    // Always check localStorage first (covers demo account + offline use)
+    // Check localStorage only for demo account (role === 'demo') — not for real Supabase users
     const users=DB.get('users',[]);
     const pwHash = await hashPassword(pass);
     const localUser=users.find(u=>u.email===email&&(u.passwordHash===pwHash||u.password===pass));
-    if(localUser){
+    if(localUser && (localUser.role==='demo' || !window.FAuth)){
       // Auto-migrate legacy plain-text password to hash on next login
       if(localUser.password&&!localUser.passwordHash){
         localUser.passwordHash=pwHash; delete localUser.password; DB.set('users',users);

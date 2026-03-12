@@ -566,7 +566,7 @@ const SMS = {
             this._afterLoad(()=>this.boot());
           } else {
             // Unknown Firebase account (not a school admin, not a sub-user) — sign out
-            await _auth.signOut().catch(()=>{});
+            await FAuth.logout().catch(()=>{});
             this._afterLoad(()=>this.showLogin());
           }
         }

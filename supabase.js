@@ -189,12 +189,12 @@ const FAuth = {
 
   // Normalises Supabase user → {uid, email} — same shape as Firebase user
   onAuthChange(cb) {
-    // onAuthStateChange fires for ALL events including initial session restore
     _supabase.auth.onAuthStateChange((_e,session)=>{
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
-      else if(_e==='SIGNED_OUT'){ FAuth._currentUser=null; cb(null); }
-      // For INITIAL_SESSION with no user — show login
-      else if(_e==='INITIAL_SESSION'){ FAuth._currentUser=null; cb(null); }
+      else             { FAuth._currentUser=null; cb(null); }
+    });
+    _supabase.auth.getSession().then(({data:{session}})=>{
+      if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
     });
   },
 

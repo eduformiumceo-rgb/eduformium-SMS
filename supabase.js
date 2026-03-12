@@ -189,19 +189,19 @@ const FAuth = {
 
   // Normalises Supabase user → {uid, email} — same shape as Firebase user
   onAuthChange(cb) {
-    let _initialFired = false;
-    // getSession() handles initial load — resolves immediately with current session
+    let _cbCalled = false;
+    // getSession() handles initial page load
     _supabase.auth.getSession().then(({data:{session}})=>{
-      _initialFired = true;
+      if(_cbCalled) return; // already handled by onAuthStateChange
+      _cbCalled = true;
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
       else             { FAuth._currentUser=null; cb(null); }
     });
-    // onAuthStateChange handles subsequent changes (login/logout)
+    // onAuthStateChange handles login/logout events
     _supabase.auth.onAuthStateChange((_e,session)=>{
-      // Skip INITIAL_SESSION — handled by getSession() above
-      if(_e==='INITIAL_SESSION') return;
-      // Skip SIGNED_IN if it fires right after initial load (race condition)
-      if(_e==='SIGNED_IN' && !_initialFired) return;
+      if(_e==='INITIAL_SESSION') return; // handled by getSession()
+      // For SIGNED_IN / SIGNED_OUT / TOKEN_REFRESHED — always process
+      _cbCalled = true;
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
       else             { FAuth._currentUser=null; cb(null); }
     });

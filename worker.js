@@ -1,24 +1,39 @@
 // ══════════════════════════════════════════════════════════════════
 //  EDUFORMIUM SMS — Cloudflare Worker entry point
-//
-//  Handles ONE route:  GET /config.js
-//    → Returns Supabase project URLs + anon keys from env vars.
-//      Keys never appear in source code or git history.
-//
-//  Everything else:
-//    → Passed straight through to the static site assets.
-//
-//  SETUP — after deploying, go to:
-//  Cloudflare Dashboard → Workers & Pages → eduformium
-//  → Settings → Variables and Secrets → Add variable:
-//
-//    DEV_SUPABASE_URL       https://<your-dev-project>.supabase.co
-//    DEV_SUPABASE_ANON_KEY  <your dev anon key>
-//    PROD_SUPABASE_URL      https://<your-prod-project>.supabase.co
-//    PROD_SUPABASE_ANON_KEY <your prod anon key>
-//
-//  Mark all four as "Secret" so they are encrypted at rest.
 // ══════════════════════════════════════════════════════════════════
+
+const SECURITY_HEADERS = {
+  'X-Frame-Options':           'DENY',
+  'X-Content-Type-Options':    'nosniff',
+  'Referrer-Policy':           'strict-origin-when-cross-origin',
+  'Permissions-Policy':        'camera=(), microphone=(), geolocation=(), payment=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+  'Content-Security-Policy':   [
+    "default-src 'none'",
+    "script-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://eduformium-otp.school-management.workers.dev https://cdnjs.cloudflare.com",
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; '),
+};
+
+function applySecurityHeaders(response) {
+  const newHeaders = new Headers(response.headers);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    newHeaders.set(key, value);
+  }
+  return new Response(response.body, {
+    status:     response.status,
+    statusText: response.statusText,
+    headers:    newHeaders,
+  });
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -30,11 +45,11 @@ export default {
         dev:  { url: env.DEV_SUPABASE_URL  || '', anonKey: env.DEV_SUPABASE_ANON_KEY  || '' },
         prod: { url: env.PROD_SUPABASE_URL || '', anonKey: env.PROD_SUPABASE_ANON_KEY || '' },
       };
-
       return new Response(
         `window.APP_CONFIG = ${JSON.stringify(config)};`,
         {
           headers: {
+            ...SECURITY_HEADERS,
             'Content-Type':  'application/javascript; charset=utf-8',
             'Cache-Control': 'no-store, no-cache, must-revalidate',
           },
@@ -42,7 +57,8 @@ export default {
       );
     }
 
-    // Everything else → static assets (your HTML, CSS, JS files)
-    return env.ASSETS.fetch(request);
+    // Everything else → static assets with security headers applied
+    const response = await env.ASSETS.fetch(request);
+    return applySecurityHeaders(response);
   },
 };

@@ -11,7 +11,7 @@
 //  1. In Cloudflare Dashboard → Workers & Pages → your worker
 //  2. Go to Settings → Variables → KV Namespace Bindings
 //  3. Add binding: Variable name = OTP_STORE, KV namespace = (create one called "otp_store")
-//  4. Add Secret: RESEND_API_KEY = your Resend API key
+//  4. Add Secret: BREVO_API_KEY = your Brevo API key (Settings → API Keys in Brevo dashboard)
 //  5. Replace the worker code with this file
 // ══════════════════════════════════════════════════════════════════
 
@@ -66,18 +66,18 @@ export default {
         { expirationTtl: 600 }
       );
 
-      // Send email via Resend
-      const emailRes = await fetch('https://api.resend.com/emails', {
+      // Send email via Brevo (formerly Sendinblue)
+      const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'api-key': env.BREVO_API_KEY,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Eduformium SMS <noreply@eduformium.com>',
-          to: [to_email],
+          sender: { name: 'Eduformium SMS', email: 'noreply@eduformium.com' },
+          to: [{ email: to_email, name: to_name }],
           subject: `${otp} is your Eduformium verification code`,
-          html: `
+          htmlContent: `
             <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px">
               <h2 style="color:#1e3a5f;margin-bottom:8px">Verify your email</h2>
               <p style="color:#444;margin-bottom:24px">Hi ${to_name}, enter this code to complete your school registration:</p>
@@ -93,7 +93,7 @@ export default {
 
       if (!emailRes.ok) {
         const err = await emailRes.json().catch(() => ({}));
-        console.error('Resend error:', err);
+        console.error('Brevo error:', err);
         return json({ error: 'Failed to send verification email' }, 500);
       }
 

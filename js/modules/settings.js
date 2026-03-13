@@ -106,10 +106,9 @@ Object.assign(SMS, {
       return;
     }
 
-    // Local/demo account — check against stored hash or legacy plain-text
-    const oldHash=await hashPassword(oldPw);
+    // Local/demo account — use verifyPassword to handle both PBKDF2 and legacy hashes
     const cu=this.currentUser;
-    const valid=cu.passwordHash?cu.passwordHash===oldHash:cu.password===oldPw;
+    const valid=await verifyPassword(oldPw, cu.passwordHash || cu.password || '');
     if(!valid){ errEl.style.display='block'; errEl.textContent='Current password is incorrect.'; return; }
     const newHash=await hashPassword(newPw);
     const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===cu.id);
@@ -488,7 +487,7 @@ Object.assign(SMS, {
       const rowClass=p1+p2+p3>0?'hist-row-has-data':'';
       return `<tr class="${rowClass}" id="hist-row-${s.id}">
         <td><div style="font-weight:600;font-size:.82rem">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div style="font-size:.7rem;color:var(--t4)">${cls?.name||'—'} · ${s.studentId}</div></td>
+          <div style="font-size:.7rem;color:var(--t4)">${sanitize(cls?.name||'—')} · ${s.studentId}</div></td>
         <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t1due):'—'}</td>
         <td><input type="number" class="form-input hist-amt" style="width:90px;padding:.3rem .5rem;font-size:.8rem" min="0" step="0.01" value="${p1||''}" placeholder="0.00" data-sid="${s.id}" data-term="term1" onchange="SMS._histRowUpdate('${s.id}','${year}')"></td>
         <td style="font-size:.72rem;color:var(--t3)">${fss?fmt(t2due):'—'}</td>

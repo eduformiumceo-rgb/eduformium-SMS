@@ -57,10 +57,32 @@ const DB = {
 
 const uid=(p='')=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
-// ── PASSWORD HASHING (SHA-256 via Web Crypto — no plain-text passwords stored) ──
+// ── PASSWORD HASHING (PBKDF2 via Web Crypto — no plain-text passwords stored) ──
+// Format stored: "pbkdf2:<hex-salt>:<hex-hash>"
+// Legacy SHA-256 hashes (no prefix) are detected and migrated on next login.
+const _pbkdf2 = async (pwd, saltBytes) => {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pwd), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:saltBytes, iterations:200000 }, key, 256);
+  return Array.from(new Uint8Array(bits)).map(b=>b.toString(16).padStart(2,'0')).join('');
+};
 const hashPassword = async (pwd) => {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const saltHex   = Array.from(saltBytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const hash      = await _pbkdf2(pwd, saltBytes);
+  return `pbkdf2:${saltHex}:${hash}`;
+};
+const verifyPassword = async (pwd, stored) => {
+  if (!stored) return false;
+  if (!stored.startsWith('pbkdf2:')) {
+    // Legacy unsalted SHA-256 — verify and caller should re-hash on success
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+    const hex = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    return hex === stored;
+  }
+  const [, saltHex, expectedHash] = stored.split(':');
+  const saltBytes = new Uint8Array(saltHex.match(/.{2}/g).map(h=>parseInt(h,16)));
+  const actualHash = await _pbkdf2(pwd, saltBytes);
+  return actualHash === expectedHash;
 };
 
 // ── XSS SANITIZATION — escape user-supplied strings before innerHTML injection ──

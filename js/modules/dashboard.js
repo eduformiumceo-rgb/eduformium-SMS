@@ -328,7 +328,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:${colLt};color:${col}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${this.className(s.classId)}</span> · ${s.studentId}</div>
+          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${sanitize(this.className(s.classId))}</span> · ${s.studentId}</div>
         </div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`;
@@ -383,7 +383,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:var(--danger-bg);color:var(--danger)">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub">${this.className(s.classId)}</div>
+          <div class="mini-sub">${sanitize(this.className(s.classId))}</div>
         </div>
         <div class="mini-right" style="text-align:right">
           <div style="font-size:.78rem;font-weight:800;color:var(--danger)">${fmt(owed)}</div>
@@ -413,7 +413,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:var(--brand-lt);color:var(--brand)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.name)}</div>
-          <div class="mini-sub">${this.className(e.classId)||'All Classes'} · ${fmtDate(e.date)}</div>
+          <div class="mini-sub">${sanitize(this.className(e.classId)||'All Classes')} · ${fmtDate(e.date)}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${urgColor};background:${urgBg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
@@ -482,7 +482,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s?.fname||'Unknown')} ${sanitize(s?.lname||'')}</div>
-          <div class="mini-sub">${l.type} leave · back ${daysLeft<=1?'tomorrow':fmtDate(_returnStr)}</div>
+          <div class="mini-sub">${sanitize(l.type)} leave · back ${daysLeft<=1?'tomorrow':fmtDate(_returnStr)}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysLeft}d left</span></div>
       </div>`;

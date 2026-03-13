@@ -7,10 +7,17 @@ const _isDev = window.location.hostname.startsWith('dev-') ||
 
 console.log(_isDev ? '🧪 DEV Supabase' : '🚀 PROD Supabase');
 
-// ⚠️ Fill in your actual Supabase URLs + anon keys
-const _devConfig  = { url:'https://yayfpzjvdckyeaimvbwu.supabase.co',  anonKey:'sb_publishable_IE2Apab4IxvlVH5wTKg4EA_aCwelmGX'  };
-const _prodConfig = { url:'https://czfhqqqnjprxwrlwmkox.supabase.co', anonKey:'sb_publishable_XsyjpHMOg-3VcAr-XC75Xg_nHkgO9ru' };
+// Keys are loaded at runtime from /config.js (served by Cloudflare Pages Function
+// from environment variables). They are NEVER stored in source code.
+// For local dev: copy config.example.js → config.js and fill in your values.
+const _appConfig  = window.APP_CONFIG || {};
+const _devConfig  = _appConfig.dev  || { url: '', anonKey: '' };
+const _prodConfig = _appConfig.prod || { url: '', anonKey: '' };
 const _config = _isDev ? _devConfig : _prodConfig;
+
+if (!_config.url || !_config.anonKey) {
+  console.error('⚠️ Supabase config missing. On Cloudflare Pages: set DEV_SUPABASE_URL, DEV_SUPABASE_ANON_KEY, PROD_SUPABASE_URL, PROD_SUPABASE_ANON_KEY as environment variables. For local dev: copy config.example.js → config.js.');
+}
 
 const _supabase = window.supabase.createClient(_config.url, _config.anonKey, {
   auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true },

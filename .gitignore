@@ -1,0 +1,12 @@
+# ── Local config with real API keys (NEVER commit this) ──
+config.js
+
+# ── Node / tooling ──
+node_modules/
+.env
+.env.local
+.env.*.local
+
+# ── OS junk ──
+.DS_Store
+Thumbs.db

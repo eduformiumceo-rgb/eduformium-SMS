@@ -28,10 +28,10 @@ Object.assign(SMS, {
       <div class="msg-full">
         <div class="msg-full-subject">${sanitize(m.subject)}</div>
         <div class="msg-full-meta">
-          <strong>${tab==='sent'?'To':'From'}:</strong> ${tab==='sent'?m.to:m.from} · 
+          <strong>${tab==='sent'?'To':'From'}:</strong> ${sanitize(tab==='sent'?m.to:m.from)} · 
           <span>${new Date(m.date).toLocaleString()}</span>
         </div>
-        <div class="msg-full-body">${m.body.replace(/\n/g,'<br>')}</div>
+        <div class="msg-full-body">${sanitize(m.body).replace(/\n/g,'<br>')}</div>
         ${tab==='inbox'?`<div style="margin-top:1.25rem"><button class="btn btn-secondary btn-sm" onclick="SMS.openComposeModal()">↩ Reply</button></div>`:''}
       </div>`;
     this.renderMessages(tab);

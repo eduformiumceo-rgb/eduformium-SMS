@@ -1,9 +1,15 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// SECURITY: Restrict CORS to your production domain.
+// In Supabase Dashboard → Edge Functions → Secrets, add:
+//   ALLOWED_ORIGIN = https://your-production-domain.com
+// Without it, '*' is used as a safe fallback for local dev only.
+const _allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') || '*';
 const corsHeaders = {
-  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Origin':  _allowedOrigin,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Vary': 'Origin',
 };
 
 serve(async (req) => {

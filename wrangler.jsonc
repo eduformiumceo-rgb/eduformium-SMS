@@ -1,6 +1,7 @@
 {
   "name": "eduformium",
   "compatibility_date": "2026-03-07",
+  "main": "worker.js",
   "assets": {
     "directory": "./"
   }

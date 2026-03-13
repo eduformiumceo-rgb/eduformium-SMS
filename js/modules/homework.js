@@ -17,7 +17,7 @@ Object.assign(SMS, {
           ${statusBadge(h.status)}
         </div>
         <div class="hw-card-meta">${this.className(h.classId)} · ${this.subjectName(h.subjectId)}</div>
-        <div class="hw-card-desc">${h.desc}</div>
+        <div class="hw-card-desc">${sanitize(h.desc||'')}</div>
         <div class="hw-card-footer">
           <span>Due: <strong>${fmtDate(h.dueDate)}</strong></span>
           <span>Assigned: ${fmtDate(h.assignedDate)}</span>

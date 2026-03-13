@@ -43,7 +43,7 @@ Object.assign(SMS, {
         <div class="event-dot" style="background:${colors[e.type]||'#999'}"></div>
         <div>
           <div class="event-title">${sanitize(e.title)}</div>
-          <div class="event-meta">${fmtDate(e.start)}${e.end?` — ${fmtDate(e.end)}`:''}${e.venue?' · '+e.venue:''}</div>
+          <div class="event-meta">${fmtDate(e.start)}${e.end?` — ${fmtDate(e.end)}`:''}${e.venue?' · '+sanitize(e.venue):''}</div>
           ${e.desc?`<div style="font-size:.75rem;color:var(--t3);margin-top:.25rem">${sanitize(e.desc)}</div>`:''}
         </div>
         <button class="btn btn-ghost btn-sm admin-only" onclick="SMS.confirmDelete('Delete event ${sanitize(e.title)}?',()=>SMS.deleteEvent('${e.id}'))" style="color:var(--danger);padding:.3rem .5rem;margin-left:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>

@@ -196,12 +196,15 @@ Object.assign(SMS, {
 
     // Check localStorage only for demo account (role === 'demo') — not for real Supabase users
     const users=DB.get('users',[]);
-    const pwHash = await hashPassword(pass);
-    const localUser=users.find(u=>u.email===email&&u.passwordHash===pwHash);
+    const localUser=users.find(u=>u.email===email);
     if(localUser && (localUser.role==='demo' || !window.FAuth)){
-      // Auto-migrate legacy plain-text password to hash on next login
-      if(localUser.password&&!localUser.passwordHash){
-        localUser.passwordHash=pwHash; delete localUser.password; DB.set('users',users);
+      const ok = await verifyPassword(pass, localUser.passwordHash || localUser.password || '');
+      if(!ok){ this._recordLoginFail(email); errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
+      // Upgrade legacy plain-text or SHA-256 hash to PBKDF2 on first successful login
+      if(!localUser.passwordHash || !localUser.passwordHash.startsWith('pbkdf2:')){
+        localUser.passwordHash = await hashPassword(pass);
+        delete localUser.password;
+        DB.set('users',users);
       }
       this._demoMode = true;
       this._clearLoginFail(email);

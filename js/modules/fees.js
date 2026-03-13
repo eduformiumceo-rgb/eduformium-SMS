@@ -156,7 +156,7 @@ Object.assign(SMS, {
       return `<tr>
         <td style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</td>
         <td>${this.className(s.classId)}</td>
-        <td>${s.dadPhone||'—'}</td>
+        <td>${sanitize(s.dadPhone||'—')}</td>
         ${termCells}
         <td style="font-weight:800;color:var(--danger);text-align:center">${fmt(totalOwed)}</td>
         <td>
@@ -187,18 +187,18 @@ Object.assign(SMS, {
       if(due>0) termRows.push(`<div style="display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--border);font-size:.82rem"><span style="color:var(--t2)">Term ${t}</span><span style="font-weight:700;color:${owed>0?'var(--danger)':'var(--success)'}">${owed>0?fmt(owed):'Paid'}</span></div>`);
     }
     const school=DB.get('school',{});
-    const msg=`Dear ${s.dadName||'Parent'}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${this.className(s.classId)}) has an outstanding fee balance of ${fmt(total)} for Term ${_currentTerm}. Please contact ${school.name||'the school'} at ${school.phone||'our office'} to make payment. Thank you.`;
+    const msg=`Dear ${sanitize(s.dadName||'Parent')}, your ward ${sanitize(s.fname)} ${sanitize(s.lname)} (${sanitize(this.className(s.classId))}) has an outstanding fee balance of ${fmt(total)} for Term ${_currentTerm}. Please contact ${sanitize(school.name||'the school')} at ${sanitize(school.phone||'our office')} to make payment. Thank you.`;
     document.getElementById('receipt-title').textContent='Fee Reminder Preview';
     document.getElementById('receipt-body').innerHTML=`
       <div style="background:var(--brand-lt);border:1px solid var(--brand-lt2);border-radius:10px;padding:1rem;margin-bottom:1rem">
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem">SMS Message to ${s.dadPhone||'No phone on record'}</div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem">SMS Message to ${sanitize(s.dadPhone||'No phone on record')}</div>
         <div style="font-size:.88rem;color:var(--t1);line-height:1.6">${msg}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem;margin-bottom:.75rem">
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">TOTAL OWED</div><div style="font-weight:800;color:var(--danger);font-size:.95rem">${fmt(total)}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${s.dadPhone||s.momPhone||'Not on record'}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${this.className(s.classId)}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PARENT PHONE</div><div>${sanitize(s.dadPhone||s.momPhone||'Not on record')}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div>${sanitize(this.className(s.classId))}</div></div>
       </div>
       ${termRows.length?`<div style="margin-bottom:.75rem"><div style="font-size:.7rem;color:var(--t4);font-weight:700;margin-bottom:.35rem">TERM BREAKDOWN (up to Term ${_currentTerm})</div>${termRows.join('')}</div>`:''}
       <div style="margin-top:.5rem;padding:.75rem;background:var(--warn-bg);border-radius:8px;font-size:.78rem;color:var(--t2)">
@@ -337,7 +337,7 @@ Object.assign(SMS, {
           ${errors.length>0?`<div style="background:var(--danger-bg);border-radius:8px;padding:.75rem;margin-bottom:.75rem;font-size:.75rem;color:var(--danger)">${errors.slice(0,5).join('<br>')}</div>`:''}
           <div style="overflow-x:auto;max-height:200px;overflow-y:auto;font-size:.75rem;border:1px solid var(--border);border-radius:8px">
             <table class="tbl" style="font-size:.73rem"><thead><tr><th>Name</th><th>Class</th><th>Gender</th><th>Parent</th></tr></thead><tbody>
-            ${toImport.slice(0,10).map(s=>`<tr><td>${sanitize(s.fname)} ${sanitize(s.lname)}</td><td>${this.className(s.classId)}</td><td>${s.gender}</td><td>${s.dadName||'—'}</td></tr>`).join('')}
+            ${toImport.slice(0,10).map(s=>`<tr><td>${sanitize(s.fname)} ${sanitize(s.lname)}</td><td>${sanitize(this.className(s.classId))}</td><td>${sanitize(s.gender||'')}</td><td>${sanitize(s.dadName||'—')}</td></tr>`).join('')}
             ${toImport.length>10?`<tr><td colspan="4" style="text-align:center;color:var(--t4)">+${toImport.length-10} more...</td></tr>`:''}
             </tbody></table>
           </div>
@@ -377,11 +377,11 @@ Object.assign(SMS, {
       <div style="font-size:.85rem;page-break-inside:avoid">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:2px solid #1a3a6b">
           <div>
-            <div style="font-size:1.1rem;font-weight:800;color:#1a3a6b">${school.name||'School'}</div>
-            <div style="font-size:.75rem;color:#666">Attendance Sheet — ${cls?.name||'Class'} — ${fmtDate(date)}</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#1a3a6b">${sanitize(school.name||'School')}</div>
+            <div style="font-size:.75rem;color:#666">Attendance Sheet — ${sanitize(cls?.name||'Class')} — ${fmtDate(date)}</div>
           </div>
           <div style="text-align:right;font-size:.72rem;color:#666">
-            Teacher: ${cls?.teacherId?DB.get('staff',[]).find(s=>s.id===cls.teacherId)?.fname+' '+DB.get('staff',[]).find(s=>s.id===cls.teacherId)?.lname:'—'}<br>
+            Teacher: ${(()=>{ const t=DB.get('staff',[]).find(s=>s.id===cls?.teacherId); return t?sanitize(t.fname)+' '+sanitize(t.lname):'—'; })()}<br>
             Academic Year: ${school.academicYear||'2025/2026'} · Term ${school.currentTerm||'2'}
           </div>
         </div>
@@ -565,23 +565,23 @@ Object.assign(SMS, {
     document.getElementById('receipt-body').innerHTML=`
       <div style="text-align:center;margin-bottom:1rem;padding-bottom:1rem;border-bottom:2px solid var(--border)">
         ${school.logo?`<img src="${school.logo}" alt="School Logo" style="width:56px;height:56px;border-radius:50%;object-fit:contain;margin:0 auto .5rem;display:block;border:2px solid var(--border)">`:''}
-        <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--brand)">${school.name||'School'}</div>
-        <div style="font-size:.72rem;color:var(--t4)">${school.address||''}</div>
-        <div style="font-size:.72rem;color:var(--t4)">${school.phone||''} · ${school.email||''}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--brand)">${sanitize(school.name||'School')}</div>
+        <div style="font-size:.72rem;color:var(--t4)">${sanitize(school.address||'')}</div>
+        <div style="font-size:.72rem;color:var(--t4)">${sanitize(school.phone||'')} · ${sanitize(school.email||'')}</div>
       </div>
       <div style="text-align:center;margin-bottom:1.25rem">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">Fee Receipt</div>
         <div style="font-family:monospace;font-size:.9rem;font-weight:800;color:var(--brand)">${p.receiptNo||'—'}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;font-size:.82rem;margin-bottom:1rem">
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${s?s.fname+' '+s.lname:'—'}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div style="font-weight:600">${this.className(s?.classId)}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">STUDENT</div><div style="font-weight:600">${s?sanitize(s.fname)+' '+sanitize(s.lname):'—'}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">CLASS</div><div style="font-weight:600">${sanitize(this.className(s?.classId))}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">TERM</div><div style="font-weight:600">Term ${p.term}</div></div>
         <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">DATE</div><div style="font-weight:600">${fmtDate(p.date)}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PAYMENT METHOD</div><div style="font-weight:600">${p.method}</div></div>
-        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">RECEIVED BY</div><div style="font-weight:600">${p.by||'—'}</div></div>
-        ${p.ref?`<div><div style="font-size:.7rem;color:var(--t4);font-weight:700">REFERENCE</div><div style="font-weight:600">${p.ref}</div></div>`:''}
-        ${p.notes?`<div style="grid-column:1/-1"><div style="font-size:.7rem;color:var(--t4);font-weight:700">NOTES</div><div style="font-weight:600">${p.notes}</div></div>`:''}
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">PAYMENT METHOD</div><div style="font-weight:600">${sanitize(p.method||'')}</div></div>
+        <div><div style="font-size:.7rem;color:var(--t4);font-weight:700">RECEIVED BY</div><div style="font-weight:600">${sanitize(p.by||'—')}</div></div>
+        ${p.ref?`<div><div style="font-size:.7rem;color:var(--t4);font-weight:700">REFERENCE</div><div style="font-weight:600">${sanitize(p.ref)}</div></div>`:''}
+        ${p.notes?`<div style="grid-column:1/-1"><div style="font-size:.7rem;color:var(--t4);font-weight:700">NOTES</div><div style="font-weight:600">${sanitize(p.notes)}</div></div>`:''}
       </div>
       <div style="background:var(--brand);color:white;padding:1rem;border-radius:var(--radius);text-align:center;margin-bottom:1rem">
         <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;opacity:.7">Amount Paid</div>

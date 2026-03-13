@@ -23,10 +23,10 @@ Object.assign(SMS, {
     let filtered=staff.filter(s=>{ if(df&&s.dept!==df) return false; if(rf&&s.role!==rf) return false; if(q&&!`${sanitize(s.fname)} ${sanitize(s.lname)} ${s.subjects||''}`.toLowerCase().includes(q)) return false; return true; });
     document.getElementById('staff-tbody').innerHTML=filtered.map(s=>`<tr>
       <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.id.toUpperCase()}</td>
-      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div style="font-size:.73rem;color:var(--t4)">${s.qualification||''}</div></div></div></td>
+      <td><div style="display:flex;align-items:center;gap:.6rem"><div class="mini-av" style="background:var(--brand-lt);color:var(--brand)">${s.fname[0]}${s.lname[0]}</div><div><div style="font-weight:600">${sanitize(s.fname)} ${sanitize(s.lname)}</div><div style="font-size:.73rem;color:var(--t4)">${sanitize(s.qualification||'')}</div></div></div></td>
       <td><span class="badge badge-info">${sanitize(s.role)}</span></td>
-      <td>${s.dept||'—'}</td>
-      <td style="font-size:.78rem;color:var(--t3)">${s.subjects||'—'}</td>
+      <td>${sanitize(s.dept||'—')}</td>
+      <td style="font-size:.78rem;color:var(--t3)">${sanitize(s.subjects||'—')}</td>
       <td>${sanitize(s.phone)}</td>
       <td style="font-weight:600;color:var(--brand)">${fmt(s.salary)}</td>
       <td>${statusBadge(s.status||'active')}</td>

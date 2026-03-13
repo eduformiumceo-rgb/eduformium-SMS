@@ -12,12 +12,12 @@ Object.assign(SMS, {
     document.getElementById('leave-tbody').innerHTML=leaves.map(l=>{
       const s=staff.find(x=>x.id===l.staffId);
       return `<tr>
-        <td style="font-weight:600">${s?s.fname+' '+s.lname:'Unknown'}</td>
+        <td style="font-weight:600">${s?sanitize(s.fname)+' '+sanitize(s.lname):'Unknown'}</td>
         <td><span class="badge badge-info">${sanitize(l.type)}</span></td>
         <td>${fmtDate(l.from)}</td>
         <td>${fmtDate(l.to)}</td>
         <td style="font-weight:700">${l.days}</td>
-        <td style="max-width:200px;font-size:.8rem;color:var(--t3)">${l.reason}</td>
+        <td style="max-width:200px;font-size:.8rem;color:var(--t3)">${sanitize(l.reason||'')}</td>
         <td>${statusBadge(l.status)}</td>
         <td>${l.status==='pending'?`<div style="display:flex;gap:.3rem"><button class="btn btn-success btn-sm" onclick="SMS.updateLeave('${l.id}','approved')" style="padding:.3rem .6rem;font-size:.72rem">Approve</button><button class="btn btn-danger btn-sm" onclick="SMS.updateLeave('${l.id}','rejected')" style="padding:.3rem .6rem;font-size:.72rem">Reject</button></div>`:''}</td>
       </tr>`;

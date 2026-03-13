@@ -17,8 +17,8 @@ Object.assign(SMS, {
       return `<tr>
         <td style="font-weight:600">${sanitize(e.name)}</td>
         <td><span class="badge badge-info">${e.type}</span></td>
-        <td>${cls?.name||'—'}</td>
-        <td>${subj?.name||'—'}</td>
+        <td>${sanitize(cls?.name||'—')}</td>
+        <td>${sanitize(subj?.name||'—')}</td>
         <td>${fmtDate(e.date)}</td>
         <td style="font-weight:700">${e.maxScore}</td>
         <td>${statusBadge(e.status)}</td>
@@ -62,7 +62,7 @@ Object.assign(SMS, {
     const students=DB.get('students',[]).filter(s=>s.classId===targetClass&&s.status==='active');
     const existingGrades=DB.get('grades',[]).filter(g=>g.examId===examId);
     const list=document.getElementById('grade-entry-list');
-    list.innerHTML=`<div style="margin-bottom:.75rem;font-size:.82rem;color:var(--t3)">Entering grades for: <strong>${exam?.name||'Exam'}</strong> · Max Score: <strong>${exam?.maxScore||100}</strong></div>`+students.map(s=>{
+    list.innerHTML=`<div style="margin-bottom:.75rem;font-size:.82rem;color:var(--t3)">Entering grades for: <strong>${sanitize(exam?.name||'Exam')}</strong> · Max Score: <strong>${exam?.maxScore||100}</strong></div>`+students.map(s=>{
       const existing=existingGrades.find(g=>g.studentId===s.id);
       return `<div class="grade-row">
         <div class="grade-name">${sanitize(s.fname)} ${sanitize(s.lname)} <span style="font-size:.73rem;color:var(--t4)">${s.studentId}</span></div>

@@ -27,7 +27,7 @@ Object.assign(SMS, {
       const teacher=staff.find(s=>s.id===c.teacherId);
       return `<div class="class-card" onclick="SMS.openClassModal('${c.id}')">
         <div class="class-card-name">${sanitize(c.name)}</div>
-        <div class="class-card-teacher"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:4px;vertical-align:middle;opacity:.6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${teacher?teacher.fname+' '+teacher.lname:'No class teacher'}</div>
+        <div class="class-card-teacher"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;margin-right:4px;vertical-align:middle;opacity:.6"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${teacher?sanitize(teacher.fname)+' '+sanitize(teacher.lname):'No class teacher'}</div>
         <div class="class-card-stats">
           <div class="cc-stat"><strong>${count}</strong>Students</div>
           <div class="cc-stat"><strong>${c.capacity}</strong>Capacity</div>
@@ -47,8 +47,8 @@ Object.assign(SMS, {
       return `<tr>
         <td style="font-weight:600">${sanitize(s.name)}</td>
         <td style="font-family:monospace;font-size:.75rem;color:var(--t3)">${s.code||'—'}</td>
-        <td>${cls?.name||'—'}</td>
-        <td>${teacher?teacher.fname+' '+teacher.lname:'—'}</td>
+        <td>${sanitize(cls?.name||'—')}</td>
+        <td>${teacher?sanitize(teacher.fname)+' '+sanitize(teacher.lname):'—'}</td>
         <td>${s.periods||'—'}/week</td>
         <td>${SMS.hasRole('admin')?`<button class="btn btn-ghost btn-sm" onclick="SMS.confirmDelete('Delete subject ${sanitize(s.name)}?',()=>SMS.deleteSubject('${s.id}'))" style="color:var(--danger);padding:.3rem .5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>`:`<span></span>`}</td>
       </tr>`;

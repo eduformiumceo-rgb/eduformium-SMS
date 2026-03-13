@@ -151,24 +151,55 @@ Object.assign(SMS, {
     const py=document.getElementById('pay-year'); if(py){ for(let y=2020;y<=2030;y++) py.innerHTML+=`<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`; }
   },
 
+  // ── Login rate limiting: 5 attempts then 15 min lockout ──
+  _loginAttempts: {},
+  _isLoginLocked(email){
+    const k = 'sms_lock_' + btoa(email);
+    try {
+      const d = JSON.parse(localStorage.getItem(k)||'{}');
+      if(d.until && Date.now() < d.until) return Math.ceil((d.until - Date.now())/60000);
+      if(d.until && Date.now() >= d.until) localStorage.removeItem(k);
+    } catch(e) {}
+    return 0;
+  },
+  _recordLoginFail(email){
+    const k = 'sms_lock_' + btoa(email);
+    try {
+      const d = JSON.parse(localStorage.getItem(k)||'{}');
+      d.count = (d.count||0) + 1;
+      if(d.count >= 5){ d.until = Date.now() + 15*60*1000; d.count = 0; }
+      localStorage.setItem(k, JSON.stringify(d));
+      return 5 - (d.count||0);
+    } catch(e) { return 5; }
+  },
+  _clearLoginFail(email){
+    try { localStorage.removeItem('sms_lock_' + btoa(email)); } catch(e) {}
+  },
+
   async login(){
     const email=document.getElementById('l-user').value.trim();
     const pass=document.getElementById('l-pass').value;
     const errEl=document.getElementById('l-err');
     const btn=document.getElementById('login-btn');
     if(!email||!pass){ errEl.style.display='flex'; errEl.textContent='Please enter your email and password.'; return; }
+
+    // Lockout check
+    const minsLeft = this._isLoginLocked(email);
+    if(minsLeft){ errEl.style.display='flex'; errEl.textContent=`Too many failed attempts. Try again in ${minsLeft} minute${minsLeft>1?'s':''}.`; return; }
+
     btn.disabled=true; btn.querySelector('span').textContent='Signing in…'; errEl.style.display='none';
 
     // Check localStorage only for demo account (role === 'demo') — not for real Supabase users
     const users=DB.get('users',[]);
     const pwHash = await hashPassword(pass);
-    const localUser=users.find(u=>u.email===email&&(u.passwordHash===pwHash||u.password===pass));
+    const localUser=users.find(u=>u.email===email&&u.passwordHash===pwHash);
     if(localUser && (localUser.role==='demo' || !window.FAuth)){
       // Auto-migrate legacy plain-text password to hash on next login
       if(localUser.password&&!localUser.passwordHash){
         localUser.passwordHash=pwHash; delete localUser.password; DB.set('users',users);
       }
       this._demoMode = true;
+      this._clearLoginFail(email);
       localUser.lastLogin=new Date().toISOString(); DB.set('users',users);
       DB.set('session',{userId:localUser.id});
       this.currentUser=localUser; this.audit('Login','login',`${localUser.name} signed in`);
@@ -176,11 +207,14 @@ Object.assign(SMS, {
     }
 
     // Try Firebase if available
-    if(!window.FAuth){ errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
+    if(!window.FAuth){ this._recordLoginFail(email); errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
     const result=await FAuth.login(email,pass);
     if(!result.success){
-      errEl.style.display='flex'; errEl.textContent=result.error; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return;
+      const rem = this._recordLoginFail(email);
+      const msg = rem > 0 ? `${result.error} (${rem} attempt${rem!==1?'s':''} left before lockout)` : result.error;
+      errEl.style.display='flex'; errEl.textContent=msg; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return;
     }
+    this._clearLoginFail(email);
     // Firebase login succeeded. The onAuthStateChanged handler will now fire and handle
     // both school admins (uid === schoolId) and sub-users (uid from userIndex).
     // We only need to intercept here for school admins who are 'suspended' or 'pending'
@@ -280,8 +314,12 @@ Object.assign(SMS, {
     const btn    = document.getElementById('register-btn');
 
     if (!school || !name || !email || !pwd) { errEl.textContent = 'Please fill in all required fields.'; errEl.style.display = 'flex'; return; }
+    if (school.length > 100) { errEl.textContent = 'School name must be under 100 characters.'; errEl.style.display = 'flex'; return; }
+    if (name.length > 80) { errEl.textContent = 'Name must be under 80 characters.'; errEl.style.display = 'flex'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'flex'; return; }
     if (pwd !== cpwd) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'flex'; return; }
     if (pwd.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'flex'; return; }
+    if (pwd.length > 128) { errEl.textContent = 'Password must be under 128 characters.'; errEl.style.display = 'flex'; return; }
 
     btn.disabled = true;
     btn.querySelector('span').textContent = 'Sending code…';
@@ -424,10 +462,20 @@ Object.assign(SMS, {
       return;
     }
 
-    // Check code
+    // Check code — max 5 attempts
+    this._otpState.attempts = (this._otpState.attempts || 0) + 1;
+    if (this._otpState.attempts > 5) {
+      errEl.textContent = 'Too many attempts. Please start registration again.';
+      errEl.style.display = 'flex';
+      this.clearOTPState();
+      document.getElementById('auth-otp').style.display = 'none';
+      document.getElementById('auth-register').style.display = 'block';
+      return;
+    }
     const enteredHash = await hashPassword(entered);
     if (enteredHash !== otpHash) {
-      errEl.textContent = 'Incorrect code. Please try again.';
+      const rem = 5 - this._otpState.attempts;
+      errEl.textContent = rem > 0 ? `Incorrect code. ${rem} attempt${rem!==1?'s':''} left.` : 'Too many attempts.';
       errEl.style.display = 'flex';
       this._clearOTPBoxes(true);
       setTimeout(() => document.getElementById('otp-0')?.focus(), 100);

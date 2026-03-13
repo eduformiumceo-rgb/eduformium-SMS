@@ -26,8 +26,8 @@ Object.assign(SMS, {
     ].map(k=>`<div class="kpi-card"><div class="kpi-icon ${k.color}">${SMS._kpiSvg(k.icon)}</div><div class="kpi-val" style="font-size:${k.val.length>8?'1.1rem':'1.65rem'}">${k.val}</div><div class="kpi-label">${k.lbl}</div></div>`).join('');
     document.getElementById('expense-tbody').innerHTML=expenses.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<tr>
       <td>${fmtDate(e.date)}</td>
-      <td><span class="badge badge-neutral">${e.category}</span></td>
-      <td>${e.desc}</td>
+      <td><span class="badge badge-neutral">${sanitize(e.category)}</span></td>
+      <td>${sanitize(e.desc)}</td>
       <td style="font-weight:700;color:var(--danger)">${fmt(e.amount)}</td>
       <td>${e.paidTo}</td>
       <td>${e.approvedBy}</td>

@@ -14,7 +14,7 @@ Object.assign(SMS, {
           <div class="msg-item-from" style="${!m.read&&tab==='inbox'?'color:var(--t1)':''}">${tab==='sent'?'To: '+m.to:m.from}</div>
           <div class="msg-item-time">${new Date(m.date).toLocaleDateString()}</div>
         </div>
-        <div class="msg-item-subj">${m.subject}</div>
+        <div class="msg-item-subj">${sanitize(m.subject)}</div>
         ${!m.read&&tab==='inbox'?'<span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:var(--brand-teal);margin-top:.25rem"></span>':''}
       </div>`).join('')||'<div style="padding:2rem;text-align:center;font-size:.82rem;color:var(--t4)">No messages</div>';
     const unread=messages.filter(m=>!m.read&&tab==='inbox').length;
@@ -26,7 +26,7 @@ Object.assign(SMS, {
     m.read=true; DB.set('messages',messages);
     document.getElementById('msg-content').innerHTML=`
       <div class="msg-full">
-        <div class="msg-full-subject">${m.subject}</div>
+        <div class="msg-full-subject">${sanitize(m.subject)}</div>
         <div class="msg-full-meta">
           <strong>${tab==='sent'?'To':'From'}:</strong> ${tab==='sent'?m.to:m.from} · 
           <span>${new Date(m.date).toLocaleString()}</span>

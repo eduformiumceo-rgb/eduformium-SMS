@@ -81,7 +81,7 @@ Object.assign(SMS, {
     filtered.sort((a,b)=>b.date.localeCompare(a.date));
     document.getElementById('att-tbody').innerHTML=filtered.map(a=>`<tr>
       <td>${fmtDate(a.date)}</td>
-      <td>${this.className(a.classId)}</td>
+      <td>${sanitize(this.className(a.classId))}</td>
       <td style="color:var(--success);font-weight:700">${a.present}</td>
       <td style="color:var(--danger);font-weight:700">${a.absent}</td>
       <td style="color:var(--warn);font-weight:700">${a.late}</td>

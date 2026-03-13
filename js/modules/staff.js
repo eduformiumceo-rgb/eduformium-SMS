@@ -5,7 +5,7 @@
 Object.assign(SMS, {
   loadStaff(){
     const depts=[...new Set(DB.get('staff',[]).map(s=>s.dept).filter(Boolean))];
-    const df=document.getElementById('staff-dept-f'); if(df) df.innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+    const df=document.getElementById('staff-dept-f'); if(df) df.innerHTML='<option value="">All Departments</option>'+depts.map(d=>`<option value="${sanitize(d)}">${sanitize(d)}</option>`).join('');
     this.renderStaffStats(); this.renderStaff();
   },
 

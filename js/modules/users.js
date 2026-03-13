@@ -188,7 +188,7 @@ Object.assign(SMS, {
     this.renderUsers();
   },
 
-  confirmDeleteUser(id){ const u=DB.get('users',[]).find(x=>x.id===id); if(!u) return; this.confirmDelete(`Remove user "${u.name}"? This cannot be undone.`,()=>this.deleteUser(id)); },
+  confirmDeleteUser(id){ const u=DB.get('users',[]).find(x=>x.id===id); if(!u) return; this.confirmDelete(`Remove user "${sanitize(u.name)}"? This cannot be undone.`,()=>this.deleteUser(id)); },
 
   deleteUser(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); DB.set('users',users.filter(x=>x.id!==id)); const _sid=window.SMS&&window.SMS.schoolId; if(_sid&&window.FDB){ FDB.delete(_sid,'users',id).catch(()=>{}); if(u?.email) FDB.deleteUserIndex(u.email).catch(()=>{}); } this.audit('Delete User','delete',`Removed user: ${u?.name}`); this.toast('User removed','warn'); this.renderUsers(); },
 

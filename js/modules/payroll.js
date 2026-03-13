@@ -43,7 +43,7 @@ Object.assign(SMS, {
     const payroll=DB.get('payroll',[]); if(payroll.find(p=>p.staffId===staffId&&p.month==month&&p.year==year)){ this.toast('Already processed for this month','warn'); return; }
     const s=DB.get('staff',[]).find(x=>x.id===staffId); const basic=+s.salary||0,allow=basic*0.15,deduct=basic*0.05;
     payroll.push({id:uid('pr'),staffId,month,year,basic,allowances:allow,deductions:deduct,net,date:new Date().toISOString(),paidBy:this.currentUser.id});
-    DB.set('payroll',payroll); this.audit('Payroll','create',`Paid ${sanitize(s.fname)} ${sanitize(s.lname)}: ${fmt(net)}`); this.toast(`${s.fname} paid ${fmt(net)}`,'success'); this.renderPayroll();
+    DB.set('payroll',payroll); this.audit('Payroll','create',`Paid ${sanitize(s.fname)} ${sanitize(s.lname)}: ${fmt(net)}`); this.toast(`${sanitize(s.fname)} paid ${fmt(net)}`,'success'); this.renderPayroll();
   },
 
   exportPayroll(){

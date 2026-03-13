@@ -13,7 +13,7 @@ Object.assign(SMS, {
       const s=staff.find(x=>x.id===l.staffId);
       return `<tr>
         <td style="font-weight:600">${s?s.fname+' '+s.lname:'Unknown'}</td>
-        <td><span class="badge badge-info">${l.type}</span></td>
+        <td><span class="badge badge-info">${sanitize(l.type)}</span></td>
         <td>${fmtDate(l.from)}</td>
         <td>${fmtDate(l.to)}</td>
         <td style="font-weight:700">${l.days}</td>

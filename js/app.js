@@ -193,7 +193,6 @@ const SMS = {
   },
 
   showPendingScreen(profile, email){
-    console.log('showPendingScreen called — status:', profile?.status, '| full profile:', JSON.stringify(profile));
     if(profile?.status === 'suspended') return this.showSuspendedScreen(profile, email);
 
     document.getElementById('loading-overlay').style.display='none';
@@ -283,6 +282,7 @@ const SMS = {
     this.setupTopbar();
     if(!this._navBound){ this.bindNav(); this._navBound=true; }
     if(!this._formsBound){ this.bindForms(); this._formsBound=true; }
+    this._startSessionWatch();
     this.loadTheme();
     this.applyRolePermissions();
     // Navigate to first accessible page for this role
@@ -551,7 +551,27 @@ const SMS = {
     document.getElementById('del-confirm-btn')?.addEventListener('click',()=>{ if(this.deleteCallback){ this.deleteCallback(); this.deleteCallback=null; } this.closeModal('m-delete'); });
   },
 
+  // ── Session timeout: auto logout after 8 hours of inactivity ──
+  _sessionTimer: null,
+  _resetSessionTimer(){
+    clearTimeout(this._sessionTimer);
+    const SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours
+    this._sessionTimer = setTimeout(()=>{
+      if(this.currentUser){
+        this.toast('Session expired. Please sign in again.','warn');
+        setTimeout(()=>this.logout(), 2000);
+      }
+    }, SESSION_TIMEOUT);
+  },
+  _startSessionWatch(){
+    ['click','keydown','touchstart','mousemove'].forEach(evt=>{
+      document.addEventListener(evt, ()=>this._resetSessionTimer(), {passive:true});
+    });
+    this._resetSessionTimer();
+  },
+
   async logout(){
+    clearTimeout(this._sessionTimer);
     this.audit('Logout','login',`${this.currentUser.name} signed out`);
     if(window.FAuth) await FAuth.logout();
     DB.del('session'); this.currentUser=null; this.schoolId=null;

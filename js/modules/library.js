@@ -23,7 +23,7 @@ Object.assign(SMS, {
       <td style="font-family:monospace;font-size:.73rem;color:var(--t3)">${b.isbn||'—'}</td>
       <td style="font-weight:600">${sanitize(b.title)}</td>
       <td>${sanitize(b.author)}</td>
-      <td><span class="badge badge-neutral">${b.category}</span></td>
+      <td><span class="badge badge-neutral">${sanitize(b.category)}</span></td>
       <td style="text-align:center">${b.copies}</td>
       <td style="text-align:center;font-weight:700;color:${b.available>0?'var(--success)':'var(--danger)'}">${b.available}</td>
       <td>${b.available>0?statusBadge('available'):statusBadge('borrowed')}</td>

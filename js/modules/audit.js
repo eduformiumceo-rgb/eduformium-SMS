@@ -31,7 +31,7 @@ Object.assign(SMS, {
     } else if(type==='attendance'){
       title.textContent='Attendance Report';
       const att=DB.get('attendance',[]);
-      content.innerHTML=`<table class="tbl"><thead><tr><th>Date</th><th>Class</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th></tr></thead><tbody>${att.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20).map(a=>`<tr><td>${fmtDate(a.date)}</td><td>${this.className(a.classId)}</td><td style="color:var(--success);font-weight:700">${a.present}</td><td style="color:var(--danger);font-weight:700">${a.absent}</td><td style="color:var(--warn);font-weight:700">${a.late}</td><td><span class="badge ${a.present/a.total>=0.9?'badge-success':'badge-warn'}">${Math.round(a.present/a.total*100)||0}%</span></td></tr>`).join('')}</tbody></table>`;
+      content.innerHTML=`<table class="tbl"><thead><tr><th>Date</th><th>Class</th><th>Present</th><th>Absent</th><th>Late</th><th>Rate</th></tr></thead><tbody>${att.sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20).map(a=>`<tr><td>${fmtDate(a.date)}</td><td>${sanitize(this.className(a.classId))}</td><td style="color:var(--success);font-weight:700">${a.present}</td><td style="color:var(--danger);font-weight:700">${a.absent}</td><td style="color:var(--warn);font-weight:700">${a.late}</td><td><span class="badge ${a.present/a.total>=0.9?'badge-success':'badge-warn'}">${Math.round(a.present/a.total*100)||0}%</span></td></tr>`).join('')}</tbody></table>`;
     } else {
       title.textContent=type.charAt(0).toUpperCase()+type.slice(1)+' Report';
       content.innerHTML=`<div style="padding:2rem;text-align:center;color:var(--t4);font-size:.85rem">Detailed ${type} report coming soon. Use Excel export for full data.</div>`;
@@ -42,7 +42,7 @@ Object.assign(SMS, {
   // ══ AUDIT ══
   renderAudit(){
     const log=DB.get('auditLog',[]); const q=(document.getElementById('audit-q')?.value||'').toLowerCase(); const tf=document.getElementById('audit-type')?.value||'';
-    let filtered=log.filter(l=>{ if(tf&&l.type!==tf) return false; if(q&&!`${l.action} ${l.details} ${l.user}`.toLowerCase().includes(q)) return false; return true; }).sort((a,b)=>b.time.localeCompare(a.time));
+    let filtered=log.filter(l=>{ if(tf&&l.type!==tf) return false; if(q&&!`${sanitize(l.action)} ${l.details} ${l.user}`.toLowerCase().includes(q)) return false; return true; }).sort((a,b)=>b.time.localeCompare(a.time));
     const perPage=20, total=filtered.length, pages=Math.ceil(total/perPage);
     this._auditPage=Math.min(this._auditPage,pages||1);
     const slice=filtered.slice((this._auditPage-1)*perPage,this._auditPage*perPage);

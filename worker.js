@@ -42,8 +42,8 @@ export default {
     // Serve runtime config — keys come from env vars, never source code
     if (url.pathname === '/config.js') {
       const config = {
-        dev:  { url: env.DEV_SUPABASE_URL  || '', anonKey: env.DEV_SUPABASE_ANON_KEY  || '' },
-        prod: { url: env.PROD_SUPABASE_URL || '', anonKey: env.PROD_SUPABASE_ANON_KEY || '' },
+        dev:  { url: 'https://yayfpzjvdckyeaimvbwu.supabase.co', anonKey: env.DEV_SUPABASE_ANON_KEY  || '' },
+        prod: { url: 'https://czfhqqqnjprxwrlwmkox.supabase.co', anonKey: env.PROD_SUPABASE_ANON_KEY || '' },
       };
       return new Response(
         `window.APP_CONFIG = ${JSON.stringify(config)};`,

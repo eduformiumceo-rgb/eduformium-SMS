@@ -11,13 +11,9 @@ console.log(_isDev ? '🧪 DEV Supabase' : '🚀 PROD Supabase');
 // from environment variables). They are NEVER stored in source code.
 // For local dev: copy config.example.js → config.js and fill in your values.
 const _appConfig  = window.APP_CONFIG || {};
-const _devConfig  = _appConfig.dev  || { url: '', anonKey: '' };
-const _prodConfig = _appConfig.prod || { url: '', anonKey: '' };
+const _devConfig  = _appConfig.dev?.url  ? _appConfig.dev  : { url:'https://yayfpzjvdckyeaimvbwu.supabase.co',  anonKey:'sb_publishable_IE2Apab4IxvlVH5wTKg4EA_aCwelmGX'  };
+const _prodConfig = _appConfig.prod?.url ? _appConfig.prod : { url:'https://czfhqqqnjprxwrlwmkox.supabase.co', anonKey:'sb_publishable_XsyjpHMOg-3VcAr-XC75Xg_nHkgO9ru' };
 const _config = _isDev ? _devConfig : _prodConfig;
-
-if (!_config.url || !_config.anonKey) {
-  console.error('⚠️ Supabase config missing. On Cloudflare Pages: set DEV_SUPABASE_URL, DEV_SUPABASE_ANON_KEY, PROD_SUPABASE_URL, PROD_SUPABASE_ANON_KEY as environment variables. For local dev: copy config.example.js → config.js.');
-}
 
 const _supabase = window.supabase.createClient(_config.url, _config.anonKey, {
   auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true },

@@ -1,71 +1,100 @@
 // ══════════════════════════════════════════
-//  EDUFORMIUM SMS — Service Worker
-//  Cache-first strategy for offline use
+//  EDUFORMIUM SMS — Service Worker v3.1
 // ══════════════════════════════════════════
 
-const CACHE_NAME = 'eduformium-sms-v2.1.1';
+const CACHE_VERSION = 'eduformium-sms-v3.1.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './app.js',
+  './supabase.js',
+  './js/core/utils.js',
+  './js/app.js',
+  './js/modules/auth.js',
+  './js/modules/dashboard.js',
+  './js/modules/students.js',
+  './js/modules/staff.js',
+  './js/modules/classes.js',
+  './js/modules/attendance.js',
+  './js/modules/exams.js',
+  './js/modules/timetable.js',
+  './js/modules/homework.js',
+  './js/modules/payroll.js',
+  './js/modules/leave.js',
+  './js/modules/fees.js',
+  './js/modules/expenses.js',
+  './js/modules/messages.js',
+  './js/modules/library.js',
+  './js/modules/events.js',
+  './js/modules/audit.js',
+  './js/modules/settings.js',
+  './js/modules/notifications.js',
+  './js/modules/users.js',
+  './js/modules/modals.js',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
 ];
 
-// ── INSTALL: cache all static assets ──
+// ── INSTALL: pre-cache all static assets ──
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_VERSION)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// ── ACTIVATE: clean old caches ──
+// ── ACTIVATE: delete old caches immediately ──
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_VERSION).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// ── FETCH: network-first, fallback to cache (ensures fresh assets always load) ──
+// ── FETCH STRATEGY ──
 self.addEventListener('fetch', event => {
-  // Skip cross-origin requests (CDN scripts etc.)
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  const url = event.request.url;
 
-  event.respondWith(
-    fetch(event.request).then(response => {
-      // Cache successful GET responses
-      if (event.request.method === 'GET' && response.status === 200) {
-        const cloned = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
-      }
-      return response;
-    }).catch(() => {
-      // Offline fallback: serve from cache
-      return caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        // Final fallback for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
-    })
-  );
-});
+  // Never intercept Supabase API calls
+  if (url.includes('.supabase.co') || url.includes('supabase.io')) return;
 
-// ── BACKGROUND SYNC (future: fee reminders, attendance) ──
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-data') {
-    event.waitUntil(
-      // Placeholder for future backend sync
-      Promise.resolve()
+  // Static assets: cache-first, update in background
+  if (
+    url.endsWith('.js') || url.endsWith('.css') ||
+    url.endsWith('.png') || url.endsWith('.svg') ||
+    url.endsWith('.woff2') || url.endsWith('manifest.json')
+  ) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        const network = fetch(event.request).then(response => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        });
+        return cached || network;
+      })
     );
+    return;
+  }
+
+  // Navigation: network-first, fallback to cached index.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match('./index.html'))
+    );
+    return;
   }
 });
 

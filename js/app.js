@@ -170,15 +170,18 @@ const SMS = {
           }
         }
       } else {
-        this.schoolId=null; this.currentUser=null;
-        // Only show login if pending/suspended screen is not already visible
+        // FIX: Only null schoolId if we're NOT on the pending/suspended screen.
+        // After registration, FAuth.logout() fires here and used to wipe schoolId,
+        // which immediately killed the pending screen polling interval.
         const _ps = document.getElementById('pending-screen');
         const _ss = document.getElementById('suspended-screen');
         const _psVisible = _ps && _ps.style.display !== 'none' && _ps.style.display !== '';
         const _ssVisible = _ss && _ss.style.display !== 'none' && _ss.style.display !== '';
         if(!_psVisible && !_ssVisible) {
+          this.schoolId=null; this.currentUser=null;
           this._afterLoad(()=>this.showLogin());
         }
+        // If pending/suspended screen is showing, keep schoolId alive so polling continues
       }
     });
   },
@@ -221,12 +224,13 @@ const SMS = {
     const soBtn = document.getElementById('ps-signout-btn');
     if(soBtn) soBtn.onclick = ()=>{ if(window.FAuth) FAuth.logout(); ps.style.display='none'; this.showLogin(); };
 
-    // Watch for status changes while user is on pending screen (poll Supabase every 10s)
+    // Watch for status changes while user is on pending screen (poll every 10s)
     if(this._pendingUnsub) { clearInterval(this._pendingUnsub); this._pendingUnsub=null; }
-    if(this.schoolId){
+    const _watchId = this.schoolId; // FIX: capture in closure — survives this.schoolId being nulled on logout
+    if(_watchId){
       this._pendingUnsub = setInterval(async ()=>{
         try{
-          const profile = await FDB.getSchoolProfile(this.schoolId);
+          const profile = await FDB.getSchoolProfile(_watchId);
           if(profile?.status === 'active'){ clearInterval(this._pendingUnsub); this._pendingUnsub=null; location.reload(); }
           else if(profile?.status === 'suspended'){ clearInterval(this._pendingUnsub); this._pendingUnsub=null; this.showSuspendedScreen(profile, email); }
         }catch(e){}

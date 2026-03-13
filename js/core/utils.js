@@ -184,9 +184,10 @@ function seedData(){
       {year:'2024/2025',isCurrent:false,label:'2024/2025',startDate:'2024-09-01',endDate:'2025-07-31'},
       {year:'2025/2026',isCurrent:true, label:'2025/2026',startDate:'2025-09-01',endDate:'2026-07-31'},
     ]});
-  hashPassword('BFA@demo2026').then(hash=>{
-    DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',passwordHash:hash,name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
-  });
+  // SECURITY FIX (F-09): No password stored for demo account.
+  // The "Try Demo" button sets the session directly without a password check,
+  // so there is no credential to hardcode or expose in source.
+  DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
   DB.set('classes',[
     {id:'cls1',name:'Class 1',level:'Primary 1',teacherId:'stf1',capacity:35,room:'Room 1'},
     {id:'cls2',name:'Class 2',level:'Primary 2',teacherId:'stf2',capacity:35,room:'Room 2'},

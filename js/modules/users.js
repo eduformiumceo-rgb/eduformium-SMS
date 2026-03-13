@@ -134,7 +134,7 @@ Object.assign(SMS, {
         const _sid=window.SMS&&window.SMS.schoolId;
         if(_sid&&window.FDB){
           FDB.batchWrite(_sid,'users',[users[idx]]).catch(()=>{});
-          FDB.setUserIndex(users[idx].email,_sid,users[idx].id,users[idx].passwordHash,name,role).catch(()=>{});
+          FDB.setUserIndex(users[idx].email,_sid,users[idx].id,name,role).catch(()=>{});
         }
         this.audit('Edit User','edit',`Updated user: ${name} (${role})`);
         this.toast('User updated!','success');
@@ -178,7 +178,7 @@ Object.assign(SMS, {
 
     if(_sid&&window.FDB){
       FDB.batchWrite(_sid,'users',[newUser]).catch(()=>{});
-      FDB.setUserIndex(email,_sid,newUser.id,passwordHash,name,role).catch(()=>{});
+      FDB.setUserIndex(email,_sid,newUser.id,name,role).catch(()=>{});
     }
 
     saveBtn.disabled=false; saveBtn.textContent=_origLabel;

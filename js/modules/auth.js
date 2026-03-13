@@ -151,7 +151,12 @@ Object.assign(SMS, {
     const py=document.getElementById('pay-year'); if(py){ for(let y=2020;y<=2030;y++) py.innerHTML+=`<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`; }
   },
 
-  // ── Login rate limiting: 5 attempts then 15 min lockout ──
+  // ── Login rate limiting ──
+  // SECURITY NOTE (F-04): This client-side lockout (5 attempts → 15 min) is a UX
+  // convenience only. It can be bypassed by clearing localStorage or opening a
+  // private window. For real brute-force protection, enable server-side rate limiting
+  // in your Supabase dashboard: Authentication → Rate Limits → "Sign in attempts".
+  // Recommended: 5 attempts per 15 minutes. No code change needed — Supabase handles it.
   _loginAttempts: {},
   _isLoginLocked(email){
     const k = 'sms_lock_' + btoa(email);
@@ -325,14 +330,13 @@ Object.assign(SMS, {
     btn.querySelector('span').textContent = 'Sending code…';
     errEl.style.display = 'none';
 
-    // Generate 6-digit OTP — store only its hash, never the plain code
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-    const otpHash = await hashPassword(otp);
-    this._otpState = { otpHash, expiresAt, school, motto, name, email, pwd };
+    // SECURITY FIX (F-05): OTP is now generated SERVER-SIDE in the Cloudflare Worker.
+    // The browser only stores registration data for use after verification.
+    // The OTP hash never touches the browser — console inspection cannot bypass it.
+    this._otpState = { school, motto, name, email, pwd, expiresAt: Date.now() + 10 * 60 * 1000 };
 
-    // Send via EmailJS
-    const sent = await this._sendOTPEmail(email, name, otp);
+    // Ask worker to generate OTP, store its hash in KV, and email the code
+    const sent = await this._sendOTPEmail(email, name);
     btn.disabled = false;
     btn.querySelector('span').textContent = 'Create School Account';
 
@@ -348,7 +352,8 @@ Object.assign(SMS, {
     setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
   },
 
-  async _sendOTPEmail(email, name, otp) {
+  // SECURITY FIX (F-05): OTP is generated server-side. Browser only sends who to email.
+  async _sendOTPEmail(email, name) {
     try {
       // ── RESEND via Cloudflare Worker proxy ──────────────────────────────
       // Deploy the worker from: /cloudflare-worker/otp-worker.js
@@ -362,7 +367,8 @@ Object.assign(SMS, {
         body: JSON.stringify({
           to_name:  name.split(' ')[0],
           to_email: email,
-          otp_code: otp,
+          // NOTE: No otp_code here — the worker generates it and stores the hash in KV.
+          // The browser never sees the OTP value, so it cannot be inspected from the console.
         }),
       });
 
@@ -428,11 +434,11 @@ Object.assign(SMS, {
     const errEl = document.getElementById('otp-err');
     btn.disabled = true;
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    this._otpState.otp = otp;
+    // SECURITY FIX (F-05/F-06): Worker generates new OTP server-side and replaces KV entry.
+    // Reset client-side expiry display to match new 10-minute window.
     this._otpState.expiresAt = Date.now() + 10 * 60 * 1000;
 
-    const sent = await this._sendOTPEmail(email, name, otp);
+    const sent = await this._sendOTPEmail(email, name);
     if (sent) {
       errEl.style.display = 'none';
       successEl.style.display = 'flex';
@@ -450,11 +456,11 @@ Object.assign(SMS, {
 
   async verifyOTP() {
     const entered = this._getOTPValue();
-    const { otpHash, expiresAt, school, motto, name, email, pwd } = this._otpState;
+    const { school, motto, name, email, pwd, expiresAt } = this._otpState;
     const errEl = document.getElementById('otp-err');
     const btn = document.getElementById('otp-verify-btn');
 
-    // Check expiry
+    // Belt-and-suspenders client-side expiry for UX (server enforces it too)
     if (Date.now() > expiresAt) {
       errEl.textContent = 'This code has expired. Please request a new one.';
       errEl.style.display = 'flex';
@@ -462,30 +468,62 @@ Object.assign(SMS, {
       return;
     }
 
-    // Check code — max 5 attempts
-    this._otpState.attempts = (this._otpState.attempts || 0) + 1;
-    if (this._otpState.attempts > 5) {
-      errEl.textContent = 'Too many attempts. Please start registration again.';
-      errEl.style.display = 'flex';
-      this.clearOTPState();
-      document.getElementById('auth-otp').style.display = 'none';
-      document.getElementById('auth-register').style.display = 'block';
-      return;
-    }
-    const enteredHash = await hashPassword(entered);
-    if (enteredHash !== otpHash) {
-      const rem = 5 - this._otpState.attempts;
-      errEl.textContent = rem > 0 ? `Incorrect code. ${rem} attempt${rem!==1?'s':''} left.` : 'Too many attempts.';
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Verifying…';
+    errEl.style.display = 'none';
+
+    // SECURITY FIX (F-05): OTP verification is now entirely server-side.
+    // The browser sends the entered code to the worker; the worker checks
+    // the stored hash in KV. The browser never has access to the hash.
+    try {
+      const WORKER_URL = 'https://eduformium-otp.school-management.workers.dev';
+      const res = await fetch(`${WORKER_URL}/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: entered }),
+      });
+      const result = await res.json();
+
+      if (!result.success) {
+        if (result.reason === 'expired') {
+          errEl.textContent = 'This code has expired. Please request a new one.';
+          errEl.style.display = 'flex';
+          this._clearOTPBoxes(true);
+          btn.disabled = false;
+          btn.querySelector('span').textContent = 'Verify & Create Account';
+          return;
+        }
+        if (result.reason === 'too_many_attempts') {
+          errEl.textContent = 'Too many attempts. Please start registration again.';
+          errEl.style.display = 'flex';
+          this.clearOTPState();
+          document.getElementById('auth-otp').style.display = 'none';
+          document.getElementById('auth-register').style.display = 'block';
+          return;
+        }
+        // wrong_code
+        const rem = result.attemptsLeft ?? 0;
+        errEl.textContent = rem > 0
+          ? `Incorrect code. ${rem} attempt${rem !== 1 ? 's' : ''} left.`
+          : 'Too many attempts. Please start registration again.';
+        errEl.style.display = 'flex';
+        this._clearOTPBoxes(true);
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Verify & Create Account';
+        setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
+        return;
+      }
+    } catch (e) {
+      errEl.textContent = 'Could not verify code — check your connection and try again.';
       errEl.style.display = 'flex';
       this._clearOTPBoxes(true);
-      setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Verify & Create Account';
       return;
     }
 
-    // Code correct — create account
+    // Code verified on server! Proceed to create account.
     errEl.style.display = 'none';
-    btn.disabled = true;
-    btn.querySelector('span').textContent = 'Creating account…';
 
     if (!window.FAuth) {
       const users = DB.get('users', []);
@@ -502,10 +540,8 @@ Object.assign(SMS, {
     const result = await FAuth.register(school, name, email, pwd);
     if (result.success) {
       this.clearOTPState();
-      // Show pending screen FIRST — before logout fires onAuthStateChanged
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
-      // Logout in background — _registering stays true until complete so onAuthChange is suppressed
       if(window.FAuth) FAuth.logout().catch(()=>{}).finally(()=>{ this._registering = false; });
       else this._registering = false;
     } else {

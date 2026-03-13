@@ -75,11 +75,14 @@ const FDB = {
     } catch(e){ return null; }
   },
 
-  async setUserIndex(email, schoolId, userId, passwordHash, name, role) {
+  // SECURITY: password_hash intentionally NOT stored here.
+  // Sub-users authenticate via Supabase Auth (signInWithPassword).
+  // This index only stores routing data (schoolId, role) used post-login.
+  async setUserIndex(email, schoolId, userId, name, role) {
     try {
       const {error} = await _supabase.from('user_index')
         .upsert({email:email.toLowerCase(), school_id:schoolId, user_id:userId,
-                 password_hash:passwordHash, name, role, updated_at:new Date().toISOString()});
+                 name, role, updated_at:new Date().toISOString()});
       if(error) throw error; return true;
     } catch(e){ console.error('FDB.setUserIndex',e); return false; }
   },
@@ -90,8 +93,9 @@ const FDB = {
         .eq('email',email.toLowerCase()).maybeSingle();
       if(error){ console.error('getUserIndex RLS/error:', error.message, '| email:', email); return null; }
       if(!data){ console.warn('getUserIndex: no row found for', email); return null; }
+      // SECURITY: passwordHash intentionally excluded — credentials stay in Supabase Auth only
       return {email:data.email, schoolId:data.school_id, userId:data.user_id,
-              passwordHash:data.password_hash, name:data.name, role:data.role};
+              name:data.name, role:data.role};
     } catch(e){ console.error('getUserIndex exception:', e.message); return null; }
   },
 

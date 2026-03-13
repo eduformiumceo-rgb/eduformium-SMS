@@ -18,16 +18,26 @@
 //  5. Paste this file into your Worker editor and hit Deploy
 // ══════════════════════════════════════════════════════════════════
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+// SECURITY: Set ALLOWED_ORIGIN in Cloudflare Worker environment variables.
+// Cloudflare Dashboard → Workers → your worker → Settings → Variables → Add:
+//   ALLOWED_ORIGIN = https://your-production-domain.com
+// Until then, '*' is used as a safe fallback for local development.
+const getCorsHeaders = (env, request) => {
+  const allowed = env.ALLOWED_ORIGIN || '*';
+  const origin = request.headers.get('Origin') || '';
+  const allowedOrigin = (allowed === '*' || origin === allowed) ? allowed : 'null';
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
 };
 
-const json = (data, status = 200) =>
+const json = (data, status = 200, corsHeaders = {}) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 
 async function sha256(text) {
@@ -37,6 +47,8 @@ async function sha256(text) {
 
 export default {
   async fetch(request, env) {
+    const CORS_HEADERS = getCorsHeaders(env, request);
+
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
     }
@@ -46,15 +58,17 @@ export default {
     // ── POST /send-otp ──────────────────────────────────────────────
     if (url.pathname === '/send-otp' && request.method === 'POST') {
       let body;
-      try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+      try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400, CORS_HEADERS); }
 
       const { to_name, to_email } = body;
-      if (!to_email || !to_name) return json({ error: 'Missing to_name or to_email' }, 400);
+      if (!to_email || !to_name) return json({ error: 'Missing to_name or to_email' }, 400, CORS_HEADERS);
 
       const email = to_email.toLowerCase().trim();
 
-      // Generate 6-digit OTP entirely server-side
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      // SECURITY: Use crypto.getRandomValues() — a true CSPRNG — instead of Math.random()
+      const arr = new Uint32Array(1);
+      crypto.getRandomValues(arr);
+      const otp = String(100000 + (arr[0] % 900000));
       const hash = await sha256(otp);
       const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
@@ -70,7 +84,7 @@ export default {
       const fromEmail = env.FROM_EMAIL;
       if (!fromEmail) {
         console.error('FROM_EMAIL env variable is not set in Cloudflare Worker settings');
-        return json({ error: 'Server misconfiguration: FROM_EMAIL not set' }, 500);
+        return json({ error: 'Server misconfiguration: FROM_EMAIL not set' }, 500, CORS_HEADERS);
       }
 
       // Send email via Brevo
@@ -101,39 +115,39 @@ export default {
       if (!emailRes.ok) {
         const err = await emailRes.json().catch(() => ({}));
         console.error('Brevo send failed. Status:', emailRes.status, '| Response:', JSON.stringify(err));
-        return json({ error: 'Failed to send verification email', detail: err.message || String(emailRes.status) }, 500);
+        return json({ error: 'Failed to send verification email', detail: err.message || String(emailRes.status) }, 500, CORS_HEADERS);
       }
 
       // Return only success — OTP never leaves the server
-      return json({ success: true });
+      return json({ success: true }, 200, CORS_HEADERS);
     }
 
     // ── POST /verify-otp ────────────────────────────────────────────
     if (url.pathname === '/verify-otp' && request.method === 'POST') {
       let body;
-      try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+      try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400, CORS_HEADERS); }
 
       const { email, code } = body;
-      if (!email || !code) return json({ error: 'Missing email or code' }, 400);
+      if (!email || !code) return json({ error: 'Missing email or code' }, 400, CORS_HEADERS);
 
       const emailKey = `otp:${email.toLowerCase().trim()}`;
       const stored = await env.OTP_STORE.get(emailKey);
 
-      if (!stored) return json({ success: false, reason: 'expired' });
+      if (!stored) return json({ success: false, reason: 'expired' }, 200, CORS_HEADERS);
 
       let record;
-      try { record = JSON.parse(stored); } catch { return json({ success: false, reason: 'expired' }); }
+      try { record = JSON.parse(stored); } catch { return json({ success: false, reason: 'expired' }, 200, CORS_HEADERS); }
 
       const { hash, expiresAt, attempts } = record;
 
       if (Date.now() > expiresAt) {
         await env.OTP_STORE.delete(emailKey);
-        return json({ success: false, reason: 'expired' });
+        return json({ success: false, reason: 'expired' }, 200, CORS_HEADERS);
       }
 
       if (attempts >= 5) {
         await env.OTP_STORE.delete(emailKey);
-        return json({ success: false, reason: 'too_many_attempts', attemptsLeft: 0 });
+        return json({ success: false, reason: 'too_many_attempts', attemptsLeft: 0 }, 200, CORS_HEADERS);
       }
 
       const enteredHash = await sha256(String(code).trim());
@@ -144,7 +158,7 @@ export default {
 
         if (attemptsLeft <= 0) {
           await env.OTP_STORE.delete(emailKey);
-          return json({ success: false, reason: 'too_many_attempts', attemptsLeft: 0 });
+          return json({ success: false, reason: 'too_many_attempts', attemptsLeft: 0 }, 200, CORS_HEADERS);
         }
 
         const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
@@ -154,14 +168,14 @@ export default {
           { expirationTtl: ttlSeconds }
         );
 
-        return json({ success: false, reason: 'wrong_code', attemptsLeft });
+        return json({ success: false, reason: 'wrong_code', attemptsLeft }, 200, CORS_HEADERS);
       }
 
       // ✅ Correct code — delete immediately so it can't be reused
       await env.OTP_STORE.delete(emailKey);
-      return json({ success: true });
+      return json({ success: true }, 200, CORS_HEADERS);
     }
 
-    return new Response('Not found', { status: 404, headers: CORS_HEADERS });
+    return new Response('Not found', { status: 404, headers: getCorsHeaders(env, request) });
   },
 };

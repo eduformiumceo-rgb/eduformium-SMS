@@ -177,7 +177,9 @@ Object.assign(SMS, {
     DB.set('users',users);
 
     if(_sid&&window.FDB){
-      FDB.batchWrite(_sid,'users',[newUser]).catch(()=>{});
+      // SECURITY: Strip passwordHash before writing to Supabase — credentials live in Supabase Auth only
+      const {passwordHash:_omit,...supabaseUser}=newUser;
+      FDB.batchWrite(_sid,'users',[supabaseUser]).catch(()=>{});
       FDB.setUserIndex(email,_sid,newUser.id,name,role).catch(()=>{});
     }
 

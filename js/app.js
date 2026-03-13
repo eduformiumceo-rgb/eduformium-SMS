@@ -316,12 +316,12 @@ const SMS = {
     const topbarLogo=document.getElementById('topbar-logo-img'); if(topbarLogo&&school.logo) topbarLogo.src=school.logo; const sidebarLogo=document.getElementById('sidebar-logo-img'); if(sidebarLogo&&school.logo) sidebarLogo.src=school.logo;
     const u=this.currentUser;
     const initials=(u.name||'User').split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()||'U';
-    ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=initials; if(u.avatar){ el.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; } }});
+    ['user-av','sb-user-av'].forEach(id=>{ const el=document.getElementById(id); if(el){ el.textContent=initials; if(u.avatar&&u.avatar.startsWith('data:image/')){ const img=document.createElement('img'); img.src=u.avatar; img.style.cssText='width:100%;height:100%;border-radius:99px;object-fit:cover'; el.textContent=''; el.appendChild(img); } }});
     const el=document.getElementById('user-chip-name'); if(el) el.textContent=(u.name||'User').split(' ')[0]||'User';
     const er=document.getElementById('user-chip-role'); if(er) er.textContent=this.roleLabel(u.role);
     const sn=document.getElementById('sb-user-name'); if(sn) sn.textContent=u.name;
     const sr=document.getElementById('sb-user-role'); if(sr) sr.textContent=this.roleLabel(u.role);
-    const av=document.getElementById('av-preview'); if(av){ av.textContent=initials; if(u.avatar) av.innerHTML=`<img src="${u.avatar}" style="width:100%;height:100%;border-radius:99px;object-fit:cover">`; }
+    const av=document.getElementById('av-preview'); if(av){ av.textContent=initials; if(u.avatar&&u.avatar.startsWith('data:image/')){ const img=document.createElement('img'); img.src=u.avatar; img.style.cssText='width:100%;height:100%;border-radius:99px;object-fit:cover'; av.textContent=''; av.appendChild(img); } }
     const h=new Date().getHours();
     const g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
     const dw=document.getElementById('dash-welcome'); if(dw) dw.textContent=`${g}, ${(u.name||'User').split(' ')[0]||'User'}! Here's your school overview.`;

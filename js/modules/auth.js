@@ -539,6 +539,7 @@ Object.assign(SMS, {
     this._registering = true;
     const result = await FAuth.register(school, name, email, pwd);
     if (result.success) {
+      this.schoolId = result.uid; // FIX: set schoolId so pending screen polling starts immediately
       this.clearOTPState();
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);

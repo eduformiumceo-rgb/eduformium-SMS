@@ -8,11 +8,14 @@
 //  - Replay: OTP deleted from KV immediately after successful verify
 //
 //  DEPLOY STEPS:
-//  1. In Cloudflare Dashboard → Workers & Pages → your worker
-//  2. Go to Settings → Variables → KV Namespace Bindings
-//  3. Add binding: Variable name = OTP_STORE, KV namespace = (create one called "otp_store")
-//  4. Add Secret: BREVO_API_KEY = your Brevo API key (Settings → API Keys in Brevo dashboard)
-//  5. Replace the worker code with this file
+//  1. In Cloudflare Dashboard → Workers & Pages → your OTP worker
+//  2. Settings → Variables → KV Namespace Bindings
+//     → Binding name: OTP_STORE, KV namespace: otp_store
+//  3. Settings → Variables → Secrets:
+//     → BREVO_API_KEY = your Brevo API key (Brevo dashboard → API Keys)
+//  4. Settings → Variables → Plaintext:
+//     → FROM_EMAIL = eduformium.ceo@gmail.com  (your verified Brevo sender)
+//  5. Paste this file into your Worker editor and hit Deploy
 // ══════════════════════════════════════════════════════════════════
 
 const CORS_HEADERS = {
@@ -27,7 +30,6 @@ const json = (data, status = 200) =>
     headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   });
 
-// SHA-256 hash — same algorithm as the browser app uses for passwords
 async function sha256(text) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -35,7 +37,6 @@ async function sha256(text) {
 
 export default {
   async fetch(request, env) {
-    // Handle CORS preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS_HEADERS });
     }
@@ -43,8 +44,6 @@ export default {
     const url = new URL(request.url);
 
     // ── POST /send-otp ──────────────────────────────────────────────
-    // Generates the OTP server-side, stores its hash in KV, emails the code.
-    // The browser never receives the OTP value.
     if (url.pathname === '/send-otp' && request.method === 'POST') {
       let body;
       try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
@@ -54,19 +53,27 @@ export default {
 
       const email = to_email.toLowerCase().trim();
 
-      // Generate a 6-digit OTP entirely server-side
+      // Generate 6-digit OTP entirely server-side
       const otp = String(Math.floor(100000 + Math.random() * 900000));
       const hash = await sha256(otp);
       const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-      // Store {hash, expiresAt, attempts} in KV — auto-expires after 10 minutes
+      // Store hash in KV — browser never sees the OTP value
       await env.OTP_STORE.put(
         `otp:${email}`,
         JSON.stringify({ hash, expiresAt, attempts: 0 }),
         { expirationTtl: 600 }
       );
 
-      // Send email via Brevo (formerly Sendinblue)
+      // FIX: Use FROM_EMAIL env variable (your verified Brevo sender)
+      // instead of the old hardcoded noreply@eduformium.com which caused the 400 error
+      const fromEmail = env.FROM_EMAIL;
+      if (!fromEmail) {
+        console.error('FROM_EMAIL env variable is not set in Cloudflare Worker settings');
+        return json({ error: 'Server misconfiguration: FROM_EMAIL not set' }, 500);
+      }
+
+      // Send email via Brevo
       const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -74,7 +81,7 @@ export default {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: 'Eduformium SMS', email: 'noreply@eduformium.com' },
+          sender: { name: 'Eduformium SMS', email: fromEmail },
           to: [{ email: to_email, name: to_name }],
           subject: `${otp} is your Eduformium verification code`,
           htmlContent: `
@@ -93,8 +100,8 @@ export default {
 
       if (!emailRes.ok) {
         const err = await emailRes.json().catch(() => ({}));
-        console.error('Brevo error:', err);
-        return json({ error: 'Failed to send verification email' }, 500);
+        console.error('Brevo send failed. Status:', emailRes.status, '| Response:', JSON.stringify(err));
+        return json({ error: 'Failed to send verification email', detail: err.message || String(emailRes.status) }, 500);
       }
 
       // Return only success — OTP never leaves the server
@@ -102,8 +109,6 @@ export default {
     }
 
     // ── POST /verify-otp ────────────────────────────────────────────
-    // Checks the entered code against the KV-stored hash.
-    // Enforces attempt limit and expiry server-side.
     if (url.pathname === '/verify-otp' && request.method === 'POST') {
       let body;
       try { body = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
@@ -114,28 +119,23 @@ export default {
       const emailKey = `otp:${email.toLowerCase().trim()}`;
       const stored = await env.OTP_STORE.get(emailKey);
 
-      if (!stored) {
-        return json({ success: false, reason: 'expired' });
-      }
+      if (!stored) return json({ success: false, reason: 'expired' });
 
       let record;
       try { record = JSON.parse(stored); } catch { return json({ success: false, reason: 'expired' }); }
 
       const { hash, expiresAt, attempts } = record;
 
-      // Check expiry
       if (Date.now() > expiresAt) {
         await env.OTP_STORE.delete(emailKey);
         return json({ success: false, reason: 'expired' });
       }
 
-      // Check attempt limit
       if (attempts >= 5) {
         await env.OTP_STORE.delete(emailKey);
         return json({ success: false, reason: 'too_many_attempts', attemptsLeft: 0 });
       }
 
-      // Hash the entered code and compare
       const enteredHash = await sha256(String(code).trim());
 
       if (enteredHash !== hash) {
@@ -143,12 +143,10 @@ export default {
         const attemptsLeft = 5 - newAttempts;
 
         if (attemptsLeft <= 0) {
-          // Max attempts reached — delete so they must request a new code
           await env.OTP_STORE.delete(emailKey);
           return json({ success: false, reason: 'too_many_attempts', attemptsLeft: 0 });
         }
 
-        // Update attempt count in KV
         const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
         await env.OTP_STORE.put(
           emailKey,

@@ -233,7 +233,7 @@ const SMS = {
     document.getElementById('ps-school-avatar').textContent = schoolName.charAt(0).toUpperCase();
 
     const waBtn = document.getElementById('ps-wa-btn');
-    if(waBtn) waBtn.href = 'https://wa.me/233553774541?text=' + encodeURIComponent('Hello Eduformium, I just registered my school on Eduformium SMS and I am requesting account activation. School: ' + schoolName + '. Email: ' + adminEmail);
+    if(waBtn) waBtn.href = 'https://wa.me/233208669005?text=' + encodeURIComponent('Hello Eduformium, I just registered my school on Eduformium SMS and I am requesting account activation. School: ' + schoolName + '. Email: ' + adminEmail);
 
     const emailLinks = ps.querySelectorAll('a[href^="mailto"]');
     emailLinks.forEach(a => {
@@ -279,7 +279,7 @@ const SMS = {
     const waBtn = document.getElementById('ss-wa-btn');
     if(waBtn){
       const msg = encodeURIComponent('Hello Eduformium, my school account has been suspended on Eduformium SMS. School: ' + schoolName + '. Email: ' + adminEmail + '. Please help me restore access.');
-      waBtn.href = 'https://wa.me/233553774541?text=' + msg;
+      waBtn.href = 'https://wa.me/233208669005?text=' + msg;
     }
 
     // Email button

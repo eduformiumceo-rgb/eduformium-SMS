@@ -42,8 +42,8 @@ Object.assign(SMS, {
         this.toast('Please contact your school administrator to reset your password.','info');
       }
     });
-    document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; });
-    document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; });
+    document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; const e=document.getElementById('l-err'); if(e){e.style.display='none';e.textContent='';} });
+    document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; const e=document.getElementById('r-err'); if(e){e.style.display='none';e.textContent='';} });
     document.getElementById('register-btn')?.addEventListener('click',()=>this.startOTPFlow());
     // Enter key navigation on register form
     document.getElementById('r-school')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-motto')?.focus(); });

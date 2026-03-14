@@ -201,6 +201,11 @@ const SMS = {
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('pending-screen').style.display='none';
     document.getElementById('suspended-screen').style.display='none';
+    // Hide all auth sub-panels and show only sign-in
+    ['auth-register','auth-otp','auth-reset-email','auth-reset-otp','auth-reset-pw'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.style.display='none';
+    });
+    document.getElementById('auth-signin').style.display='block';
     // Always reset the login button — it can be left disabled if an unrecognised
     // Firebase user is signed out mid-flight and showLogin() is called from onAuthChange.
     const _lb=document.getElementById('login-btn');
@@ -593,6 +598,8 @@ const SMS = {
     const _logoutName = this.currentUser?.name || 'User'; // capture before clearing
     if(window.FAuth) await FAuth.logout(); // 1. Revoke Supabase session FIRST
     DB.del('session'); this.currentUser=null; this.schoolId=null; this._formsBound=false; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase)
+    // Clear reset flow state — wipes any in-memory reset_token between sessions
+    this._resetState={}; clearInterval(this._resetOTPCountdownTimer); clearInterval(this._resetResendTimer);
     this.audit('Logout','login',`${_logoutName} signed out`); // 3. Audit after — writes to localStorage only, no Supabase (no session, no 401)
     const syncEl=document.getElementById('sync-status');
     if(syncEl) syncEl.style.display='none';
@@ -622,7 +629,9 @@ const SMS = {
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     const lu=document.getElementById('l-user'); if(lu) lu.value='';
-    const lp=document.getElementById('l-pass'); if(lp) lp.value='';
+    const lp=document.getElementById('l-pass'); if(lp){ lp.value=''; lp.type='password'; } // FIX: reset to hidden so next user's password isn't exposed as plaintext
+    const eyeOn=document.querySelector('#l-pass-toggle .eye-on'); const eyeOff=document.querySelector('#l-pass-toggle .eye-off');
+    if(eyeOn) eyeOn.style.display=''; if(eyeOff) eyeOff.style.display='none'; // FIX: reset eye icon state to match
   },
 
 

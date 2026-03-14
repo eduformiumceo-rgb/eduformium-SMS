@@ -31,18 +31,41 @@ Object.assign(SMS, {
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
-      const email=document.getElementById('l-user').value.trim().toLowerCase(); // FIX: normalise case
-      if(!email){ this.toast('Please enter your email address first.','warn'); return; }
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ this.toast('Please enter a valid email address.','warn'); return; } // FIX: validate format before hitting Supabase
-      if(window.FAuth){
-        FAuth.sendPasswordReset(email).then(r=>{
-          if(r.success) this.toast('Password reset email sent. Please check your inbox.','success');
-          else this.toast('Could not send reset email. Please contact your administrator.','danger');
-        });
-      } else {
-        this.toast('Please contact your school administrator to reset your password.','info');
-      }
+      this._showResetEmailScreen();
     });
+    // ── Reset screen 1: Enter email ──
+    document.getElementById('rp-send-btn')?.addEventListener('click',()=>this._sendResetOTP());
+    document.getElementById('rp-email')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this._sendResetOTP(); });
+    document.getElementById('rp-back-signin')?.addEventListener('click',()=>{
+      document.getElementById('auth-reset-email').style.display='none';
+      document.getElementById('auth-signin').style.display='block';
+      const e=document.getElementById('rp-email-err'); if(e){e.style.display='none';e.textContent='';}
+    });
+    // ── Reset screen 2: OTP ──
+    this._initResetOTPBoxes();
+    document.getElementById('rp-otp-verify-btn')?.addEventListener('click',()=>this._verifyResetOTP());
+    document.getElementById('rp-otp-resend-btn')?.addEventListener('click',()=>this._resendResetOTP());
+    document.getElementById('rp-otp-back-btn')?.addEventListener('click',()=>{
+      clearInterval(this._resetOTPCountdownTimer); clearInterval(this._resetResendTimer);
+      document.getElementById('auth-reset-otp').style.display='none';
+      document.getElementById('auth-reset-email').style.display='block';
+      const e=document.getElementById('rp-otp-err'); if(e){e.style.display='none';e.textContent='';}
+    });
+    // ── Reset screen 3: New password ──
+    document.getElementById('rp-apply-btn')?.addEventListener('click',()=>this._applyPasswordReset());
+    document.getElementById('rp-new-pw')?.addEventListener('input',e=>{
+      const pw=e.target.value; const conf=document.getElementById('rp-confirm-pw')?.value||'';
+      this._checkResetPwStrength(pw); this._updateResetPwRequirements(pw,conf);
+    });
+    document.getElementById('rp-confirm-pw')?.addEventListener('input',e=>{
+      const pw=document.getElementById('rp-new-pw')?.value||''; const conf=e.target.value;
+      this._updateResetPwRequirements(pw,conf);
+    });
+    document.getElementById('rp-confirm-pw')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this._applyPasswordReset(); });
+    document.getElementById('rp-new-pw')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('rp-confirm-pw')?.focus(); });
+    // Password toggle for reset screen 3
+    document.getElementById('rp-new-pw-toggle')?.addEventListener('click',function(){ const i=document.getElementById('rp-new-pw'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){i.type='text';on.style.display='none';off.style.display='';}else{i.type='password';on.style.display='';off.style.display='none';} });
+    document.getElementById('rp-confirm-pw-toggle')?.addEventListener('click',function(){ const i=document.getElementById('rp-confirm-pw'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){i.type='text';on.style.display='none';off.style.display='';}else{i.type='password';on.style.display='';off.style.display='none';} });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; const e=document.getElementById('l-err'); if(e){e.style.display='none';e.textContent='';} });
     document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; const e=document.getElementById('r-err'); if(e){e.style.display='none';e.textContent='';} });
     document.getElementById('register-btn')?.addEventListener('click',()=>this.startOTPFlow());
@@ -382,10 +405,9 @@ Object.assign(SMS, {
       // ── RESEND via Cloudflare Worker proxy ──────────────────────────────
       // Deploy the worker from: /cloudflare-worker/otp-worker.js
       // Then paste your worker URL below (keep trailing slash off):
-      const WORKER_URL = 'https://eduformium-otp.school-management.workers.dev';
       // ────────────────────────────────────────────────────────────────────
 
-      const res = await fetch(`${WORKER_URL}/send-otp`, {
+      const res = await fetch(`${this._WORKER_URL}/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -500,8 +522,7 @@ Object.assign(SMS, {
     // The browser sends the entered code to the worker; the worker checks
     // the stored hash in KV. The browser never has access to the hash.
     try {
-      const WORKER_URL = 'https://eduformium-otp.school-management.workers.dev';
-      const res = await fetch(`${WORKER_URL}/verify-otp`, {
+      const res = await fetch(`${this._WORKER_URL}/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: entered }),
@@ -581,6 +602,488 @@ Object.assign(SMS, {
   async register() {
     // Legacy — now handled by startOTPFlow
     await this.startOTPFlow();
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  //  PASSWORD RESET FLOW  (3-screen OTP-based reset via Brevo)
+  //  Screen 1: Enter email → Screen 2: Enter OTP → Screen 3: New password
+  //  reset_token held in memory only — never persisted to localStorage
+  // ══════════════════════════════════════════════════════════════════
+
+  _WORKER_URL: 'https://eduformium-otp-dev.school-management.workers.dev',
+  _resetState: {},
+  _resetOTPCountdownTimer: null,
+  _resetResendTimer: null,
+
+  // Called when user clicks "Forgot password?" on the sign-in form
+  _showResetEmailScreen() {
+    this._resetState = {};
+    clearInterval(this._resetOTPCountdownTimer);
+    clearInterval(this._resetResendTimer);
+    // Hide all other panels
+    document.getElementById('auth-signin').style.display = 'none';
+    document.getElementById('auth-register').style.display = 'none';
+    document.getElementById('auth-otp').style.display = 'none';
+    document.getElementById('auth-reset-otp').style.display = 'none';
+    document.getElementById('auth-reset-pw').style.display = 'none';
+    // Show screen 1
+    const s = document.getElementById('auth-reset-email');
+    s.style.display = 'block';
+    // Pre-fill email if user already typed it
+    const typed = document.getElementById('l-user')?.value.trim().toLowerCase();
+    const rpEmail = document.getElementById('rp-email');
+    if (rpEmail && typed) rpEmail.value = typed;
+    const err = document.getElementById('rp-email-err');
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    setTimeout(() => rpEmail?.focus(), 80);
+  },
+
+  async _sendResetOTP() {
+    const emailEl = document.getElementById('rp-email');
+    const errEl   = document.getElementById('rp-email-err');
+    const btn     = document.getElementById('rp-send-btn');
+    const email   = emailEl?.value.trim().toLowerCase() || '';
+
+    errEl.style.display = 'none'; errEl.textContent = '';
+
+    if (!email) {
+      errEl.textContent = 'Please enter your email address.';
+      errEl.style.display = 'flex'; return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = 'Please enter a valid email address.';
+      errEl.style.display = 'flex'; return;
+    }
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Sending code…';
+
+    try {
+      const res = await fetch(`${this._WORKER_URL}/send-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (data.reason === 'rate_limited') {
+        errEl.textContent = 'Too many reset attempts. Please wait 30 minutes before trying again.';
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Send Reset Code';
+        return;
+      }
+      if (!data.success) {
+        errEl.textContent = 'Could not send reset code. Please check your email and try again.';
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Send Reset Code';
+        return;
+      }
+    } catch(e) {
+      errEl.textContent = 'Connection error. Please check your internet and try again.';
+      errEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Send Reset Code';
+      return;
+    }
+
+    // Store state and transition to screen 2
+    this._resetState = { email, expiresAt: Date.now() + 10 * 60 * 1000 };
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Send Reset Code';
+
+    document.getElementById('auth-reset-email').style.display = 'none';
+    document.getElementById('auth-reset-otp').style.display = 'block';
+    document.getElementById('rp-otp-email-display').textContent = email;
+
+    this._clearResetOTPBoxes();
+    this._startResetOTPCountdown();
+    this._startResetResendCooldown();
+    setTimeout(() => document.getElementById('rp-otp-0')?.focus(), 100);
+  },
+
+  _initResetOTPBoxes() {
+    const boxes = document.querySelectorAll('#auth-reset-otp .otp-box');
+    boxes.forEach((box, i) => {
+      box.addEventListener('input', (e) => {
+        const val = e.target.value.replace(/\D/g, '');
+        box.value = val ? val[0] : '';
+        box.classList.toggle('otp-filled', !!box.value);
+        if (val && i < boxes.length - 1) boxes[i + 1].focus();
+        this._checkResetOTPComplete();
+      });
+      box.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !box.value && i > 0) boxes[i - 1].focus();
+        if (e.key === 'ArrowLeft'  && i > 0)              boxes[i - 1].focus();
+        if (e.key === 'ArrowRight' && i < boxes.length-1) boxes[i + 1].focus();
+        if (e.key === 'Enter') this._verifyResetOTP();
+      });
+      box.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+        boxes.forEach((b, j) => { b.value = paste[j] || ''; b.classList.toggle('otp-filled', !!b.value); });
+        if (paste.length >= 6) boxes[5].focus();
+        else if (paste.length > 0) boxes[Math.min(paste.length, 5)].focus();
+        this._checkResetOTPComplete();
+      });
+      box.addEventListener('focus', () => box.select());
+    });
+  },
+
+  _checkResetOTPComplete() {
+    const boxes = document.querySelectorAll('#auth-reset-otp .otp-box');
+    const complete = [...boxes].every(b => b.value.length === 1);
+    const btn = document.getElementById('rp-otp-verify-btn');
+    if (btn) btn.disabled = !complete;
+  },
+
+  _getResetOTPValue() {
+    return [...document.querySelectorAll('#auth-reset-otp .otp-box')].map(b => b.value).join('');
+  },
+
+  _clearResetOTPBoxes(error = false) {
+    const boxes = document.querySelectorAll('#auth-reset-otp .otp-box');
+    boxes.forEach(b => {
+      b.value = ''; b.classList.remove('otp-filled');
+      b.classList.toggle('otp-error', error);
+    });
+    if (error) setTimeout(() => boxes.forEach(b => b.classList.remove('otp-error')), 600);
+    const btn = document.getElementById('rp-otp-verify-btn');
+    if (btn) btn.disabled = true;
+  },
+
+  _startResetOTPCountdown() {
+    clearInterval(this._resetOTPCountdownTimer);
+    const el  = document.getElementById('rp-otp-countdown');
+    const row = document.querySelector('#auth-reset-otp .otp-timer-row');
+    const tick = () => {
+      const remaining = (this._resetState.expiresAt || 0) - Date.now();
+      if (remaining <= 0) {
+        if (el) el.textContent = '0:00';
+        if (row) row.classList.add('expired');
+        const btn = document.getElementById('rp-otp-verify-btn');
+        if (btn) btn.disabled = true;
+        clearInterval(this._resetOTPCountdownTimer);
+        return;
+      }
+      const m = Math.floor(remaining / 60000);
+      const s = Math.floor((remaining % 60000) / 1000);
+      if (el) el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      if (row) row.classList.remove('expired');
+    };
+    tick();
+    this._resetOTPCountdownTimer = setInterval(tick, 1000);
+  },
+
+  _startResetResendCooldown(seconds = 60) {
+    const btn     = document.getElementById('rp-otp-resend-btn');
+    const timerEl = document.getElementById('rp-otp-resend-timer');
+    if (!btn || !timerEl) return;
+    btn.disabled = true;
+    let rem = seconds;
+    timerEl.textContent = `(${rem}s)`;
+    clearInterval(this._resetResendTimer);
+    this._resetResendTimer = setInterval(() => {
+      rem--;
+      timerEl.textContent = `(${rem}s)`;
+      if (rem <= 0) {
+        clearInterval(this._resetResendTimer);
+        btn.disabled = false;
+        timerEl.textContent = '';
+      }
+    }, 1000);
+  },
+
+  async _resendResetOTP() {
+    const { email } = this._resetState;
+    if (!email) return;
+    const btn       = document.getElementById('rp-otp-resend-btn');
+    const errEl     = document.getElementById('rp-otp-err');
+    const successEl = document.getElementById('rp-otp-success');
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch(`${this._WORKER_URL}/send-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        errEl.textContent = data.reason === 'rate_limited'
+          ? 'Too many attempts. Please wait 30 minutes.'
+          : 'Could not resend. Please try again.';
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        return;
+      }
+    } catch(e) {
+      errEl.textContent = 'Connection error. Please try again.';
+      errEl.style.display = 'flex';
+      btn.disabled = false;
+      return;
+    }
+
+    this._resetState.expiresAt = Date.now() + 10 * 60 * 1000;
+    errEl.style.display = 'none';
+    successEl.style.display = 'flex';
+    setTimeout(() => { if (successEl) successEl.style.display = 'none'; }, 4000);
+    this._clearResetOTPBoxes();
+    this._startResetOTPCountdown();
+    this._startResetResendCooldown();
+    setTimeout(() => document.getElementById('rp-otp-0')?.focus(), 100);
+  },
+
+  async _verifyResetOTP() {
+    const code  = this._getResetOTPValue();
+    const errEl = document.getElementById('rp-otp-err');
+    const btn   = document.getElementById('rp-otp-verify-btn');
+    const { email, expiresAt } = this._resetState;
+
+    // Client-side expiry check (server enforces it too)
+    if (Date.now() > expiresAt) {
+      errEl.textContent = 'This code has expired. Please request a new one.';
+      errEl.style.display = 'flex';
+      this._clearResetOTPBoxes(true);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Verifying…';
+    errEl.style.display = 'none';
+
+    let result;
+    try {
+      const res = await fetch(`${this._WORKER_URL}/verify-reset-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      result = await res.json();
+    } catch(e) {
+      errEl.textContent = 'Connection error. Check your internet and try again.';
+      errEl.style.display = 'flex';
+      this._clearResetOTPBoxes(true);
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Verify Code';
+      return;
+    }
+
+    if (!result.success) {
+      if (result.reason === 'expired') {
+        errEl.textContent = 'This code has expired. Please request a new one.';
+        errEl.style.display = 'flex';
+        this._clearResetOTPBoxes(true);
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Verify Code';
+        return;
+      }
+      if (result.reason === 'too_many_attempts') {
+        errEl.textContent = 'Too many wrong attempts. Please restart the reset process.';
+        errEl.style.display = 'flex';
+        this._clearResetOTPBoxes(true);
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Verify Code';
+        // Go back to screen 1 after 2s
+        setTimeout(() => {
+          document.getElementById('auth-reset-otp').style.display = 'none';
+          document.getElementById('auth-reset-email').style.display = 'block';
+          const emailErr = document.getElementById('rp-email-err');
+          if (emailErr) { emailErr.textContent = 'Too many attempts. Please try again.'; emailErr.style.display = 'flex'; }
+        }, 2000);
+        return;
+      }
+      const rem = result.attemptsLeft ?? 0;
+      errEl.textContent = rem > 0
+        ? `Incorrect code. ${rem} attempt${rem !== 1 ? 's' : ''} left.`
+        : 'No attempts remaining. Please request a new code.';
+      errEl.style.display = 'flex';
+      this._clearResetOTPBoxes(true);
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Verify Code';
+      setTimeout(() => document.getElementById('rp-otp-0')?.focus(), 100);
+      return;
+    }
+
+    // ✅ OTP verified — store the one-time reset_token in memory only
+    clearInterval(this._resetOTPCountdownTimer);
+    clearInterval(this._resetResendTimer);
+    this._resetState.token = result.reset_token;
+
+    // Transition to screen 3
+    document.getElementById('auth-reset-otp').style.display = 'none';
+    document.getElementById('auth-reset-pw').style.display = 'block';
+
+    // Reset password fields
+    const newPwEl  = document.getElementById('rp-new-pw');
+    const confPwEl = document.getElementById('rp-confirm-pw');
+    if (newPwEl)  newPwEl.value  = '';
+    if (confPwEl) confPwEl.value = '';
+    document.getElementById('rp-pw-err').style.display = 'none';
+    document.getElementById('rp-strength-track').style.display = 'none';
+    document.getElementById('rp-strength-label').textContent = '';
+    ['req-len','req-upper','req-num','req-match'].forEach(id => {
+      document.getElementById(id)?.classList.remove('met');
+    });
+    setTimeout(() => newPwEl?.focus(), 100);
+  },
+
+  _checkResetPwStrength(pw) {
+    const hasLen    = pw.length >= 8;
+    const hasUpper  = /[A-Z]/.test(pw);
+    const hasNum    = /[0-9]/.test(pw);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+
+    let score = 0;
+    if (hasLen)     score++;
+    if (hasUpper)   score++;
+    if (hasNum)     score++;
+    if (hasSpecial) score++;
+    if (pw.length >= 12) score++;
+
+    const track = document.getElementById('rp-strength-track');
+    const bar   = document.getElementById('rp-strength-bar');
+    const label = document.getElementById('rp-strength-label');
+
+    if (!pw) {
+      if (track) track.style.display = 'none';
+      if (label) label.textContent = '';
+      return;
+    }
+
+    if (track) track.style.display = 'block';
+
+    const levels = [
+      { pct: '20%', color: '#ef4444', text: 'Too weak',  textColor: '#ef4444' },
+      { pct: '40%', color: '#f97316', text: 'Weak',      textColor: '#f97316' },
+      { pct: '60%', color: '#eab308', text: 'Fair',      textColor: '#ca8a04' },
+      { pct: '80%', color: '#22c55e', text: 'Strong',    textColor: '#16a34a' },
+      { pct: '100%',color: '#0d9488', text: 'Very strong',textColor:'#0d9488' },
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    if (bar)   { bar.style.width = lvl.pct; bar.style.background = lvl.color; }
+    if (label) { label.textContent = lvl.text; label.style.color = lvl.textColor; }
+  },
+
+  _updateResetPwRequirements(pw, confirmPw) {
+    const req = (id, met) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('met', met);
+    };
+    req('req-len',   pw.length >= 8);
+    req('req-upper', /[A-Z]/.test(pw));
+    req('req-num',   /[0-9]/.test(pw));
+    req('req-match', pw.length >= 1 && pw === confirmPw);
+  },
+
+  async _applyPasswordReset() {
+    const newPw  = document.getElementById('rp-new-pw')?.value  || '';
+    const confPw = document.getElementById('rp-confirm-pw')?.value || '';
+    const errEl  = document.getElementById('rp-pw-err');
+    const btn    = document.getElementById('rp-apply-btn');
+    const { email, token } = this._resetState;
+
+    errEl.style.display = 'none'; errEl.textContent = '';
+
+    // Validate
+    if (newPw.length < 8) {
+      errEl.textContent = 'Password must be at least 8 characters.';
+      errEl.style.display = 'flex'; return;
+    }
+    if (newPw.length > 128) {
+      errEl.textContent = 'Password must be under 128 characters.';
+      errEl.style.display = 'flex'; return;
+    }
+    if (newPw !== confPw) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.style.display = 'flex'; return;
+    }
+    if (!token) {
+      errEl.textContent = 'Session expired. Please restart the reset process.';
+      errEl.style.display = 'flex'; return;
+    }
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Updating…';
+
+    // ── OFFLINE / DEMO MODE ──────────────────────────────────────────
+    // No Supabase — update the password directly in localStorage
+    if (!window.FAuth) {
+      const users = DB.get('users', []);
+      const user = users.find(u => u.email === email);
+      if (!user) {
+        errEl.textContent = 'No account found for this email.';
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Update Password';
+        return;
+      }
+      user.passwordHash = await hashPassword(newPw);
+      delete user.password;
+      DB.set('users', users);
+      this._resetState = {};
+      this._showResetSuccess();
+      return;
+    }
+
+    // ── SUPABASE MODE ────────────────────────────────────────────────
+    // Send email + token + new_password to the worker which calls Supabase Admin API
+    let result;
+    try {
+      const res = await fetch(`${this._WORKER_URL}/apply-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, reset_token: token, new_password: newPw }),
+      });
+      result = await res.json();
+    } catch(e) {
+      errEl.textContent = 'Connection error. Please check your internet and try again.';
+      errEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Update Password';
+      return;
+    }
+
+    if (!result.success) {
+      const msgs = {
+        token_expired:        'Your reset session expired. Please restart the process.',
+        invalid_token:        'Invalid reset session. Please restart the process.',
+        user_not_found:       'No account found for this email address.',
+        password_too_short:   'Password must be at least 8 characters.',
+        server_misconfiguration: 'Server error. Please contact support.',
+        update_failed:        'Could not update password. Please try again.',
+      };
+      errEl.textContent = msgs[result.reason] || 'Could not update password. Please try again.';
+      errEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Update Password';
+      // If token expired, send back to screen 1
+      if (result.reason === 'token_expired' || result.reason === 'invalid_token') {
+        setTimeout(() => {
+          document.getElementById('auth-reset-pw').style.display = 'none';
+          document.getElementById('auth-reset-email').style.display = 'block';
+        }, 2000);
+      }
+      return;
+    }
+
+    // ✅ Success
+    this._resetState = {};
+    this._showResetSuccess();
+  },
+
+  _showResetSuccess() {
+    // Show all panels hidden, transition back to sign-in with a success toast
+    ['auth-reset-email','auth-reset-otp','auth-reset-pw'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    document.getElementById('auth-signin').style.display = 'block';
+    // Clear the password field on sign-in
+    const lpass = document.getElementById('l-pass');
+    if (lpass) lpass.value = '';
+    this.toast('Password updated! Please sign in with your new password.', 'success');
   },
 
   // ══ DASHBOARD ══

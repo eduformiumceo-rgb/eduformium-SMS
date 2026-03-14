@@ -590,9 +590,10 @@ const SMS = {
 
   async logout(){
     clearTimeout(this._sessionTimer);
-    this.audit('Logout','login',`${this.currentUser.name} signed out`);
-    if(window.FAuth) await FAuth.logout();
-    DB.del('session'); this.currentUser=null; this.schoolId=null;
+    const _logoutName = this.currentUser?.name || 'User'; // capture before clearing
+    if(window.FAuth) await FAuth.logout(); // 1. Revoke Supabase session FIRST
+    DB.del('session'); this.currentUser=null; this.schoolId=null; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase)
+    this.audit('Logout','login',`${_logoutName} signed out`); // 3. Audit after — writes to localStorage only, no Supabase (no session, no 401)
     const syncEl=document.getElementById('sync-status');
     if(syncEl) syncEl.style.display='none';
     if(this._demoMode){

@@ -50,6 +50,8 @@ Object.assign(SMS, {
       document.getElementById('auth-reset-otp').style.display='none';
       document.getElementById('auth-reset-email').style.display='block';
       const e=document.getElementById('rp-otp-err'); if(e){e.style.display='none';e.textContent='';}
+      // FIX: re-enable Send button — it was disabled when the OTP was sent
+      const sb=document.getElementById('rp-send-btn'); if(sb){sb.disabled=false;sb.querySelector('span').textContent='Send Reset Code';}
     });
     // ── Reset screen 3: New password ──
     document.getElementById('rp-apply-btn')?.addEventListener('click',()=>this._applyPasswordReset());
@@ -256,7 +258,7 @@ Object.assign(SMS, {
     const result=await FAuth.login(email,pass);
     if(!result.success){
       const rem = this._recordLoginFail(email);
-      const msg = rem > 0 ? `${result.error} (${rem} attempt${rem!==1?'s':''} left before lockout)` : result.error;
+      const msg = rem > 0 ? `${result.error} (${rem} attempt${rem!==1?'s':''} left before lockout)` : 'Too many failed attempts. Please try again in 15 minutes.';
       errEl.style.display='flex'; errEl.textContent=msg; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return;
     }
     this._clearLoginFail(email);
@@ -659,6 +661,9 @@ Object.assign(SMS, {
     if (rpEmail && typed) rpEmail.value = typed;
     const err = document.getElementById('rp-email-err');
     if (err) { err.style.display = 'none'; err.textContent = ''; }
+    // FIX: always re-enable Send button — may be disabled from a previous reset attempt
+    const sendBtn = document.getElementById('rp-send-btn');
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.querySelector('span').textContent = 'Send Reset Code'; }
     setTimeout(() => rpEmail?.focus(), 80);
   },
 

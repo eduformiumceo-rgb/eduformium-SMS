@@ -594,8 +594,15 @@ Object.assign(SMS, {
       this.clearOTPState();
       document.getElementById('auth-otp').style.display = 'none';
       this.showPendingScreen({status:'pending', name:school, adminEmail:email}, email);
-      if(window.FAuth) FAuth.logout().catch(()=>{}).finally(()=>{ this._registering = false; });
-      else this._registering = false;
+      // Keep _registering = true until AFTER logout fires onAuthStateChange (null user).
+      // Clearing it too early lets the null-user handler run showLogin() and wipe the pending screen.
+      if(window.FAuth) {
+        FAuth.logout().catch(()=>{}).finally(()=>{
+          // Small delay ensures the null onAuthStateChange fires while _registering is still true,
+          // so it sees the pending screen and does nothing.
+          setTimeout(()=>{ this._registering = false; }, 1000);
+        });
+      } else this._registering = false;
     } else {
       this._registering = false;
       // Show the actual error from Supabase so we can diagnose issues

@@ -603,6 +603,21 @@ const SMS = {
       DB.del('seeded');
     }
     this._demoMode=false;
+    // ── Clean up ALL visual state so login screen is never dim or blocked ──
+    // 1. Close sidebar and remove its overlay
+    document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('sidebar-overlay')?.classList.remove('show');
+    document.body.classList.remove('sidebar-open');
+    // 2. Reset body overflow (left by any open modal)
+    document.body.style.overflow='';
+    // 3. Close any open modals properly (removes trapFocus + escClose keydown listeners)
+    ['m-student','m-staff','m-fee','m-class','m-subject','m-exam','m-event',
+     'm-student-profile','m-delete','m-receipt','m-compose','m-user','m-expense',
+     'm-homework','m-leave','m-book','m-book-issue','m-fee-struct','m-tt-designer',
+     'm-add-year','m-edit-term-dates','m-hist-fees'].forEach(id=>this.closeModal(id));
+    // 4. Remove the reset-password overlay if it was open
+    document.getElementById('reset-pw-overlay')?.remove();
+    // ── Show login screen ──
     document.getElementById('app').style.display='none';
     document.getElementById('login-screen').style.display='flex';
     const lu=document.getElementById('l-user'); if(lu) lu.value='';

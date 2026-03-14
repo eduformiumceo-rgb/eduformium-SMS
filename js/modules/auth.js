@@ -31,8 +31,9 @@ Object.assign(SMS, {
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
-      const email=document.getElementById('l-user').value.trim();
+      const email=document.getElementById('l-user').value.trim().toLowerCase(); // FIX: normalise case
       if(!email){ this.toast('Please enter your email address first.','warn'); return; }
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ this.toast('Please enter a valid email address.','warn'); return; } // FIX: validate format before hitting Supabase
       if(window.FAuth){
         FAuth.sendPasswordReset(email).then(r=>{
           if(r.success) this.toast('Password reset email sent. Please check your inbox.','success');
@@ -185,7 +186,7 @@ Object.assign(SMS, {
     try {
       const d = JSON.parse(localStorage.getItem(k)||'{}');
       d.count = (d.count||0) + 1;
-      if(d.count >= 5){ d.until = Date.now() + 15*60*1000; d.count = 0; }
+      if(d.count >= 5){ d.until = Date.now() + 15*60*1000; d.count = 0; localStorage.setItem(k, JSON.stringify(d)); return 0; } // FIX: return 0 so caller shows lockout message, not "5 attempts left"
       localStorage.setItem(k, JSON.stringify(d));
       return 5 - (d.count||0);
     } catch(e) { return 5; }
@@ -195,7 +196,7 @@ Object.assign(SMS, {
   },
 
   async login(){
-    const email=document.getElementById('l-user').value.trim();
+    const email=document.getElementById('l-user').value.trim().toLowerCase(); // FIX: normalise case so User@Email.com and user@email.com are treated the same
     const pass=document.getElementById('l-pass').value;
     const errEl=document.getElementById('l-err');
     const btn=document.getElementById('login-btn');
@@ -335,7 +336,7 @@ Object.assign(SMS, {
     const school = document.getElementById('r-school').value.trim();
     const motto  = document.getElementById('r-motto').value.trim();
     const name   = document.getElementById('r-name').value.trim();
-    const email  = document.getElementById('r-email').value.trim();
+    const email  = document.getElementById('r-email').value.trim().toLowerCase(); // FIX: normalise case to match login lookup
     const pwd    = document.getElementById('r-pwd').value;
     const cpwd   = document.getElementById('r-cpwd').value;
     const errEl  = document.getElementById('r-err');

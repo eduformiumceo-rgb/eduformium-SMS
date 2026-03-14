@@ -364,6 +364,8 @@ Object.assign(SMS, {
     const cpwd   = document.getElementById('r-cpwd').value;
     const errEl  = document.getElementById('r-err');
     const btn    = document.getElementById('register-btn');
+    // Guard: prevent double-send from Enter key + click firing simultaneously
+    if (btn?.disabled) return;
 
     if (!school || !name || !email || !pwd) { errEl.textContent = 'Please fill in all required fields.'; errEl.style.display = 'flex'; return; }
     if (school.length > 100) { errEl.textContent = 'School name must be under 100 characters.'; errEl.style.display = 'flex'; return; }
@@ -658,6 +660,8 @@ Object.assign(SMS, {
     const emailEl = document.getElementById('rp-email');
     const errEl   = document.getElementById('rp-email-err');
     const btn     = document.getElementById('rp-send-btn');
+    // Guard: prevent double-send from Enter key + click firing simultaneously
+    if (btn?.disabled) return;
     const email   = emailEl?.value.trim().toLowerCase() || '';
 
     errEl.style.display = 'none'; errEl.textContent = '';

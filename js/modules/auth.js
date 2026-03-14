@@ -610,7 +610,7 @@ Object.assign(SMS, {
   //  reset_token held in memory only — never persisted to localStorage
   // ══════════════════════════════════════════════════════════════════
 
-  _WORKER_URL: 'https://eduformium-otp-dev.school-management.workers.dev',
+  _WORKER_URL: 'https://eduformium-otp.school-management.workers.dev',
   _resetState: {},
   _resetOTPCountdownTimer: null,
   _resetResendTimer: null,

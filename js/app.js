@@ -74,6 +74,16 @@ const SMS = {
 
   init() {
     this._loadStart = Date.now();
+    // ── PASSWORD RECOVERY: intercept reset-link landings ──
+    // When a user clicks the reset link in their email, Supabase fires a
+    // PASSWORD_RECOVERY event. We catch it here and show a reset-password
+    // modal instead of booting the app normally.
+    window._onPasswordRecovery = () => {
+      document.getElementById('loading-overlay').style.display='none';
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('app').style.display='none';
+      this._showResetPasswordModal();
+    };
     if(!window.FAuth){ // fallback if Firebase didn't load
       // Do NOT seed demo data here - only seed in demo mode
       const school=DB.get('school',{});
@@ -696,6 +706,63 @@ const SMS = {
 
 
   hexToRgba(hex,a){ hex=hex.replace('#',''); const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); return `rgba(${r},${g},${b},${a})`; },
+
+  // ── Password Reset Modal (shown after PASSWORD_RECOVERY event) ──
+  _showResetPasswordModal(){
+    // Remove any existing instance
+    document.getElementById('reset-pw-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'reset-pw-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);backdrop-filter:blur(4px)';
+    overlay.innerHTML = `
+      <div style="background:var(--card-bg,#fff);border-radius:16px;padding:2rem;width:100%;max-width:400px;margin:1rem;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+        <h2 style="margin:0 0 .25rem;font-size:1.25rem;font-weight:700;color:var(--text-primary,#111)">Set New Password</h2>
+        <p style="margin:0 0 1.25rem;font-size:.85rem;color:var(--text-muted,#666)">Enter and confirm your new password below.</p>
+        <div style="display:flex;flex-direction:column;gap:.85rem">
+          <input type="password" id="rp-new" placeholder="New password (min. 8 characters)"
+            style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border,#ddd);border-radius:8px;font-size:.9rem;box-sizing:border-box;background:var(--input-bg,#fff);color:var(--text-primary,#111)"/>
+          <input type="password" id="rp-confirm" placeholder="Confirm new password"
+            style="width:100%;padding:.7rem .9rem;border:1.5px solid var(--border,#ddd);border-radius:8px;font-size:.9rem;box-sizing:border-box;background:var(--input-bg,#fff);color:var(--text-primary,#111)"/>
+          <div id="rp-err" style="display:none;color:#e53e3e;font-size:.82rem;padding:.5rem .75rem;background:#fff5f5;border-radius:6px;border:1px solid #fed7d7"></div>
+          <button id="rp-submit-btn" style="padding:.75rem;background:var(--brand,#1a3a6b);color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;width:100%">
+            Update Password
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const errEl  = document.getElementById('rp-err');
+    const newEl  = document.getElementById('rp-new');
+    const confEl = document.getElementById('rp-confirm');
+    const btn    = document.getElementById('rp-submit-btn');
+
+    const _submit = async () => {
+      const newPw  = newEl.value;
+      const confPw = confEl.value;
+      errEl.style.display = 'none';
+      if(newPw.length < 8){ errEl.textContent='Password must be at least 8 characters.'; errEl.style.display='block'; return; }
+      if(newPw !== confPw){ errEl.textContent='Passwords do not match.'; errEl.style.display='block'; return; }
+      btn.disabled = true; btn.textContent = 'Updating…';
+      const result = await FAuth.updatePassword(newPw);
+      if(result.success){
+        overlay.remove();
+        this.toast('Password updated! Please sign in with your new password.','success');
+        // Sign out the recovery session so the user logs in cleanly with their new password
+        await FAuth.logout().catch(()=>{});
+        this.showLogin();
+      } else {
+        btn.disabled = false; btn.textContent = 'Update Password';
+        errEl.textContent = result.error || 'Could not update password. Please try again.';
+        errEl.style.display = 'block';
+      }
+    };
+
+    btn.addEventListener('click', _submit);
+    confEl.addEventListener('keydown', e=>{ if(e.key==='Enter') _submit(); });
+    newEl.addEventListener('keydown',  e=>{ if(e.key==='Enter') confEl.focus(); });
+    setTimeout(()=> newEl.focus(), 100);
+  },
 
 };
 

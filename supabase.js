@@ -20,7 +20,10 @@ if (!_config.url || !_config.anonKey) {
 }
 
 const _supabase = window.supabase.createClient(_config.url, _config.anonKey, {
-  auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true },
+  // flowType:'pkce' makes password-reset links reliable across all email clients.
+  // Gmail/Outlook strip URL hash fragments, which breaks the default implicit flow.
+  // PKCE uses query params instead — survives all email clients and redirects.
+  auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:'pkce' },
 });
 
 // app.js uses camelCase; Supabase tables use snake_case
@@ -193,6 +196,15 @@ const FAuth = {
     } catch(e){ return {success:false,error:e.message}; }
   },
 
+  // Used by the reset-password modal after a PASSWORD_RECOVERY session.
+  // Does NOT require the old password — the recovery token IS the credential.
+  async updatePassword(newPw) {
+    try {
+      const {error} = await _supabase.auth.updateUser({password:newPw});
+      if(error) throw error; return {success:true};
+    } catch(e){ return {success:false,error:e.message}; }
+  },
+
   async logout() {
     try { await _supabase.auth.signOut(); this._currentUser=null; return {success:true}; }
     catch(e){ return {success:false}; }
@@ -203,7 +215,18 @@ const FAuth = {
     // Supabase v2 fires INITIAL_SESSION automatically via onAuthStateChange on subscription,
     // so we do NOT call getSession() separately — that would double-fire the callback and
     // cause a double-boot race condition on every page load with an active session.
-    _supabase.auth.onAuthStateChange((_e,session)=>{
+    _supabase.auth.onAuthStateChange((event, session)=>{
+      // ── PASSWORD_RECOVERY: user clicked the reset link in their email ──
+      // Intercept BEFORE passing to app.js boot logic. Show the reset-password
+      // modal immediately so the user can set a new password. Do NOT boot the app.
+      if(event === 'PASSWORD_RECOVERY'){
+        FAuth._currentUser = session?.user
+          ? {uid:session.user.id, email:session.user.email}
+          : null;
+        // Signal the app to show the reset modal instead of booting normally
+        if(typeof window._onPasswordRecovery === 'function') window._onPasswordRecovery();
+        return;
+      }
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
       else             { FAuth._currentUser=null; cb(null); }
     });

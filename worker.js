@@ -21,7 +21,7 @@ function buildSecurityHeaders(nonce) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src https://fonts.gstatic.com data:",
       "img-src 'self' data: blob:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://eduformium-otp.school-management.workers.dev https://cdnjs.cloudflare.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.school-management.workers.dev https://cdnjs.cloudflare.com",
       "worker-src 'self'",
       "manifest-src 'self'",
       "frame-ancestors 'none'",

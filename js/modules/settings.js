@@ -86,9 +86,9 @@ Object.assign(SMS, {
     const newPw=document.getElementById('pw-new').value;
     const confirmPw=document.getElementById('pw-confirm').value;
     const errEl=document.getElementById('pw-err');
-    if(!oldPw){ errEl.style.display='block'; errEl.textContent='Please enter your current password.'; return; }
-    if(newPw.length<8){ errEl.style.display='block'; errEl.textContent='New password must be at least 8 characters.'; return; }
-    if(newPw!==confirmPw){ errEl.style.display='block'; errEl.textContent='Passwords do not match.'; return; }
+    if(!oldPw){ errEl.style.display='flex'; errEl.textContent='Please enter your current password.'; return; }
+    if(newPw.length<8){ errEl.style.display='flex'; errEl.textContent='New password must be at least 8 characters.'; return; }
+    if(newPw!==confirmPw){ errEl.style.display='flex'; errEl.textContent='Passwords do not match.'; return; }
     errEl.style.display='none';
 
     // Supabase account — re-authenticate then update password
@@ -99,9 +99,9 @@ Object.assign(SMS, {
         this.toast('Password updated!','success');
         ['pw-old','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
       }catch(e){
-        errEl.style.display='block';
+        errEl.style.display='flex';
         if(e.message==='wrong-password') errEl.textContent='Current password is incorrect.';
-        else errEl.textContent='Error: '+e.message;
+        else { errEl.textContent='Error: '+e.message; errEl.style.display='flex'; }
       }
       return;
     }
@@ -109,7 +109,7 @@ Object.assign(SMS, {
     // Local/demo account — use verifyPassword to handle both PBKDF2 and legacy hashes
     const cu=this.currentUser;
     const valid=await verifyPassword(oldPw, cu.passwordHash || cu.password || '');
-    if(!valid){ errEl.style.display='block'; errEl.textContent='Current password is incorrect.'; return; }
+    if(!valid){ errEl.style.display='flex'; errEl.textContent='Current password is incorrect.'; return; }
     const newHash=await hashPassword(newPw);
     const users=DB.get('users',[]); const i=users.findIndex(u=>u.id===cu.id);
     if(i>-1){ users[i].passwordHash=newHash; delete users[i].password; DB.set('users',users); this.currentUser=users[i]; }

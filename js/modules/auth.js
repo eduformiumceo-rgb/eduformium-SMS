@@ -52,6 +52,11 @@ Object.assign(SMS, {
       const e=document.getElementById('rp-otp-err'); if(e){e.style.display='none';e.textContent='';}
     });
     // ── Reset screen 3: New password ──
+    document.getElementById('rp-pw-back-btn')?.addEventListener('click',()=>{
+      document.getElementById('auth-reset-pw').style.display='none';
+      document.getElementById('auth-signin').style.display='block';
+      this._resetState={};
+    });
     document.getElementById('rp-apply-btn')?.addEventListener('click',()=>this._applyPasswordReset());
     document.getElementById('rp-new-pw')?.addEventListener('input',e=>{
       const pw=e.target.value; const conf=document.getElementById('rp-confirm-pw')?.value||'';

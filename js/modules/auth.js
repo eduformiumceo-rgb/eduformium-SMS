@@ -81,7 +81,7 @@ Object.assign(SMS, {
     // OTP screen listeners
     document.getElementById('otp-verify-btn')?.addEventListener('click',()=>this.verifyOTP());
     document.getElementById('otp-resend-btn')?.addEventListener('click',()=>this.resendOTP());
-    document.getElementById('otp-back-btn')?.addEventListener('click',()=>{ document.getElementById('auth-otp').style.display='none'; document.getElementById('auth-register').style.display='block'; this.clearOTPState(); });
+    document.getElementById('otp-back-btn')?.addEventListener('click',()=>{ document.getElementById('auth-otp').style.display='none'; document.getElementById('auth-register').style.display='block'; this.clearOTPState(); const rb=document.getElementById('register-btn'); if(rb){rb.disabled=false;rb.querySelector('span').textContent='Create School Account';} });
     this.initOTPBoxes();
     document.getElementById('add-student-btn')?.addEventListener('click',()=>this.openStudentModal());
     document.getElementById('save-student-btn')?.addEventListener('click',()=>this.saveStudent());
@@ -559,6 +559,9 @@ Object.assign(SMS, {
           this.clearOTPState();
           document.getElementById('auth-otp').style.display = 'none';
           document.getElementById('auth-register').style.display = 'block';
+          // FIX: re-enable register button — it was disabled when the OTP was sent
+          const rb = document.getElementById('register-btn');
+          if(rb){ rb.disabled=false; rb.querySelector('span').textContent='Create School Account'; }
           return;
         }
         // wrong_code
@@ -918,7 +921,7 @@ Object.assign(SMS, {
         errEl.textContent = 'Too many wrong attempts. Please restart the reset process.';
         errEl.style.display = 'flex';
         this._clearResetOTPBoxes(true);
-        // FIX: do NOT re-enable button — screen transitions away in 2s anyway
+        // FIX: do NOT re-enable Verify button — screen transitions away in 2s anyway
         btn.querySelector('span').textContent = 'Verify Code';
         // Go back to screen 1 after 2s
         setTimeout(() => {
@@ -926,6 +929,9 @@ Object.assign(SMS, {
           document.getElementById('auth-reset-email').style.display = 'block';
           const emailErr = document.getElementById('rp-email-err');
           if (emailErr) { emailErr.textContent = 'Too many attempts. Please try again.'; emailErr.style.display = 'flex'; }
+          // FIX: re-enable Send button — it was disabled when the OTP was first sent
+          const sb = document.getElementById('rp-send-btn');
+          if(sb){ sb.disabled=false; sb.querySelector('span').textContent='Send Reset Code'; }
         }, 2000);
         return;
       }
@@ -1099,6 +1105,9 @@ Object.assign(SMS, {
         setTimeout(() => {
           document.getElementById('auth-reset-pw').style.display = 'none';
           document.getElementById('auth-reset-email').style.display = 'block';
+          // FIX: re-enable Send button — it was disabled when the OTP was first sent
+          const sb = document.getElementById('rp-send-btn');
+          if(sb){ sb.disabled=false; sb.querySelector('span').textContent='Send Reset Code'; }
         }, 2000);
       }
       return;

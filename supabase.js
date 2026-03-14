@@ -200,12 +200,12 @@ const FAuth = {
 
   // Normalises Supabase user → {uid, email} — same shape as Firebase user
   onAuthChange(cb) {
+    // Supabase v2 fires INITIAL_SESSION automatically via onAuthStateChange on subscription,
+    // so we do NOT call getSession() separately — that would double-fire the callback and
+    // cause a double-boot race condition on every page load with an active session.
     _supabase.auth.onAuthStateChange((_e,session)=>{
       if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
       else             { FAuth._currentUser=null; cb(null); }
-    });
-    _supabase.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){ const u={uid:session.user.id,email:session.user.email}; FAuth._currentUser=u; cb(u); }
     });
   },
 

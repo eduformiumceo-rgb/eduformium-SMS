@@ -20,6 +20,9 @@ Object.assign(SMS, {
         DB.set('session', {userId: demoUser.id});
         this.currentUser = demoUser;
         this.boot();
+      } else {
+        this._demoMode = false;
+        this.toast('Demo account could not be loaded. Please refresh and try again.','danger');
       }
     });
     document.getElementById('login-btn')?.addEventListener('click',()=>this.login());
@@ -27,13 +30,14 @@ Object.assign(SMS, {
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
       const email=document.getElementById('l-user').value.trim();
-      if(!email){ alert('Please enter your email address first.'); return; }
+      if(!email){ this.toast('Please enter your email address first.','warn'); return; }
       if(window.FAuth){
-        FAuth.sendPasswordReset(email).then(r=>alert(r.success
-          ?'Password reset email sent. Please check your inbox.'
-          :'Could not send reset email. Please contact your administrator.'));
+        FAuth.sendPasswordReset(email).then(r=>{
+          if(r.success) this.toast('Password reset email sent. Please check your inbox.','success');
+          else this.toast('Could not send reset email. Please contact your administrator.','danger');
+        });
       } else {
-        alert('Please contact your school administrator to reset your password.');
+        this.toast('Please contact your school administrator to reset your password.','info');
       }
     });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; });

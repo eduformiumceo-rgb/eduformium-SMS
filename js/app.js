@@ -191,6 +191,10 @@ const SMS = {
     document.getElementById('login-screen').style.display='flex';
     document.getElementById('pending-screen').style.display='none';
     document.getElementById('suspended-screen').style.display='none';
+    // Always reset the login button — it can be left disabled if an unrecognised
+    // Firebase user is signed out mid-flight and showLogin() is called from onAuthChange.
+    const _lb=document.getElementById('login-btn');
+    if(_lb){ _lb.disabled=false; const _sp=_lb.querySelector('span'); if(_sp) _sp.textContent='Sign In to Dashboard'; }
     this.bindForms(); // bind login/register buttons
     PWABanner.tryShow();
   },

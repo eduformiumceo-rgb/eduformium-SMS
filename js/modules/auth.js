@@ -592,7 +592,10 @@ Object.assign(SMS, {
       else this._registering = false;
     } else {
       this._registering = false;
-      errEl.textContent = result.error;
+      // Show the actual error from Supabase so we can diagnose issues
+      const msg = result.error || 'Registration failed. Please try again.';
+      console.error('FAuth.register failed:', msg);
+      errEl.textContent = msg;
       errEl.style.display = 'flex';
       btn.disabled = false;
       btn.querySelector('span').textContent = 'Verify & Create Account';
@@ -610,7 +613,7 @@ Object.assign(SMS, {
   //  reset_token held in memory only — never persisted to localStorage
   // ══════════════════════════════════════════════════════════════════
 
-  _WORKER_URL: 'https://eduformium-otp-dev.school-management.workers.dev', // DEV
+  _WORKER_URL: 'https://eduformium-otp-dev.school-management.workers.dev',
   _resetState: {},
   _resetOTPCountdownTimer: null,
   _resetResendTimer: null,

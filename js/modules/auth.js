@@ -384,10 +384,16 @@ Object.assign(SMS, {
 
     // Ask worker to generate OTP, store its hash in KV, and email the code
     const sent = await this._sendOTPEmail(email, name);
-    btn.disabled = false;
-    btn.querySelector('span').textContent = 'Create School Account';
 
-    if (!sent) { errEl.textContent = 'Could not send verification email. Check your email and try again.'; errEl.style.display = 'flex'; return; }
+    if (!sent) {
+      // Only re-enable button on failure so user can try again
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Create School Account';
+      errEl.textContent = 'Could not send verification email. Check your email and try again.';
+      errEl.style.display = 'flex';
+      return;
+    }
+    // On success — do NOT re-enable the button. Screen switches to OTP immediately.
 
     // Show OTP screen
     document.getElementById('auth-register').style.display = 'none';
@@ -592,7 +598,10 @@ Object.assign(SMS, {
       else this._registering = false;
     } else {
       this._registering = false;
-      errEl.textContent = result.error;
+      // Show the actual error from Supabase so we can diagnose issues
+      const msg = result.error || 'Registration failed. Please try again.';
+      console.error('FAuth.register failed:', msg);
+      errEl.textContent = msg;
       errEl.style.display = 'flex';
       btn.disabled = false;
       btn.querySelector('span').textContent = 'Verify & Create Account';

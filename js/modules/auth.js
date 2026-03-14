@@ -68,6 +68,14 @@ Object.assign(SMS, {
     // Password toggle for reset screen 3
     document.getElementById('rp-new-pw-toggle')?.addEventListener('click',function(){ const i=document.getElementById('rp-new-pw'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){i.type='text';on.style.display='none';off.style.display='';}else{i.type='password';on.style.display='';off.style.display='none';} });
     document.getElementById('rp-confirm-pw-toggle')?.addEventListener('click',function(){ const i=document.getElementById('rp-confirm-pw'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){i.type='text';on.style.display='none';off.style.display='';}else{i.type='password';on.style.display='';off.style.display='none';} });
+    // Reset screen 3: Back to Sign In button
+    document.getElementById('rp-pw-back-btn')?.addEventListener('click',()=>{
+      this._resetState = {};
+      clearInterval(this._resetOTPCountdownTimer);
+      clearInterval(this._resetResendTimer);
+      document.getElementById('auth-reset-pw').style.display='none';
+      document.getElementById('auth-signin').style.display='block';
+    });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; const e=document.getElementById('l-err'); if(e){e.style.display='none';e.textContent='';} });
     document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; const e=document.getElementById('r-err'); if(e){e.style.display='none';e.textContent='';} });
     document.getElementById('register-btn')?.addEventListener('click',()=>this.startOTPFlow());
@@ -78,6 +86,12 @@ Object.assign(SMS, {
     document.getElementById('r-email')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-pwd')?.focus(); });
     document.getElementById('r-pwd')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-cpwd')?.focus(); });
     document.getElementById('r-cpwd')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.startOTPFlow(); });
+    // Registration form — password toggles
+    document.getElementById('r-pwd-toggle')?.addEventListener('click',function(){ const i=document.getElementById('r-pwd'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){i.type='text';on.style.display='none';off.style.display='';}else{i.type='password';on.style.display='';off.style.display='none';} });
+    document.getElementById('r-cpwd-toggle')?.addEventListener('click',function(){ const i=document.getElementById('r-cpwd'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){i.type='text';on.style.display='none';off.style.display='';}else{i.type='password';on.style.display='';off.style.display='none';} });
+    // Registration form — live password strength + requirements
+    document.getElementById('r-pwd')?.addEventListener('input',e=>{ const pw=e.target.value; const conf=document.getElementById('r-cpwd')?.value||''; this._checkRegPwStrength(pw); this._updateRegPwRequirements(pw,conf); });
+    document.getElementById('r-cpwd')?.addEventListener('input',e=>{ const pw=document.getElementById('r-pwd')?.value||''; this._updateRegPwRequirements(pw,e.target.value); });
     // OTP screen listeners
     document.getElementById('otp-verify-btn')?.addEventListener('click',()=>this.verifyOTP());
     document.getElementById('otp-resend-btn')?.addEventListener('click',()=>this.resendOTP());
@@ -1129,6 +1143,47 @@ Object.assign(SMS, {
     const lpass = document.getElementById('l-pass');
     if (lpass) lpass.value = '';
     this.toast('Password updated! Please sign in with your new password.', 'success');
+  },
+
+  // ══ REGISTRATION PASSWORD STRENGTH + REQUIREMENTS ══
+  _checkRegPwStrength(pw) {
+    const hasLen     = pw.length >= 8;
+    const hasUpper   = /[A-Z]/.test(pw);
+    const hasNum     = /[0-9]/.test(pw);
+    const hasSpecial = /[^A-Za-z0-9]/.test(pw);
+    let score = 0;
+    if (hasLen)     score++;
+    if (hasUpper)   score++;
+    if (hasNum)     score++;
+    if (hasSpecial) score++;
+    if (pw.length >= 12) score++;
+    const track = document.getElementById('r-strength-track');
+    const bar   = document.getElementById('r-strength-bar');
+    const label = document.getElementById('r-strength-label');
+    if (!pw) {
+      if (track) track.style.display = 'none';
+      if (label) label.textContent = '';
+      return;
+    }
+    if (track) track.style.display = 'block';
+    const levels = [
+      { pct: '20%', color: '#ef4444', text: 'Too weak',   textColor: '#ef4444' },
+      { pct: '40%', color: '#f97316', text: 'Weak',       textColor: '#f97316' },
+      { pct: '60%', color: '#eab308', text: 'Fair',       textColor: '#ca8a04' },
+      { pct: '80%', color: '#22c55e', text: 'Strong',     textColor: '#16a34a' },
+      { pct: '100%',color: '#0d9488', text: 'Very strong',textColor: '#0d9488' },
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    if (bar)   { bar.style.width = lvl.pct; bar.style.background = lvl.color; }
+    if (label) { label.textContent = lvl.text; label.style.color = lvl.textColor; }
+  },
+
+  _updateRegPwRequirements(pw, confirmPw) {
+    const req = (id, met) => { const el = document.getElementById(id); if (el) el.classList.toggle('met', met); };
+    req('r-req-len',   pw.length >= 8);
+    req('r-req-upper', /[A-Z]/.test(pw));
+    req('r-req-num',   /[0-9]/.test(pw));
+    req('r-req-match', pw.length >= 1 && pw === confirmPw);
   },
 
   // ══ DASHBOARD ══

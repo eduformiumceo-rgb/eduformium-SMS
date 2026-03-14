@@ -29,6 +29,23 @@ Object.assign(SMS, {
     // Enter on email → move to password; Enter on password → submit
     document.getElementById('l-user')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('l-pass')?.focus(); });
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });
+    // ── Remember Me: pre-fill email on load if previously saved ──
+    try {
+      const savedEmail = localStorage.getItem('sms_remember_email');
+      if (savedEmail) {
+        const luEl = document.getElementById('l-user');
+        if (luEl) luEl.value = savedEmail;
+        const rmEl = document.getElementById('l-remember');
+        if (rmEl) rmEl.checked = true;
+      }
+    } catch(e) {}
+    document.getElementById('l-remember')?.addEventListener('change', function() {
+      try {
+        const email = document.getElementById('l-user')?.value.trim().toLowerCase() || '';
+        if (this.checked && email) localStorage.setItem('sms_remember_email', email);
+        else localStorage.removeItem('sms_remember_email');
+      } catch(e) {}
+    });
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
       this._showResetEmailScreen();
@@ -246,6 +263,12 @@ Object.assign(SMS, {
     if(minsLeft){ errEl.style.display='flex'; errEl.textContent=`Too many failed attempts. Try again in ${minsLeft} minute${minsLeft>1?'s':''}.`; return; }
 
     btn.disabled=true; btn.querySelector('span').textContent='Signing in…'; errEl.style.display='none';
+    // ── Remember Me: save or remove email based on checkbox ──
+    try {
+      const rememberEl = document.getElementById('l-remember');
+      if (rememberEl?.checked) localStorage.setItem('sms_remember_email', email);
+      else localStorage.removeItem('sms_remember_email');
+    } catch(e) {}
 
     // Check localStorage only for demo account (role === 'demo') — not for real Supabase users
     const users=DB.get('users',[]);

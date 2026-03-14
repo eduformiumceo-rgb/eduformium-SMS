@@ -24,7 +24,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/><!-- kept for older iOS Safari compatibility -->
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="stylesheet" href="styles.css?v=21"/>
-<style>@media (max-width:768px){.l-panel::before{display:none!important;content:none!important;}}</style>
+<style>
+  @media (max-width:768px){.l-panel::before{display:none!important;content:none!important;}}
+  .forgot-pw-link{background:none;border:none;color:var(--brand-teal);font-size:.8rem;cursor:pointer;text-decoration:underline;padding:0;font-family:inherit;transition:opacity .15s;}
+  .forgot-pw-link:hover{opacity:.7;}
+  .l-remember-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem;}
+  .l-remember-label{display:flex;align-items:center;gap:.4rem;font-size:.79rem;color:#6b8aaa;cursor:pointer;user-select:none;}
+  .l-remember-label input[type="checkbox"]{width:14px;height:14px;accent-color:var(--brand-teal);cursor:pointer;flex-shrink:0;}
+</style>
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -169,11 +176,15 @@
           </div>
         </div>
 
-        <div style="text-align:right;margin-bottom:.5rem">
-          <button type="button" id="forgot-pw-btn" style="background:none;border:none;color:var(--brand-teal);font-size:.8rem;cursor:pointer;text-decoration:underline;padding:0">Forgot password?</button>
+        <div class="l-remember-row">
+          <label class="l-remember-label">
+            <input type="checkbox" id="l-remember" autocomplete="off"/>
+            Remember me
+          </label>
+          <button type="button" id="forgot-pw-btn" class="forgot-pw-link">Forgot password?</button>
         </div>
 
-        <div id="l-err" class="form-err" style="display:none">Incorrect email or password.</div>
+        <div id="l-err" class="form-err" style="display:none"></div>
 
         <button class="l-btn-primary" id="login-btn" type="button">
           <span>Sign In to Dashboard</span>
@@ -200,16 +211,16 @@
 
         <div class="form-field">
           <label class="form-label" for="r-school">School Name *</label>
-          <input class="form-input" type="text" id="r-school" placeholder="e.g. Bright Future Academy" autocomplete="organization"/>
+          <input class="form-input" type="text" id="r-school" placeholder="e.g. Bright Future Academy" autocomplete="organization" maxlength="100"/>
         </div>
         <div class="form-field">
           <label class="form-label" for="r-motto">School Motto</label>
-          <input class="form-input" type="text" id="r-motto" placeholder="e.g. Integrity, Excellence, Service"/>
+          <input class="form-input" type="text" id="r-motto" placeholder="e.g. Integrity, Excellence, Service" maxlength="150"/>
         </div>
         <div class="form-grid-2">
           <div class="form-field">
             <label class="form-label" for="r-name">Your Full Name (Admin) *</label>
-            <input class="form-input" type="text" id="r-name" placeholder="e.g. Anna Mensah" autocomplete="name"/>
+            <input class="form-input" type="text" id="r-name" placeholder="e.g. Anna Mensah" autocomplete="name" maxlength="80"/>
           </div>
           <div class="form-field">
             <label class="form-label" for="r-email">Email *</label>

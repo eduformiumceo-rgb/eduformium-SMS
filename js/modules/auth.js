@@ -706,8 +706,8 @@ Object.assign(SMS, {
 
     // Store state and transition to screen 2
     this._resetState = { email, expiresAt: Date.now() + 10 * 60 * 1000 };
-    btn.disabled = false;
-    btn.querySelector('span').textContent = 'Send Reset Code';
+    // Do NOT re-enable button on success — screen switches away immediately.
+    // Re-enabling here creates a window where Enter key or double-click fires a second OTP send.
 
     document.getElementById('auth-reset-email').style.display = 'none';
     document.getElementById('auth-reset-otp').style.display = 'block';

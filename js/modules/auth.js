@@ -489,11 +489,12 @@ Object.assign(SMS, {
     btn.disabled = true;
 
     // SECURITY FIX (F-05/F-06): Worker generates new OTP server-side and replaces KV entry.
-    // Reset client-side expiry display to match new 10-minute window.
-    this._otpState.expiresAt = Date.now() + 10 * 60 * 1000;
-
     const sent = await this._sendOTPEmail(email, name);
     if (sent) {
+      // FIX: only reset expiresAt after confirming the worker actually sent a new OTP.
+      // Previously this was set before the send — if Brevo failed, the countdown would
+      // show 10 min but the server's OTP still had the original (shorter) expiry.
+      this._otpState.expiresAt = Date.now() + 10 * 60 * 1000;
       errEl.style.display = 'none';
       successEl.style.display = 'flex';
       setTimeout(() => { if (successEl) successEl.style.display = 'none'; }, 4000);
@@ -513,6 +514,9 @@ Object.assign(SMS, {
     const { school, motto, name, email, pwd, expiresAt } = this._otpState;
     const errEl = document.getElementById('otp-err');
     const btn = document.getElementById('otp-verify-btn');
+
+    // Guard: bail silently if boxes aren't all filled (prevents programmatic calls with empty code)
+    if (entered.length < 6) return;
 
     // Belt-and-suspenders client-side expiry for UX (server enforces it too)
     if (Date.now() > expiresAt) {
@@ -542,7 +546,8 @@ Object.assign(SMS, {
           errEl.textContent = 'This code has expired. Please request a new one.';
           errEl.style.display = 'flex';
           this._clearOTPBoxes(true);
-          btn.disabled = false;
+          // FIX: do NOT re-enable button — OTP is expired, user must use Resend, not Verify.
+          // Still reset button text so it reads correctly after user resends and types new code.
           btn.querySelector('span').textContent = 'Verify & Create Account';
           return;
         }
@@ -561,7 +566,8 @@ Object.assign(SMS, {
           : 'Too many attempts. Please start registration again.';
         errEl.style.display = 'flex';
         this._clearOTPBoxes(true);
-        btn.disabled = false;
+        // FIX: do NOT re-enable button — _clearOTPBoxes already disabled it.
+        // Button re-enables naturally via _checkOTPComplete() when user types a new code.
         btn.querySelector('span').textContent = 'Verify & Create Account';
         setTimeout(() => document.getElementById('otp-0')?.focus(), 100);
         return;
@@ -570,7 +576,7 @@ Object.assign(SMS, {
       errEl.textContent = 'Could not verify code — check your connection and try again.';
       errEl.style.display = 'flex';
       this._clearOTPBoxes(true);
-      btn.disabled = false;
+      // FIX: do NOT re-enable button — user must re-enter code after connection error
       btn.querySelector('span').textContent = 'Verify & Create Account';
       return;
     }
@@ -861,6 +867,10 @@ Object.assign(SMS, {
     const btn   = document.getElementById('rp-otp-verify-btn');
     const { email, expiresAt } = this._resetState;
 
+    // Guard: Enter key calls this directly and bypasses the disabled button state.
+    // If boxes aren't all filled yet, do nothing silently.
+    if (code.length < 6) return;
+
     // Client-side expiry check (server enforces it too)
     if (Date.now() > expiresAt) {
       errEl.textContent = 'This code has expired. Please request a new one.';
@@ -885,7 +895,7 @@ Object.assign(SMS, {
       errEl.textContent = 'Connection error. Check your internet and try again.';
       errEl.style.display = 'flex';
       this._clearResetOTPBoxes(true);
-      btn.disabled = false;
+      // FIX: do NOT re-enable button — user must re-enter code after connection error
       btn.querySelector('span').textContent = 'Verify Code';
       return;
     }
@@ -895,7 +905,7 @@ Object.assign(SMS, {
         errEl.textContent = 'This code has expired. Please request a new one.';
         errEl.style.display = 'flex';
         this._clearResetOTPBoxes(true);
-        btn.disabled = false;
+        // FIX: do NOT re-enable button — OTP is expired, user must use Resend
         btn.querySelector('span').textContent = 'Verify Code';
         return;
       }
@@ -903,7 +913,7 @@ Object.assign(SMS, {
         errEl.textContent = 'Too many wrong attempts. Please restart the reset process.';
         errEl.style.display = 'flex';
         this._clearResetOTPBoxes(true);
-        btn.disabled = false;
+        // FIX: do NOT re-enable button — screen transitions away in 2s anyway
         btn.querySelector('span').textContent = 'Verify Code';
         // Go back to screen 1 after 2s
         setTimeout(() => {
@@ -920,7 +930,8 @@ Object.assign(SMS, {
         : 'No attempts remaining. Please request a new code.';
       errEl.style.display = 'flex';
       this._clearResetOTPBoxes(true);
-      btn.disabled = false;
+      // FIX: do NOT re-enable button — _clearResetOTPBoxes already disabled it.
+      // Button re-enables naturally via _checkResetOTPComplete() when user types a new code.
       btn.querySelector('span').textContent = 'Verify Code';
       setTimeout(() => document.getElementById('rp-otp-0')?.focus(), 100);
       return;

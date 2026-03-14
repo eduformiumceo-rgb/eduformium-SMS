@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <!-- ── Security Headers ── -->
-<meta http-equiv="X-Content-Type-Options" content="nosniff"/>
-<meta http-equiv="X-Frame-Options" content="DENY"/>
-<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>
-<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()"/>
+<!-- NOTE: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+     are all set as proper HTTP response headers via the _headers file (Cloudflare Pages).
+     They must NOT be set here as meta tags — browsers ignore them in meta tags and
+     emit console errors. The _headers file is the correct place for these. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <!-- Preconnects for speed -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -20,7 +20,8 @@
 <link rel="icon" type="image/svg+xml" href="icon.svg"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#1a3a6b"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/><!-- kept for older iOS Safari compatibility -->
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="stylesheet" href="styles.css?v=21"/>
 <style>@media (max-width:768px){.l-panel::before{display:none!important;content:none!important;}}</style>

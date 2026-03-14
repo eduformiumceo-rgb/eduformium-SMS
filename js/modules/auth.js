@@ -26,6 +26,8 @@ Object.assign(SMS, {
       }
     });
     document.getElementById('login-btn')?.addEventListener('click',()=>this.login());
+    // Enter on email → move to password; Enter on password → submit
+    document.getElementById('l-user')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('l-pass')?.focus(); });
     document.getElementById('l-pass')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.login(); });
     document.getElementById('l-pass-toggle')?.addEventListener('click',function(){ const i=document.getElementById('l-pass'); const on=this.querySelector('.eye-on'),off=this.querySelector('.eye-off'); if(i.type==='password'){ i.type='text'; on.style.display='none'; off.style.display=''; }else{ i.type='password'; on.style.display=''; off.style.display='none'; } });
     document.getElementById('forgot-pw-btn')?.addEventListener('click',()=>{
@@ -43,6 +45,13 @@ Object.assign(SMS, {
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; });
     document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; });
     document.getElementById('register-btn')?.addEventListener('click',()=>this.startOTPFlow());
+    // Enter key navigation on register form
+    document.getElementById('r-school')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-motto')?.focus(); });
+    document.getElementById('r-motto')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-name')?.focus(); });
+    document.getElementById('r-name')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-email')?.focus(); });
+    document.getElementById('r-email')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-pwd')?.focus(); });
+    document.getElementById('r-pwd')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-cpwd')?.focus(); });
+    document.getElementById('r-cpwd')?.addEventListener('keydown',e=>{ if(e.key==='Enter') this.startOTPFlow(); });
     // OTP screen listeners
     document.getElementById('otp-verify-btn')?.addEventListener('click',()=>this.verifyOTP());
     document.getElementById('otp-resend-btn')?.addEventListener('click',()=>this.resendOTP());
@@ -247,8 +256,15 @@ Object.assign(SMS, {
         this.showPendingScreen(_profile || {status:'pending', name:'', adminEmail:email}, email);
         return;
       }
+      // Active admin — re-enable button now before onAuthChange boots the app.
+      // If onAuthChange is slow, the button won't be stuck in a disabled state.
+      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
     }
     // For sub-users (no school profile under their uid), onAuthStateChanged will handle boot.
+    // Re-enable button so it's never stuck if onAuthChange is delayed.
+    else {
+      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+    }
   },
 
   // ══ OTP FLOW ══

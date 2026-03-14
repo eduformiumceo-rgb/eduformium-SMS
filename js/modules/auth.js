@@ -295,7 +295,7 @@ Object.assign(SMS, {
   _otpState: {},
 
   initOTPBoxes() {
-    const boxes = document.querySelectorAll('.otp-box');
+    const boxes = document.querySelectorAll('#auth-otp .otp-box');
     boxes.forEach((box, i) => {
       box.addEventListener('input', (e) => {
         const val = e.target.value.replace(/\D/g, '');
@@ -322,18 +322,18 @@ Object.assign(SMS, {
   },
 
   _checkOTPComplete() {
-    const boxes = document.querySelectorAll('.otp-box');
+    const boxes = document.querySelectorAll('#auth-otp .otp-box');
     const complete = [...boxes].every(b => b.value.length === 1);
     const btn = document.getElementById('otp-verify-btn');
     if (btn) btn.disabled = !complete;
   },
 
   _getOTPValue() {
-    return [...document.querySelectorAll('.otp-box')].map(b => b.value).join('');
+    return [...document.querySelectorAll('#auth-otp .otp-box')].map(b => b.value).join('');
   },
 
   _clearOTPBoxes(error = false) {
-    const boxes = document.querySelectorAll('.otp-box');
+    const boxes = document.querySelectorAll('#auth-otp .otp-box');
     boxes.forEach(b => {
       b.value = '';
       b.classList.remove('otp-filled');

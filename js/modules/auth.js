@@ -263,7 +263,7 @@ Object.assign(SMS, {
     const minsLeft = this._isLoginLocked(email);
     if(minsLeft){ errEl.style.display='flex'; errEl.textContent=`Too many failed attempts. Try again in ${minsLeft} minute${minsLeft>1?'s':''}.`; return; }
 
-    btn.disabled=true; btn.querySelector('span').textContent='Signing in…'; errEl.style.display='none';
+    btn.disabled=true; btn.setAttribute('data-loading','true'); const _btnSpan=btn.querySelector('span'); _btnSpan.textContent='Signing in…'; const _spinner=document.createElement('span'); _spinner.className='btn-spinner'; btn.insertBefore(_spinner, btn.querySelector('svg')||null); errEl.style.display='none';
     // ── Remember Me: save or remove email based on checkbox ──
     try {
       const rememberEl = document.getElementById('l-remember');
@@ -276,7 +276,7 @@ Object.assign(SMS, {
     const localUser=users.find(u=>u.email===email);
     if(localUser && (localUser.role==='demo' || !window.FAuth)){
       const ok = await verifyPassword(pass, localUser.passwordHash || localUser.password || '');
-      if(!ok){ this._recordLoginFail(email); errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
+      if(!ok){ this._recordLoginFail(email); errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.removeAttribute('data-loading'); const _sp1=btn.querySelector('.btn-spinner'); if(_sp1) _sp1.remove(); const _bs1=btn.querySelector('span'); if(_bs1) _bs1.textContent='Sign In to Dashboard'; errEl.classList.remove('form-shake'); void errEl.offsetWidth; errEl.classList.add('form-shake'); return; }
       // Upgrade legacy plain-text or SHA-256 hash to PBKDF2 on first successful login
       if(!localUser.passwordHash || !localUser.passwordHash.startsWith('pbkdf2:')){
         localUser.passwordHash = await hashPassword(pass);
@@ -292,12 +292,12 @@ Object.assign(SMS, {
     }
 
     // Try Firebase if available
-    if(!window.FAuth){ this._recordLoginFail(email); errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return; }
+    if(!window.FAuth){ this._recordLoginFail(email); errEl.style.display='flex'; errEl.textContent='Incorrect email or password.'; btn.disabled=false; btn.removeAttribute('data-loading'); const _sp2=btn.querySelector('.btn-spinner'); if(_sp2) _sp2.remove(); const _bs2=btn.querySelector('span'); if(_bs2) _bs2.textContent='Sign In to Dashboard'; errEl.classList.remove('form-shake'); void errEl.offsetWidth; errEl.classList.add('form-shake'); return; }
     const result=await FAuth.login(email,pass);
     if(!result.success){
       const rem = this._recordLoginFail(email);
-      const msg = rem > 0 ? `${result.error} (${rem} attempt${rem!==1?'s':''} left before lockout)` : 'Too many failed attempts. Please try again in 15 minutes.';
-      errEl.style.display='flex'; errEl.textContent=msg; btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard'; return;
+      const msg = rem > 0 ? `Incorrect email or password. (${rem} attempt${rem!==1?'s':''} left before lockout)` : 'Too many failed attempts. Please try again in 15 minutes.';
+      errEl.style.display='flex'; errEl.textContent=msg; btn.disabled=false; btn.removeAttribute('data-loading'); const _sp3=btn.querySelector('.btn-spinner'); if(_sp3) _sp3.remove(); const _bs3=btn.querySelector('span'); if(_bs3) _bs3.textContent='Sign In to Dashboard'; errEl.classList.remove('form-shake'); void errEl.offsetWidth; errEl.classList.add('form-shake'); return;
     }
     this._clearLoginFail(email);
     // Firebase login succeeded. The onAuthStateChanged handler will now fire and handle
@@ -309,25 +309,25 @@ Object.assign(SMS, {
       // This is a school admin — check approval status
       const _status = _profile.status || 'pending';
       if(_status === 'suspended'){
-        btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+        btn.disabled=false; btn.removeAttribute('data-loading'); const _sp4=btn.querySelector('.btn-spinner'); if(_sp4) _sp4.remove(); btn.querySelector('span').textContent='Sign In to Dashboard';
         document.getElementById('login-screen').style.display='none';
         this.showSuspendedScreen(_profile, email);
         return;
       }
       if(_status !== 'active'){
-        btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+        btn.disabled=false; btn.removeAttribute('data-loading'); const _sp5=btn.querySelector('.btn-spinner'); if(_sp5) _sp5.remove(); btn.querySelector('span').textContent='Sign In to Dashboard';
         document.getElementById('login-screen').style.display='none';
         this.showPendingScreen(_profile || {status:'pending', name:'', adminEmail:email}, email);
         return;
       }
       // Active admin — re-enable button now before onAuthChange boots the app.
       // If onAuthChange is slow, the button won't be stuck in a disabled state.
-      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+      btn.disabled=false; btn.removeAttribute('data-loading'); const _sp6=btn.querySelector('.btn-spinner'); if(_sp6) _sp6.remove(); btn.querySelector('span').textContent='Sign In to Dashboard';
     }
     // For sub-users (no school profile under their uid), onAuthStateChanged will handle boot.
     // Re-enable button so it's never stuck if onAuthChange is delayed.
     else {
-      btn.disabled=false; btn.querySelector('span').textContent='Sign In to Dashboard';
+      btn.disabled=false; btn.removeAttribute('data-loading'); const _sp7=btn.querySelector('.btn-spinner'); if(_sp7) _sp7.remove(); btn.querySelector('span').textContent='Sign In to Dashboard';
     }
   },
 
@@ -749,6 +749,13 @@ Object.assign(SMS, {
 
       if (data.reason === 'rate_limited') {
         errEl.textContent = 'Too many reset attempts. Please wait 30 minutes before trying again.';
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Send Reset Code';
+        return;
+      }
+      if (data.reason === 'user_not_found') {
+        errEl.textContent = 'This email is not registered in our system. Please check your email or register a new school.';
         errEl.style.display = 'flex';
         btn.disabled = false;
         btn.querySelector('span').textContent = 'Send Reset Code';

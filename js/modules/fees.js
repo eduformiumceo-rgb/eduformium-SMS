@@ -347,7 +347,7 @@ Object.assign(SMS, {
         setTimeout(()=>{
           document.getElementById('do-import-btn')?.addEventListener('click',()=>SMS.confirmImport());
         },50);
-      }catch(err){ document.getElementById('import-preview').innerHTML=`<div style="color:var(--danger)">Error reading file: ${err.message}</div>`; }
+      }catch(err){ document.getElementById('import-preview').innerHTML=`<div style="color:var(--danger)">Error reading file: ${sanitize(String(err.message||'Unknown error'))}</div>`; }
     };
     reader.readAsArrayBuffer(file);
   },

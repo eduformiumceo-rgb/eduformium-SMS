@@ -305,6 +305,14 @@ img { max-width: 100%; }
     0 0 16px 4px rgba(13,148,136,0.4);
   padding: 0;
   overflow: hidden;
+  transition: transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s;
+  cursor: pointer;
+}
+.l-mark-box:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px rgba(13,148,136,0.8),
+    0 0 24px 8px rgba(13,148,136,0.55);
 }
 .l-mark-box img {
   width: 100%; height: 100%;
@@ -425,18 +433,24 @@ img { max-width: 100%; }
 }
 .l-feat {
   display: flex; align-items: center; gap: .38rem;
-  font-size: .64rem; font-weight: 500;
-  color: rgba(255,255,255,.38);
+  font-size: .68rem; font-weight: 500;
+  color: rgba(255,255,255,.5);
   font-family: 'DM Sans', sans-serif;
   background: rgba(13,148,136,.07);
-  border: 1px solid rgba(13,148,136,.15);
-  border-radius: 4px; padding: .24rem .62rem;
+  border: 1px solid rgba(13,148,136,.2);
+  border-radius: 5px; padding: .32rem .78rem;
+  transition: background .16s, border-color .16s, color .16s;
 }
-.l-feat-ic { color: #14b8a6; font-size: .6rem; font-weight: 700; }
+.l-feat:hover {
+  background: rgba(13,148,136,.13);
+  border-color: rgba(13,148,136,.35);
+  color: rgba(255,255,255,.72);
+}
+.l-feat-ic { color: #14b8a6; font-size: .7rem; font-weight: 700; }
 
 /* Footer — natural bottom of flex column */
 .l-hero-foot {
-  font-size: .58rem; color: rgba(255,255,255,.14);
+  font-size: .58rem; color: rgba(255,255,255,.28);
   padding-top: 1.5rem;
   border-top: 1px solid rgba(13,148,136,.1);
   font-family: 'DM Sans', sans-serif;
@@ -540,7 +554,11 @@ img { max-width: 100%; }
 }
 .l-panel-inner .form-input:focus {
   border-color: #0d9488; background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(13,148,136,.1); outline: none;
+  box-shadow: 0 0 0 4px rgba(13,148,136,.12); outline: none;
+}
+/* Error message shake — scoped to login panel only, reuses existing formShake keyframe */
+.l-panel-inner .form-err.form-shake {
+  animation: formShake .45s cubic-bezier(.36,.07,.19,.97);
 }
 .l-panel-inner .fi-wrap:focus-within .fi-icon { color: #0d9488; }
 .l-panel-inner .form-label {
@@ -558,7 +576,7 @@ img { max-width: 100%; }
   touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   display: flex; align-items: center; transition: background .15s, color .15s;
 }
-.pw-toggle:hover { background: #f1f5f9; color: #475569; }
+.pw-toggle:hover { background: rgba(13,148,136,.08); color: #0d9488; }
 .pw-toggle svg { width: 14px; height: 14px; pointer-events: none; }
 
 /* Primary CTA — rich teal */
@@ -608,15 +626,15 @@ img { max-width: 100%; }
 .l-btn-demo {
   width: 100%; height: 46px;
   display: flex; align-items: center; justify-content: center; gap: .55rem;
-  background: rgba(13,148,136,.06);
-  border: 1.5px solid rgba(13,148,136,.22); border-radius: 10px;
+  background: rgba(13,148,136,.09);
+  border: 1.5px solid rgba(13,148,136,.32); border-radius: 10px;
   font-size: .84rem; font-weight: 500; color: #0d9488; cursor: pointer;
   transition: background .18s, border-color .18s;
   touch-action: manipulation; font-family: 'DM Sans', sans-serif;
   margin-top: .75rem;
 }
 .l-btn-demo svg { flex-shrink: 0; color: #0d9488; }
-.l-btn-demo:hover { background: rgba(13,148,136,.12); border-color: rgba(13,148,136,.4); }
+/* hover handled by patch block below */
 
 /* Demo hint */
 .l-demo {
@@ -631,7 +649,8 @@ img { max-width: 100%; }
 
 /* Divider */
 .l-divider { display: flex; align-items: center; gap: .75rem; margin: 1.4rem 0; }
-.l-divider::before, .l-divider::after { content: ''; flex: 1; height: 1px; background: #d4e8e6; }
+.l-divider::before { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, transparent 0%, #d4e8e6 100%); }
+.l-divider::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(to left,  transparent 0%, #d4e8e6 100%); }
 .l-divider span { font-size: .68rem; color: #94a3b8; white-space: nowrap; font-weight: 500; font-family: 'DM Sans', sans-serif; }
 
 /* Error */
@@ -669,14 +688,15 @@ img { max-width: 100%; }
     max-width: 100%;
     min-height: auto;
     height: auto;
-    padding: 1.75rem 1.5rem 3.5rem;
+    padding: 1.25rem 1.5rem 2.5rem;
     align-items: flex-start;
     text-align: left;
     justify-content: flex-start;
     gap: 0;
   }
-  /* Show only logo on mobile — hide everything else */
-  .l-stats-row, .l-feats, .l-hero-foot, .l-hero-desc, .l-eyebrow-pill, .l-headline, .l-hero-mid { display: none; }
+  /* Mobile: logo only — everything else hidden for compact professional look */
+  .l-stats-row, .l-feats, .l-hero-foot, .l-hero-desc,
+  .l-eyebrow-pill, .l-headline, .l-hero-mid { display: none; }
   .l-wordmark {
     justify-content: flex-start;
     width: auto;
@@ -685,17 +705,15 @@ img { max-width: 100%; }
     border-bottom: none;
     flex-shrink: 0;
   }
-  .l-hero-mid { margin-top: 0; }
   .l-panel {
     width: 100%; min-height: auto;
     height: auto; max-height: none;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -16px 60px rgba(0,0,0,.4);
-    margin-top: -28px; position: relative; z-index: 2;
+    margin-top: -32px; position: relative; z-index: 2;
     animation: lCardUp .48s .1s cubic-bezier(.22,1,.36,1) both;
   }
   @keyframes lCardUp { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
-  /* panel bar handled globally above */
   .l-panel-inner { padding: 1.4rem 1.5rem 2.5rem; justify-content: flex-start; }
   .l-title { font-size: 2.1rem; }
   .l-subtitle { margin-bottom: 1.5rem; }
@@ -717,10 +735,10 @@ img { max-width: 100%; }
 [data-theme="dark"] .l-title { color: #f1f5f9; }
 [data-theme="dark"] .l-subtitle { color: #94a3b8; }
 [data-theme="dark"] .l-panel-inner .form-label { color: #cbd5e1; }
-[data-theme="dark"] .l-remember-label { color: #94a3b8; }
 [data-theme="dark"] .l-btn-outline { border-color: rgba(13,148,136,.25); color: #94a3b8; }
 [data-theme="dark"] .l-btn-outline:hover { border-color: #0d9488; color: #14b8a6; background: rgba(13,148,136,.08); }
-[data-theme="dark"] .l-divider::before, [data-theme="dark"] .l-divider::after { background: rgba(13,148,136,.18); }
+[data-theme="dark"] .l-divider::before { background: linear-gradient(to right, transparent 0%, rgba(13,148,136,.25) 100%); }
+[data-theme="dark"] .l-divider::after  { background: linear-gradient(to left,  transparent 0%, rgba(13,148,136,.25) 100%); }
 [data-theme="dark"] .l-divider span { color: #475569; }
 [data-theme="dark"] .l-hero-bg { background: #040e1a; }
 
@@ -3128,3 +3146,298 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .sync-ok     { background: #1b5e20; color: #a5d6a7; }
 [data-theme="dark"] .sync-saving { background: #3d2e00; color: #ffe082; }
 [data-theme="dark"] .sync-error  { background: #3e0000; color: #ef9a9a; }
+
+/* ════════════════════════════════════════
+   ✦ LOGIN PAGE — 10/10 REFINEMENTS
+   Targeted improvements:
+   · Accessibility: contrast fixes on hero text
+   · Typography: DM Sans weight & spacing refinements
+   · Form UX: loading state, error shake, input transitions
+   · CTA: shimmer animation
+   · Visual: enhanced panel depth, right-panel card feel
+   · Mobile: fix bottom whitespace, safe-area padding
+   ════════════════════════════════════════ */
+
+/* ── Headline: DM Sans weight & spacing refinements ── */
+.l-hl-1, .l-hl-2 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+/* ── Accessibility: raise hero text contrast to WCAG AA ── */
+.l-hero-desc {
+  color: rgba(255, 255, 255, .65); /* was .38 — fails contrast */
+}
+.l-feat {
+  color: rgba(255, 255, 255, .75); /* was .38 — fails contrast */
+  border-color: rgba(13, 148, 136, .28);
+  background: rgba(13, 148, 136, .1);
+  gap: .45rem;
+  padding: .3rem .7rem;
+}
+.l-stat-l {
+  color: rgba(255, 255, 255, .6); /* was .3 — fails contrast */
+}
+.l-stat-n {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.05rem;
+}
+.l-mark-name {
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: -.02em;
+}
+
+/* ── Right panel: elevated depth + ambient glow ── */
+.l-panel {
+  background: #fafcfc;
+  box-shadow: -24px 0 80px rgba(0, 0, 0, .35),
+              -1px 0 0 rgba(13, 148, 136, .12);
+}
+@media (min-width: 769px) {
+  .l-panel::before {
+    background: linear-gradient(90deg, #071830 0%, #0d9488 35%, #14b8a6 60%, #0d9488 80%, #071830 100%);
+    /* Static gradient bar — no animation to keep performance clean */
+  }
+}
+
+/* ── Form inputs: smoother micro-interactions ── */
+.l-panel-inner .form-input {
+  /* Extend transition to include transform for focus lift effect */
+  transition: border-color .2s, box-shadow .2s, background .2s, transform .15s;
+}
+.l-panel-inner .form-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, .12),
+              0 2px 8px rgba(13, 148, 136, .08);
+}
+.l-panel-inner .form-field {
+  position: relative;
+}
+
+/* Input valid state — green glow when filled correctly */
+.l-panel-inner .form-input.input-valid {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, .08);
+}
+
+/* ── CTA button: shimmer effect + loading state ── */
+.l-btn-primary {
+  overflow: hidden;
+  position: relative;
+}
+.l-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.15) 50%,
+    transparent 100%);
+  transform: translateX(-180%) skewX(-20deg);
+  animation: btnShimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+@keyframes btnShimmer {
+  0%   { transform: translateX(-180%) skewX(-20deg); opacity: 0; }
+  15%  { opacity: 1; }
+  50%  { transform: translateX(260%) skewX(-20deg); opacity: 1; }
+  51%  { opacity: 0; }
+  100% { transform: translateX(260%) skewX(-20deg); opacity: 0; }
+}
+
+/* Loading state */
+.l-btn-primary[data-loading="true"] {
+  pointer-events: none;
+  opacity: .75;
+}
+.l-btn-primary[data-loading="true"]::before {
+  animation: none;
+}
+.btn-spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin .65s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Error shake animation ── */
+@keyframes formShake {
+  0%  { transform: translateX(0); }
+  18% { transform: translateX(-8px); }
+  36% { transform: translateX(8px); }
+  54% { transform: translateX(-5px); }
+  72% { transform: translateX(5px); }
+  90% { transform: translateX(-2px); }
+  100%{ transform: translateX(0); }
+}
+.form-shake {
+  animation: formShake .45s cubic-bezier(.36,.07,.19,.97);
+}
+
+/* Error state on input */
+.l-panel-inner .form-input.input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .1);
+  background: #fff8f8;
+}
+
+/* ── Login-panel form error: scoped refinements (does NOT override app-wide .form-err) ── */
+.l-panel-inner .form-err {
+  border-radius: 10px;
+  font-size: .8rem;
+  padding: .7rem 1rem;
+}
+
+/* Stagger animations: removed — nth-child selectors were incorrect */
+
+/* ── Mobile: fix bottom whitespace + safe-area ── */
+@media (max-width: 768px) {
+  .l-panel-inner {
+    padding: 1.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    justify-content: flex-start;
+    min-height: auto;
+  }
+  /* Ensure last button doesn't get cut */
+  #auth-signin .l-btn-outline {
+    margin-bottom: .25rem;
+  }
+}
+@media (max-width: 480px) {
+  .l-panel-inner {
+    padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Eyebrow pill on hero: keep contrast ── */
+.l-eyebrow-pill {
+  color: rgba(20, 184, 166, 1); /* was .9 — ensure full teal */
+}
+
+/* ── Demo button: slightly more opaque for readability ── */
+.l-btn-demo {
+  color: #0b7a71; /* darker teal for contrast on white bg */
+  font-weight: 600;
+  background: rgba(13, 148, 136, .08);
+}
+.l-btn-demo:hover {
+  color: #0d9488;
+  background: rgba(13, 148, 136, .14);
+}
+
+/* ── Right panel inner: add subtle ambient glow behind form ── */
+.l-panel-inner {
+  position: relative;
+  overflow: hidden; /* clip ::before glow so it doesn't bleed outside panel */
+}
+.l-panel-inner::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 280px; height: 280px;
+  background: radial-gradient(ellipse at center,
+    rgba(13, 148, 136, .06) 0%,
+    transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.l-panel-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Subtitle opacity fix ── */
+.l-subtitle {
+  color: #5a7a8a;
+  font-size: .85rem;
+}
+
+/* ── Remember row: better spacing ── */
+.l-remember-row {
+  margin-top: .1rem;
+  margin-bottom: .65rem;
+}
+
+/* Custom teal checkbox */
+.l-remember-label {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .78rem; color: #475569; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-weight: 500;
+  user-select: none;
+}
+.l-remember-label input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none;
+  width: 16px; height: 16px; border-radius: 4px;
+  border: 1.5px solid #b0ccc9; background: #fff;
+  cursor: pointer; flex-shrink: 0;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.l-remember-label input[type="checkbox"]:checked {
+  background: #0d9488; border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13,148,136,.15);
+}
+.l-remember-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px; top: 1.5px;
+  width: 5px; height: 9px;
+  border: 2px solid white;
+  border-top: none; border-left: none;
+  transform: rotate(45deg);
+}
+.l-remember-label input[type="checkbox"]:focus-visible {
+  outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,.25);
+}
+
+/* OTP box styles: preserved in original definitions above */
+
+/* ── Password strength bar ── */
+.pw-strength-track {
+  height: 3px;
+  background: #e8f4f2;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: .4rem;
+}
+.pw-strength-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .3s cubic-bezier(.22, 1, .36, 1), background .3s;
+}
+
+/* ── Reset icon on password reset screens ── */
+.reset-icon-wrap { display: flex; justify-content: center; margin-bottom: 1.25rem; }
+.reset-icon-ring {
+  width: 64px; height: 64px;
+  background: rgba(13, 148, 136, .08);
+  border: 1.5px solid rgba(13, 148, 136, .2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #0d9488;
+}
+.reset-security-note {
+  display: flex; align-items: center; gap: .45rem;
+  font-size: .72rem; color: #94a3b8;
+  margin-top: .75rem;
+}
+
+/* ── Dark mode: refinements ── */
+[data-theme="dark"] .l-panel {
+  background: #071830;
+  box-shadow: -24px 0 80px rgba(0, 0, 0, .6),
+              -1px 0 0 rgba(13, 148, 136, .15);
+}
+[data-theme="dark"] .l-panel-inner::before {
+  background: radial-gradient(ellipse at center,
+    rgba(13, 148, 136, .08) 0%,
+    transparent 70%);
+}
+[data-theme="dark"] .l-subtitle { color: #7a9cb0; }
+[data-theme="dark"] .otp-box { color: #f1f5f9; }

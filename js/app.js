@@ -596,7 +596,7 @@ const SMS = {
   async logout(){
     clearTimeout(this._sessionTimer);
     const _logoutName = this.currentUser?.name || 'User'; // capture before clearing
-    if(window.FAuth) await FAuth.logout(); // 1. Revoke Supabase session FIRST
+    if(window.FAuth) await FAuth.logout().catch(()=>{}); // 1. Revoke Supabase session FIRST
     DB.del('session'); this.currentUser=null; this.schoolId=null; this._formsBound=false; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase)
     // Clear reset flow state — wipes any in-memory reset_token between sessions
     this._resetState={}; clearInterval(this._resetOTPCountdownTimer); clearInterval(this._resetResendTimer);

@@ -3128,3 +3128,264 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .sync-ok     { background: #1b5e20; color: #a5d6a7; }
 [data-theme="dark"] .sync-saving { background: #3d2e00; color: #ffe082; }
 [data-theme="dark"] .sync-error  { background: #3e0000; color: #ef9a9a; }
+
+/* ════════════════════════════════════════
+   ✦ LOGIN PAGE — 10/10 REFINEMENTS
+   Targeted improvements:
+   · Accessibility: contrast fixes on hero text
+   · Typography: DM Sans weight & spacing refinements
+   · Form UX: loading state, error shake, input transitions
+   · CTA: shimmer animation
+   · Visual: enhanced panel depth, right-panel card feel
+   · Mobile: fix bottom whitespace, safe-area padding
+   ════════════════════════════════════════ */
+
+/* ── Headline: DM Sans weight & spacing refinements ── */
+.l-hl-1, .l-hl-2 {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+/* ── Accessibility: raise hero text contrast to WCAG AA ── */
+.l-hero-desc {
+  color: rgba(255, 255, 255, .65); /* was .38 — fails contrast */
+}
+.l-feat {
+  color: rgba(255, 255, 255, .75); /* was .38 — fails contrast */
+  border-color: rgba(13, 148, 136, .28);
+  background: rgba(13, 148, 136, .1);
+  gap: .45rem;
+  padding: .3rem .7rem;
+}
+.l-stat-l {
+  color: rgba(255, 255, 255, .6); /* was .3 — fails contrast */
+}
+.l-stat-n {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1.05rem;
+}
+.l-mark-name {
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: -.02em;
+}
+
+/* ── Right panel: elevated depth + ambient glow ── */
+.l-panel {
+  background: #fafcfc;
+  box-shadow: -24px 0 80px rgba(0, 0, 0, .35),
+              -1px 0 0 rgba(13, 148, 136, .12);
+}
+@media (min-width: 769px) {
+  .l-panel::before {
+    background: linear-gradient(90deg, #071830 0%, #0d9488 35%, #14b8a6 60%, #0d9488 80%, #071830 100%);
+    /* Static gradient bar — no animation to keep performance clean */
+  }
+}
+
+/* ── Form inputs: smoother micro-interactions ── */
+.l-panel-inner .form-input {
+  /* Extend transition to include transform for focus lift effect */
+  transition: border-color .2s, box-shadow .2s, background .2s, transform .15s;
+}
+.l-panel-inner .form-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, .12),
+              0 2px 8px rgba(13, 148, 136, .08);
+}
+.l-panel-inner .form-field {
+  position: relative;
+}
+
+/* Input valid state — green glow when filled correctly */
+.l-panel-inner .form-input.input-valid {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, .08);
+}
+
+/* ── CTA button: shimmer effect + loading state ── */
+.l-btn-primary {
+  overflow: hidden;
+  position: relative;
+}
+.l-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.15) 50%,
+    transparent 100%);
+  transform: translateX(-180%) skewX(-20deg);
+  animation: btnShimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+@keyframes btnShimmer {
+  0%   { transform: translateX(-180%) skewX(-20deg); opacity: 0; }
+  15%  { opacity: 1; }
+  50%  { transform: translateX(260%) skewX(-20deg); opacity: 1; }
+  51%  { opacity: 0; }
+  100% { transform: translateX(260%) skewX(-20deg); opacity: 0; }
+}
+
+/* Loading state */
+.l-btn-primary[data-loading="true"] {
+  pointer-events: none;
+  opacity: .75;
+}
+.l-btn-primary[data-loading="true"]::before {
+  animation: none;
+}
+.btn-spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: btn-spin .65s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Error shake animation ── */
+@keyframes formShake {
+  0%  { transform: translateX(0); }
+  18% { transform: translateX(-8px); }
+  36% { transform: translateX(8px); }
+  54% { transform: translateX(-5px); }
+  72% { transform: translateX(5px); }
+  90% { transform: translateX(-2px); }
+  100%{ transform: translateX(0); }
+}
+.form-shake {
+  animation: formShake .45s cubic-bezier(.36,.07,.19,.97);
+}
+
+/* Error state on input */
+.l-panel-inner .form-input.input-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, .1);
+  background: #fff8f8;
+}
+
+/* ── Login-panel form error: scoped refinements (does NOT override app-wide .form-err) ── */
+.l-panel-inner .form-err {
+  border-radius: 10px;
+  font-size: .8rem;
+  padding: .7rem 1rem;
+}
+
+/* Stagger animations: removed — nth-child selectors were incorrect */
+
+/* ── Mobile: fix bottom whitespace + safe-area ── */
+@media (max-width: 768px) {
+  .l-panel-inner {
+    padding: 1.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom, 0px));
+    justify-content: flex-start;
+    min-height: auto;
+  }
+  /* Ensure last button doesn't get cut */
+  #auth-signin .l-btn-outline {
+    margin-bottom: .25rem;
+  }
+}
+@media (max-width: 480px) {
+  .l-panel-inner {
+    padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Eyebrow pill on hero: keep contrast ── */
+.l-eyebrow-pill {
+  color: rgba(20, 184, 166, 1); /* was .9 — ensure full teal */
+}
+
+/* ── Demo button: slightly more opaque for readability ── */
+.l-btn-demo {
+  color: #0b7a71; /* darker teal for contrast on white bg */
+  font-weight: 600;
+  background: rgba(13, 148, 136, .08);
+}
+.l-btn-demo:hover {
+  color: #0d9488;
+  background: rgba(13, 148, 136, .14);
+}
+
+/* ── Right panel inner: add subtle ambient glow behind form ── */
+.l-panel-inner {
+  position: relative;
+}
+.l-panel-inner::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 280px; height: 280px;
+  background: radial-gradient(ellipse at center,
+    rgba(13, 148, 136, .06) 0%,
+    transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.l-panel-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Subtitle opacity fix ── */
+.l-subtitle {
+  color: #5a7a8a;
+  font-size: .85rem;
+}
+
+/* ── Remember row: better spacing ── */
+.l-remember-row {
+  margin-top: .1rem;
+  margin-bottom: .65rem;
+}
+
+/* OTP box styles: preserved in original definitions above */
+
+/* ── Password strength bar ── */
+.pw-strength-track {
+  height: 3px;
+  background: #e8f4f2;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: .4rem;
+}
+.pw-strength-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .3s cubic-bezier(.22, 1, .36, 1), background .3s;
+}
+
+/* ── Reset icon on password reset screens ── */
+.reset-icon-wrap { display: flex; justify-content: center; margin-bottom: 1.25rem; }
+.reset-icon-ring {
+  width: 64px; height: 64px;
+  background: rgba(13, 148, 136, .08);
+  border: 1.5px solid rgba(13, 148, 136, .2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #0d9488;
+}
+.reset-security-note {
+  display: flex; align-items: center; gap: .45rem;
+  font-size: .72rem; color: #94a3b8;
+  margin-top: .75rem;
+}
+
+/* ── Dark mode: refinements ── */
+[data-theme="dark"] .l-panel {
+  background: #071830;
+  box-shadow: -24px 0 80px rgba(0, 0, 0, .6),
+              -1px 0 0 rgba(13, 148, 136, .15);
+}
+[data-theme="dark"] .l-panel-inner::before {
+  background: radial-gradient(ellipse at center,
+    rgba(13, 148, 136, .08) 0%,
+    transparent 70%);
+}
+[data-theme="dark"] .l-subtitle { color: #7a9cb0; }
+[data-theme="dark"] .otp-box { color: #f1f5f9; }

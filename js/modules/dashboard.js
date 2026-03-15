@@ -211,8 +211,8 @@ Object.assign(SMS, {
     const _dwEl=document.getElementById('dash-welcome');
     if(_dwEl) _dwEl.textContent=`${_g}, ${(this.currentUser?.name||'User').split(' ')[0]}! Here's your school overview.`;
     // Keep hero date pill in sync — stays correct if dashboard is open past midnight
-    const _htfDateEl=document.getElementById('dash-hero-today-full');
-    if(_htfDateEl) _htfDateEl.textContent=new Date().toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+    const _htfEl=document.getElementById('dash-hero-today-full');
+    if(_htfEl) _htfEl.textContent=new Date().toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
     // Hero now renders on a light surface — use semantic colors that work on both light and dark backgrounds.
     // FIX: replaced rgba(255,255,255,.38) which was invisible on the new light-surface hero.
     const heroAtt=document.getElementById('dash-hero-att');
@@ -231,8 +231,7 @@ Object.assign(SMS, {
         if(_heroStatWrap) _heroStatWrap.style.display='none';
       }
     }
-    // Dim date when viewing historical year/term
-    const _htfEl=document.getElementById('dash-hero-today-full');
+    // Distinguish live vs historical viewing — make it unmistakable
     if(_htfEl){
       const _todayMs=Date.now();
       const _allYrs=school.academicYears||[];
@@ -245,8 +244,32 @@ Object.assign(SMS, {
       const _termEnd=_curYrAyInfo[`${_termKey}End`]?new Date(_curYrAyInfo[`${_termKey}End`]+'T23:59:59'):null;
       const _todayInTerm=_termStart&&_termEnd?(_todayMs>=_termStart.getTime()&&_todayMs<=_termEnd.getTime()):null;
       const _isLive=!_viewingHistoricalYear&&(_todayInTerm===null||_todayInTerm);
-      _htfEl.style.opacity=_isLive?'1':'0.42';
-      _htfEl.title=_isLive?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
+
+      // Date pill: normal when live, strikethrough + muted when historical
+      _htfEl.style.opacity=_isLive?'1':'0.5';
+      _htfEl.style.textDecoration=_isLive?'none':'line-through';
+      _htfEl.title=_isLive?'':`Today's date — you are viewing historical data for ${_academicYear} Term ${_currentTerm}`;
+
+      // Historical badge — created once, reused on every render, never duplicated
+      let _histBadge=document.getElementById('dash-hero-hist-badge');
+      if(!_histBadge){
+        const _metaEl=_htfEl.closest('.dash-hero-meta');
+        if(_metaEl){
+          _histBadge=document.createElement('span');
+          _histBadge.id='dash-hero-hist-badge';
+          _histBadge.className='dash-hero-hist-badge';
+          _metaEl.appendChild(_histBadge);
+        }
+      }
+      if(_histBadge){
+        if(_isLive){
+          _histBadge.style.display='none';
+        } else {
+          _histBadge.style.display='inline-flex';
+          _histBadge.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="10" height="10"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>\u00a0Historical \u2014 ${_academicYear} Term ${_currentTerm}`;
+          _histBadge.title=`You are viewing past data. Switch to the current year/term to see live figures.`;
+        }
+      }
     }
   },
 

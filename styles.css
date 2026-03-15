@@ -1973,16 +1973,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
-/* Subtle brand teal left accent — unique identity mark, not a full bar */
-.dash-hero::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 20%; bottom: 20%;
-  width: 3px;
-  background: linear-gradient(180deg, var(--brand-teal) 0%, transparent 100%);
-  border-radius: 0 2px 2px 0;
-  opacity: .7;
-}
 .dash-hero-left { position: relative; flex: 1; min-width: 0; }
 /* School name pill — brand identity at a glance */
 .dash-hero-eyebrow {
@@ -2006,6 +1996,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   margin-bottom: .5rem;
 }
 .dash-hero-meta { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+/* Historical data badge — amber, impossible to miss */
+.dash-hero-hist-badge {
+  display: inline-flex; align-items: center; gap: .3rem;
+  font-size: .68rem; font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 5px; padding: .18rem .55rem;
+  white-space: nowrap; cursor: default;
+}
+[data-theme="dark"] .dash-hero-hist-badge {
+  color: #fcd34d;
+  background: rgba(252,211,77,.1);
+  border-color: rgba(252,211,77,.3);
+}
 .dash-hero-meta-pill {
   display: inline-flex; align-items: center; gap: .25rem;
   font-size: .7rem; font-weight: 500; color: var(--t3);
@@ -2019,15 +2024,27 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .dash-hero-stats-row { display: flex; align-items: stretch; gap: 1px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--border); }
 .dash-hero-stat {
   background: var(--surface-2);
-  padding: .6rem 1.1rem; text-align: center; min-width: 0;
+  padding: .6rem 1rem;
+  text-align: center;
+  min-width: 90px;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .18rem;
   transition: background .15s;
 }
 .dash-hero-stat:hover { background: var(--surface-3); }
 /* No per-child border-radius needed — container overflow:hidden handles clipping */
-.dash-hero-stat-val { font-size: 1.2rem; font-weight: 700; color: var(--t1); letter-spacing: -.04em; line-height: 1; }
-.dash-hero-stat-lbl { font-size: .6rem; color: var(--t4); margin-top: .2rem; font-weight: 500; white-space: nowrap; letter-spacing: 0; }
-.dash-hero-actions { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: flex-end; }
+.dash-hero-stat-val {
+  font-size: 1.1rem; font-weight: 700; color: var(--t1);
+  letter-spacing: -.03em; line-height: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%;
+}
+.dash-hero-stat-lbl { font-size: .58rem; color: var(--t4); font-weight: 500; white-space: nowrap; letter-spacing: 0; line-height: 1; }
+.dash-hero-actions { display: flex; gap: .4rem; flex-wrap: nowrap; justify-content: flex-end; }
 /* Action buttons — clean outlined pills */
 .dash-hero .btn-white {
   background: var(--surface);
@@ -2170,6 +2187,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 #page-dashboard .kpi-label {
   font-size: .68rem; color: var(--t3); margin-top: .3rem; font-weight: 500;
   letter-spacing: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .kpi-sub-line { font-size: .65rem; color: var(--t4); margin-top: .2rem; font-weight: 400; line-height: 1.4; }
 .kpi-sub-warn { color: var(--danger) !important; font-weight: 600 !important; }
@@ -2340,9 +2358,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-hero-greeting           { font-size: 1.1rem; white-space: normal; margin-bottom: .3rem; }
   .dash-hero-right              { align-items: flex-start; width: 100%; }
   .dash-hero-stats-row          { width: 100%; }
-  .dash-hero-stat               { padding: .55rem .8rem; }
-  .dash-hero-stat-val           { font-size: 1.05rem; }
-  .dash-hero-stat-lbl           { font-size: .58rem; }
+  .dash-hero-stat               { padding: .5rem .7rem; min-width: 70px; }
+  .dash-hero-stat-val           { font-size: 1rem; }
+  .dash-hero-stat-lbl           { font-size: .55rem; }
   .dash-hero-actions            { width: 100%; }
   .dash-hero-actions .btn-white { flex: 1; justify-content: center; font-size: .67rem; }
   .dash-today-strip,
@@ -2795,12 +2813,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   letter-spacing: .01em;
   width: fit-content;
 }
-.kpi-trend-up   { background: rgba(13,148,136,.1); color: #0d9488; }
-.kpi-trend-down { background: rgba(213,63,63,.1);  color: var(--danger); }
-.kpi-trend-flat { background: var(--border);       color: var(--t4); }
-[data-theme="dark"] .kpi-trend-up   { background: rgba(45,212,191,.12); color: #2dd4bf; }
-[data-theme="dark"] .kpi-trend-down { background: rgba(252,129,129,.12); color: #fc8181; }
-[data-theme="dark"] .kpi-trend-flat { background: rgba(255,255,255,.05); color: var(--t4); }
+.kpi-trend-up   { background: rgba(13,148,136,.08); color: #0d9488; }
+.kpi-trend-down { background: rgba(213,63,63,.08);  color: var(--danger); }
+.kpi-trend-flat { background: var(--surface-2);     color: var(--t4); border: 1px solid var(--border); }
+[data-theme="dark"] .kpi-trend-up   { background: rgba(45,212,191,.1);  color: #2dd4bf; }
+[data-theme="dark"] .kpi-trend-down { background: rgba(252,129,129,.1); color: #fc8181; }
+[data-theme="dark"] .kpi-trend-flat { background: var(--surface-2);     color: var(--t4); border: 1px solid var(--border); }
 
 /* ── KPI Sparkline ── */
 .kpi-sparkline { position:absolute; bottom:0; right:0; width:80px; height:36px; pointer-events:none; opacity:.55; }

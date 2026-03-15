@@ -2361,7 +2361,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-hero-stats-row          { width: 100%; }
   .dash-hero-stat               { padding: .5rem .7rem; min-width: 90px; }
   .dash-hero-stat-val           { font-size: clamp(.75rem, 3.5vw, 1rem); }
-  .dash-hero-stat-lbl           { font-size: .55rem; }
+  .dash-hero-stat-lbl           { font-size: .62rem; }
   .dash-hero-actions            { width: 100%; }
   .dash-hero-actions .btn-white { flex: 1; justify-content: center; font-size: .67rem; }
   .dash-today-strip,
@@ -2385,9 +2385,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 /* ── 480px: mobile single column ── */
 @media (max-width:480px) {
-  .dash-hero-stat               { padding: .45rem .6rem; }
+  .dash-hero-stat               { padding: .5rem .65rem; }
   .dash-hero-stat-val           { font-size: clamp(.72rem, 3.2vw, .9rem); letter-spacing: -.03em; }
-  .dash-hero-stat-lbl           { font-size: .54rem; }
+  .dash-hero-stat-lbl           { font-size: .60rem; }
   .dash-today-strip,
   .dash-today-strip[data-cols="2"],
   .dash-today-strip[data-cols="3"],
@@ -2405,7 +2405,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   #page-dashboard .dash-panels,
   #page-dashboard .dash-panels[data-cols="2"],
   #page-dashboard .dash-panels[data-cols="3"] { grid-template-columns:1fr; }
-  .dash-hero-actions .btn-white { padding:.3rem .5rem; font-size:.64rem; }
+  .dash-hero-actions            { flex-wrap: wrap; gap: .35rem; }
+  .dash-hero-actions .btn-white { flex: 1 1 calc(50% - .2rem); justify-content: center; padding: .38rem .5rem; font-size: .68rem; min-width: 0; }
   .page-wrap                    { padding:.75rem; }
 }
 

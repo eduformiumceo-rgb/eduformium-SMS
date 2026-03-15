@@ -3321,15 +3321,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .otp-box { color: #f1f5f9; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   EDUFORMIUM — DASHBOARD PROFESSIONAL OVERRIDES v2
-   Philosophy: restraint. Color lives in data, not decoration.
-   No colored borders on cards. No glows. No gradients on cards.
-   Elevation through shadow. Hierarchy through typography.
+   EDUFORMIUM — DASHBOARD PROFESSIONAL OVERRIDES v3
+   Fixes: hero stat color visibility, icon pill removal,
+   trend badge restraint, mobile number sizing.
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────
-   1. HERO — Clean dark navy. No glow. No gradient drama.
-      Flat brand color, white text, one clean shadow.
+   1. HERO — Flat navy, one shadow, correct semantic colors on dark.
+   JS sets inline style.color = 'var(--danger)' etc on stat values.
+   Override those variables scoped to .dash-hero so they resolve
+   to bright/light versions readable against dark navy.
 ───────────────────────────────────────────────────────────────── */
 [data-theme="light"] .dash-hero {
   background: #1a3a6b;
@@ -3337,8 +3338,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   box-shadow: 0 2px 12px rgba(0,0,0,.14);
   border-radius: var(--radius-xl);
   overflow: hidden;
+  /* Bright variants — only active when an element inside hero
+     references these vars via inline style                        */
+  --success: #6ee7b7;
+  --warn:    #fcd34d;
+  --danger:  #fca5a5;
 }
-/* Kill pseudo-elements from any previous pass */
 [data-theme="light"] .dash-hero::before,
 [data-theme="light"] .dash-hero::after { display: none; }
 
@@ -3346,13 +3351,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: rgba(255,255,255,.5);
   font-size: .72rem; font-weight: 600;
 }
-[data-theme="light"] .dash-hero-eyebrow::before {
-  background: #0d9488; opacity: .9;
-}
-[data-theme="light"] .dash-hero-greeting {
-  color: #ffffff;
-  font-size: 1.38rem; font-weight: 700;
-}
+[data-theme="light"] .dash-hero-eyebrow::before { background: #0d9488; opacity: .9; }
+[data-theme="light"] .dash-hero-greeting { color: #ffffff; font-size: 1.38rem; font-weight: 700; }
 [data-theme="light"] .dash-hero-meta-pill {
   background: rgba(255,255,255,.1);
   border-color: rgba(255,255,255,.14);
@@ -3365,10 +3365,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 [data-theme="light"] .dash-hero-stat { background: transparent; }
 [data-theme="light"] .dash-hero-stat:hover { background: rgba(255,255,255,.06); }
-[data-theme="light"] .dash-hero-stat-val {
-  color: #ffffff;
-  font-feature-settings: 'tnum' 1;
-}
+/* Base stat value: white. JS will override color for att/outstanding. */
+[data-theme="light"] .dash-hero-stat-val { color: #ffffff; font-feature-settings: 'tnum' 1; }
 [data-theme="light"] .dash-hero-stat-lbl { color: rgba(255,255,255,.38); }
 [data-theme="light"] .dash-hero .btn-white {
   background: rgba(255,255,255,.1);
@@ -3383,9 +3381,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   color: #ffffff;
   transform: none; box-shadow: none;
 }
-[data-theme="light"] .dash-hero .btn-white:active {
-  background: rgba(255,255,255,.12);
-}
+[data-theme="light"] .dash-hero .btn-white:active { background: rgba(255,255,255,.12); }
 [data-theme="light"] .dash-hero-hist-badge {
   background: rgba(252,211,77,.14);
   border-color: rgba(252,211,77,.3);
@@ -3400,7 +3396,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   2. SECTION LABELS — uppercase, tight tracking, no colored bar
+   2. SECTION LABELS — uppercase, no colored accent bar
 ───────────────────────────────────────────────────────────────── */
 .dash-section-label {
   font-size: .66rem;
@@ -3412,19 +3408,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   margin-bottom: .85rem;
   gap: .6rem;
 }
-.dash-section-label::before {
-  display: none;
-}
-.dash-section-label::after {
-  opacity: .5;
-}
+.dash-section-label::before { display: none; }
+.dash-section-label::after  { opacity: .5; }
 
 /* ─────────────────────────────────────────────────────────────────
-   3. TODAY AT A GLANCE — clean uniform white cards, no side borders
+   3. TODAY TILES — clean white, no side borders, no pill on icon
 ───────────────────────────────────────────────────────────────── */
 [data-theme="light"] .dash-today-tile {
   border: 1px solid var(--border);
-  border-left: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
   border-radius: var(--radius-lg);
   background: #ffffff;
@@ -3435,17 +3426,24 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   transform: translateY(-1px);
   border-color: var(--border-2);
 }
-.dash-today-icon { width: 38px; height: 38px; border-radius: 9px; }
+/* Remove icon pill background — just the icon with its color */
+[data-theme="light"] .dash-tile-teal .dash-today-icon,
+[data-theme="light"] .dash-tile-navy .dash-today-icon {
+  background: none;
+  width: 32px; height: 32px;
+}
 .dash-today-val {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 700;
   letter-spacing: -.03em;
   font-feature-settings: 'tnum' 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   4. KPI CARDS — white, uniform border, clean shadow.
-      No colored borders anywhere. The numbers are the design.
+   4. KPI CARDS — white, uniform border, no pill on icon
 ───────────────────────────────────────────────────────────────── */
 [data-theme="light"] #page-dashboard .kpi-card {
   background: #ffffff;
@@ -3460,88 +3458,95 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   transform: translateY(-1px);
   border-color: var(--border-2);
 }
-[data-theme="light"] #page-dashboard .kpi-card.kpi-featured {
-  border-color: var(--border);
+[data-theme="light"] #page-dashboard .kpi-card.kpi-featured,
+[data-theme="light"] #page-dashboard .kpi-card.kpi-featured:hover { border-color: var(--border-2); }
+
+/* Icon — remove background pill, keep just the icon color */
+[data-theme="light"] #page-dashboard .kpi-icon {
+  background: none !important;
+  width: 28px; height: 28px;
+  border-radius: 0;
+  margin-bottom: .7rem;
 }
-[data-theme="light"] #page-dashboard .kpi-card.kpi-featured:hover {
-  border-color: var(--border-2);
-}
-/* Icon */
-#page-dashboard .kpi-icon {
-  width: 34px; height: 34px;
-  border-radius: 9px;
-  margin-bottom: .8rem;
-}
-/* Value — strong number hierarchy */
+
+/* Value — strong but controlled; clamp prevents overflow in 2-col mobile */
 #page-dashboard .kpi-val {
-  font-size: 1.65rem;
+  font-size: clamp(1.15rem, 3.5vw, 1.6rem);
   font-weight: 700;
-  letter-spacing: -.05em;
+  letter-spacing: -.04em;
   font-feature-settings: 'tnum' 1;
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 #page-dashboard .kpi-label {
   font-size: .68rem;
   font-weight: 500;
   margin-top: .28rem;
-  letter-spacing: 0;
 }
 .kpi-sub-line {
   font-size: .65rem;
   margin-top: .2rem;
   line-height: 1.4;
 }
-/* Trend pill — understated */
+
+/* Trend badge — text only, no filled pill background */
 .kpi-trend {
   font-size: .62rem;
   font-weight: 600;
-  letter-spacing: 0;
-  border-radius: 4px;
-  padding: .15rem .45rem;
-  margin-top: .35rem;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-top: .3rem;
   display: inline-block;
+  letter-spacing: 0;
+}
+.kpi-trend-up   { color: #0d9488; }
+.kpi-trend-down { color: var(--danger); }
+.kpi-trend-flat { color: var(--t4); }
+[data-theme="dark"] .kpi-trend-up   { color: #2dd4bf; }
+[data-theme="dark"] .kpi-trend-down { color: #fc8181; }
+[data-theme="dark"] .kpi-trend-flat { color: var(--t4); }
+
+/* ─────────────────────────────────────────────────────────────────
+   5. MOBILE — explicit overrides so clamp + responsive rules hold
+      These must be in this block because kpi-val above uses clamp
+      and already handles most sizes, but we still need card padding
+      and today val sizes corrected at narrow breakpoints.
+───────────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  #page-dashboard .kpi-card  { padding: .9rem 1rem .85rem; }
+  #page-dashboard .kpi-val   { font-size: clamp(1rem, 5.5vw, 1.35rem); }
+  .dash-today-val            { font-size: 1rem; }
+}
+@media (max-width: 480px) {
+  #page-dashboard .kpi-val   { font-size: clamp(.95rem, 5vw, 1.2rem); }
+  #page-dashboard .kpi-label { font-size: .64rem; }
+  .kpi-sub-line              { font-size: .62rem; }
+  .dash-today-val            { font-size: .95rem; }
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   5. CHART CARDS — consistent with KPI cards
+   6. CHART + QUICK VIEW CARDS — consistent elevation
 ───────────────────────────────────────────────────────────────── */
 [data-theme="light"] .dash-chart-main,
-[data-theme="light"] .dash-charts-side .card {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0,0,0,.05);
-}
-[data-theme="light"] .dash-chart-main:hover,
-[data-theme="light"] .dash-charts-side .card:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,.08);
-  border-color: var(--border-2);
-}
-.dash-chart-title {
-  font-size: .85rem;
-  font-weight: 600;
-  letter-spacing: -.01em;
-}
-.dash-chart-stat {
-  font-size: 1.22rem;
-  font-weight: 700;
-  letter-spacing: -.04em;
-  font-feature-settings: 'tnum' 1;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   6. QUICK VIEW PANELS — same card system
-───────────────────────────────────────────────────────────────── */
+[data-theme="light"] .dash-charts-side .card,
 [data-theme="light"] #page-dashboard .dash-panels .card {
   background: #ffffff;
   border: 1px solid var(--border);
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
+[data-theme="light"] .dash-chart-main:hover,
+[data-theme="light"] .dash-charts-side .card:hover,
 [data-theme="light"] #page-dashboard .dash-panels .card:hover {
-  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
   border-color: var(--border-2);
   transform: none;
 }
+.dash-chart-title { font-size: .85rem; font-weight: 600; letter-spacing: -.01em; }
+.dash-chart-stat  { font-size: 1.22rem; font-weight: 700; letter-spacing: -.04em; font-feature-settings: 'tnum' 1; }
 
 /* ─────────────────────────────────────────────────────────────────
-   END DASHBOARD PROFESSIONAL OVERRIDES
+   END DASHBOARD PROFESSIONAL OVERRIDES v3
 ───────────────────────────────────────────────────────────────── */

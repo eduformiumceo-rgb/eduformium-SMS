@@ -200,16 +200,50 @@ function migrateEnrollTerm(){
 // ── DEMO SEED DATA ──
 function seedData(){
   if(DB.get('seeded')) return;
+
+  // ── Dynamic date helpers — all dates relative to today so demo never goes stale ──
+  const _now = new Date();
+  // Return "YYYY-MM-DD" for today + N days (negative = past)
+  const _d = (n=0) => {
+    const dt = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate() + n);
+    return localDateStr(dt);
+  };
+  // Return "YYYY-MM-DD" for month offset M (0=current, -1=last, +1=next), on given day
+  const _mo = (m, day=15) => {
+    const dt = new Date(_now.getFullYear(), _now.getMonth() + m, day);
+    return localDateStr(dt);
+  };
+  const _today = _d(0);
+
+  // ── School-week dates (Mon–Fri of the current or most-recent school week) ──
+  const _dow = _now.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  const _daysToMon = _dow === 0 ? 6 : _dow === 6 ? 5 : _dow - 1;
+  const _mon  = _d(-_daysToMon);
+  const _tue  = _d(-_daysToMon + 1);
+  const _wed  = _d(-_daysToMon + 2);
+  const _thu  = _d(-_daysToMon + 3);
+  const _fri  = _d(-_daysToMon + 4);
+  // Previous school week
+  const _pmon = _d(-_daysToMon - 7);
+  const _ptue = _d(-_daysToMon - 6);
+  const _pwed = _d(-_daysToMon - 5);
+  const _pthu = _d(-_daysToMon - 4);
+  const _pfri = _d(-_daysToMon - 3);
+  // Week before that
+  const _p2mon = _d(-_daysToMon - 14);
+  const _p2wed = _d(-_daysToMon - 12);
+  const _p2fri = _d(-_daysToMon - 10);
+
   DB.set('school',{name:'Bright Future Academy',motto:'Excellence in All Things',phone:'+233 24 123 4567',email:'info@bfa.edu.gh',website:'www.bfa.edu.gh',country:'GH',address:'45 Education Ave, Accra, Ghana',currency:'GHS',academicYear:'2025/2026',currentTerm:'2',gradeSystem:'percentage',passMark:50,type:'k12',
     academicYears:[
       {year:'2023/2024',isCurrent:false,label:'2023/2024',startDate:'2023-09-01',endDate:'2024-07-31'},
       {year:'2024/2025',isCurrent:false,label:'2024/2025',startDate:'2024-09-01',endDate:'2025-07-31'},
-      {year:'2025/2026',isCurrent:true, label:'2025/2026',startDate:'2025-09-01',endDate:'2026-07-31'},
+      {year:'2025/2026',isCurrent:true, label:'2025/2026',startDate:'2025-09-01',endDate:'2026-07-31',
+        t1Start:'2025-09-01',t1End:'2025-11-30',t2Start:'2026-01-05',t2End:'2026-04-04',t3Start:'2026-04-20',t3End:'2026-07-25'},
     ]});
-  // SECURITY FIX (F-09): No password stored for demo account.
-  // The "Try Demo" button sets the session directly without a password check,
-  // so there is no credential to hardcode or expose in source.
+
   DB.set('users',[{id:'admin',email:'demo@brightfutureacademy.edu.gh',name:'Dr. Emmanuel Owusu',role:'admin',phone:'+233 24 000 1111',createdAt:new Date().toISOString(),lastLogin:null}]);
+
   DB.set('classes',[
     {id:'cls1',name:'Class 1',level:'Primary 1',teacherId:'stf1',capacity:35,room:'Room 1'},
     {id:'cls2',name:'Class 2',level:'Primary 2',teacherId:'stf2',capacity:35,room:'Room 2'},
@@ -221,6 +255,7 @@ function seedData(){
     {id:'cls8',name:'JHS 2',level:'Junior High 2',teacherId:'stf8',capacity:40,room:'Room 8'},
     {id:'cls9',name:'JHS 3',level:'Junior High 3',teacherId:'stf9',capacity:40,room:'Room 9'},
   ]);
+
   DB.set('staff',[
     {id:'stf1',fname:'Abena',lname:'Asante',role:'teacher',dept:'Primary',subjects:'English, Reading',phone:'+233 24 111 2222',email:'abena@bfa.edu.gh',gender:'Female',salary:2850,status:'active',joinDate:'2020-01-15',qualification:'B.Ed'},
     {id:'stf2',fname:'Kwame',lname:'Boateng',role:'teacher',dept:'Primary',subjects:'Mathematics',phone:'+233 24 222 3333',email:'kwame@bfa.edu.gh',gender:'Male',salary:2780,status:'active',joinDate:'2019-09-01',qualification:'B.Ed'},
@@ -233,6 +268,13 @@ function seedData(){
     {id:'stf9',fname:'Adjoa',lname:'Frimpong',role:'teacher',dept:'JHS',subjects:'Social Studies, History',phone:'+233 24 999 0000',email:'adjoa@bfa.edu.gh',gender:'Female',salary:3120,status:'active',joinDate:'2019-01-10',qualification:'B.A'},
     {id:'stf10',fname:'Osei',lname:'Bonsu',role:'admin',dept:'Administration',subjects:'',phone:'+233 24 010 1010',email:'osei@bfa.edu.gh',gender:'Male',salary:3650,status:'active',joinDate:'2016-01-01',qualification:'MBA'},
   ]);
+
+  // ── Fee amounts by class for 2025/2026 ──
+  // cls1-2: 650 | cls3-4: 700 | cls5-6: 750 | cls7-8: 900 | cls9: 950
+  // _t1 = term 1 paid (all paid fully) | _t2 = term 2 paid (some partial / unpaid = defaulters)
+  const _t1=[900,900,900,900,950,950,750,750,750,750,700,700,700,700,650,650,650,650];
+  const _t2=[900,900,700,  0,950,250,750,750,750,750,700,700,700,700,650,  0,650,400];
+
   const sdata=[
     ['Kwadwo','Osei','cls7','Male','2012-03-15','Patrick Osei','+233 24 101 2020'],
     ['Ama','Kusi','cls7','Female','2012-07-22','Bernard Kusi','+233 24 202 3030'],
@@ -256,10 +298,12 @@ function seedData(){
   DB.set('students',sdata.map((s,i)=>({
     id:'stu'+(i+1),studentId:'BFA-2025-'+String(i+101).padStart(4,'0'),
     fname:s[0],lname:s[1],classId:s[2],gender:s[3],dob:s[4],
-    dadName:s[5],dadPhone:s[6],status:'active',admitDate:'2024-09-01',
+    dadName:s[5],dadPhone:s[6],status:'active',
+    admitDate: i>=16 ? _mo(0,5) : i>=14 ? _mo(-1,10) : '2025-09-05',
     address:'Accra, Ghana',
-    feesPaid:{'2025/2026':{term1:i%3===0?0:850,term2:i%4===0?0:i%5===0?400:850,term3:0},'2024/2025':{term1:850,term2:850,term3:850}},
+    feesPaid:{'2025/2026':{term1:_t1[i],term2:_t2[i],term3:0},'2024/2025':{term1:_t1[i],term2:_t1[i],term3:_t1[i]}},
   })));
+
   DB.set('subjects',[
     {id:'subj1',name:'English Language',code:'ENG',classId:'cls7',teacherId:'stf7',periods:6},
     {id:'subj2',name:'Mathematics',code:'MATH',classId:'cls7',teacherId:'stf8',periods:6},
@@ -270,6 +314,7 @@ function seedData(){
     {id:'subj7',name:'Mathematics',code:'MATH',classId:'cls8',teacherId:'stf8',periods:6},
     {id:'subj8',name:'English Language',code:'ENG',classId:'cls9',teacherId:'stf7',periods:6},
   ]);
+
   DB.set('feeStructure',[
     {id:'fs1',classId:'cls1',year:'2025/2026',term1:650,term2:650,term3:650},{id:'fs2',classId:'cls2',year:'2025/2026',term1:650,term2:650,term3:650},
     {id:'fs3',classId:'cls3',year:'2025/2026',term1:700,term2:700,term3:700},{id:'fs4',classId:'cls4',year:'2025/2026',term1:700,term2:700,term3:700},
@@ -279,97 +324,182 @@ function seedData(){
     {id:'fs1p',classId:'cls1',year:'2024/2025',term1:600,term2:600,term3:600},{id:'fs2p',classId:'cls2',year:'2024/2025',term1:600,term2:600,term3:600},
     {id:'fs7p',classId:'cls7',year:'2024/2025',term1:850,term2:850,term3:850},{id:'fs8p',classId:'cls8',year:'2024/2025',term1:850,term2:850,term3:850},
   ]);
+
+  // ── Fee Payments — 6 months of history ending today (drives chart + KPI + today strip) ──
+  // Receipt numbers are static for display consistency; amounts produce an upward trend.
   DB.set('feePayments',[
-    {id:uid('fp'),studentId:'stu1',term:'1',amount:850,method:'cash',date:'2025-01-10',by:'Admin',receiptNo:'REC-001',academicYear:'2025/2026'},
-    {id:uid('fp'),studentId:'stu2',term:'1',amount:850,method:'mobile',date:'2025-01-12',by:'Admin',receiptNo:'REC-002',academicYear:'2025/2026'},
-    {id:uid('fp'),studentId:'stu3',term:'1',amount:850,method:'bank',date:'2025-01-15',by:'Admin',receiptNo:'REC-003',academicYear:'2025/2026'},
-    {id:uid('fp'),studentId:'stu5',term:'1',amount:900,method:'cash',date:'2025-01-11',by:'Admin',receiptNo:'REC-004',academicYear:'2025/2026'},
-    {id:uid('fp'),studentId:'stu2',term:'2',amount:850,method:'mobile',date:'2025-02-05',by:'Admin',receiptNo:'REC-005',academicYear:'2025/2026'},
-    {id:uid('fp'),studentId:'stu7',term:'1',amount:750,method:'cash',date:'2025-01-20',by:'Admin',receiptNo:'REC-006',academicYear:'2025/2026'},
-    {id:uid('fp'),studentId:'stu1',term:'1',amount:600,method:'cash',date:'2024-09-10',by:'Admin',receiptNo:'REC-P001',academicYear:'2024/2025'},
-    {id:uid('fp'),studentId:'stu2',term:'1',amount:600,method:'mobile',date:'2024-09-12',by:'Admin',receiptNo:'REC-P002',academicYear:'2024/2025'},
-    {id:uid('fp'),studentId:'stu1',term:'2',amount:600,method:'cash',date:'2025-01-09',by:'Admin',receiptNo:'REC-P003',academicYear:'2024/2025'},
+    // ── 5 months ago ─────────────────────────────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu5', term:'1',amount:950, method:'bank',  date:_mo(-5,8), by:'Admin',receiptNo:'REC-001',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu7', term:'1',amount:750, method:'cash',  date:_mo(-5,12),by:'Admin',receiptNo:'REC-002',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu9', term:'1',amount:750, method:'mobile',date:_mo(-5,15),by:'Admin',receiptNo:'REC-003',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu11',term:'1',amount:700, method:'cash',  date:_mo(-5,20),by:'Admin',receiptNo:'REC-004',academicYear:'2025/2026'},
+    // ── 4 months ago ─────────────────────────────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu1', term:'1',amount:900, method:'bank',  date:_mo(-4,5), by:'Admin',receiptNo:'REC-005',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu2', term:'1',amount:900, method:'mobile',date:_mo(-4,8), by:'Admin',receiptNo:'REC-006',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu3', term:'1',amount:900, method:'cash',  date:_mo(-4,12),by:'Admin',receiptNo:'REC-007',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu13',term:'1',amount:700, method:'bank',  date:_mo(-4,18),by:'Admin',receiptNo:'REC-008',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu15',term:'1',amount:650, method:'cash',  date:_mo(-4,22),by:'Admin',receiptNo:'REC-009',academicYear:'2025/2026'},
+    // ── 3 months ago ─────────────────────────────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu4', term:'1',amount:900, method:'bank',  date:_mo(-3,6), by:'Admin',receiptNo:'REC-010',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu6', term:'1',amount:950, method:'mobile',date:_mo(-3,9), by:'Admin',receiptNo:'REC-011',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu8', term:'1',amount:750, method:'cash',  date:_mo(-3,11),by:'Admin',receiptNo:'REC-012',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu10',term:'1',amount:750, method:'bank',  date:_mo(-3,15),by:'Admin',receiptNo:'REC-013',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu12',term:'1',amount:700, method:'cash',  date:_mo(-3,20),by:'Admin',receiptNo:'REC-014',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu14',term:'1',amount:700, method:'mobile',date:_mo(-3,24),by:'Admin',receiptNo:'REC-015',academicYear:'2025/2026'},
+    // ── 2 months ago ─────────────────────────────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu16',term:'1',amount:650, method:'cash',  date:_mo(-2,5), by:'Admin',receiptNo:'REC-016',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu17',term:'1',amount:650, method:'bank',  date:_mo(-2,8), by:'Admin',receiptNo:'REC-017',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu18',term:'1',amount:650, method:'mobile',date:_mo(-2,10),by:'Admin',receiptNo:'REC-018',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu2', term:'2',amount:900, method:'bank',  date:_mo(-2,18),by:'Admin',receiptNo:'REC-019',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu5', term:'2',amount:950, method:'mobile',date:_mo(-2,22),by:'Admin',receiptNo:'REC-020',academicYear:'2025/2026'},
+    // ── 1 month ago ──────────────────────────────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu7', term:'2',amount:750, method:'cash',  date:_mo(-1,4), by:'Admin',receiptNo:'REC-021',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu8', term:'2',amount:750, method:'bank',  date:_mo(-1,6), by:'Admin',receiptNo:'REC-022',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu9', term:'2',amount:750, method:'mobile',date:_mo(-1,10),by:'Admin',receiptNo:'REC-023',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu10',term:'2',amount:750, method:'cash',  date:_mo(-1,12),by:'Admin',receiptNo:'REC-024',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu11',term:'2',amount:700, method:'bank',  date:_mo(-1,15),by:'Admin',receiptNo:'REC-025',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu12',term:'2',amount:700, method:'mobile',date:_mo(-1,18),by:'Admin',receiptNo:'REC-026',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu13',term:'2',amount:700, method:'cash',  date:_mo(-1,22),by:'Admin',receiptNo:'REC-027',academicYear:'2025/2026'},
+    // ── This month ───────────────────────────────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu14',term:'2',amount:700, method:'bank',  date:_mo(0,3),  by:'Admin',receiptNo:'REC-028',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu15',term:'2',amount:650, method:'cash',  date:_mo(0,5),  by:'Admin',receiptNo:'REC-029',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu17',term:'2',amount:650, method:'mobile',date:_mo(0,8),  by:'Admin',receiptNo:'REC-030',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu18',term:'2',amount:400, method:'cash',  date:_mo(0,10), by:'Admin',receiptNo:'REC-031',academicYear:'2025/2026'},
+    // ── TODAY — drives "Collected Today" strip ────────────────────────────────────────
+    {id:uid('fp'),studentId:'stu1', term:'2',amount:900, method:'cash',  date:_today,    by:'Admin',receiptNo:'REC-032',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu3', term:'2',amount:700, method:'mobile',date:_today,    by:'Admin',receiptNo:'REC-033',academicYear:'2025/2026'},
+    {id:uid('fp'),studentId:'stu6', term:'2',amount:250, method:'cash',  date:_today,    by:'Admin',receiptNo:'REC-034',academicYear:'2025/2026'},
   ]);
-  DB.set('exams',[
-    {id:'ex1',name:'Term 2 Mid-Term',type:'midterm',classId:'cls7',subjectId:'subj1',date:'2025-03-15',maxScore:100,term:'2',duration:90,status:'completed'},
-    {id:'ex2',name:'Term 2 Mid-Term',type:'midterm',classId:'cls7',subjectId:'subj2',date:'2025-03-16',maxScore:100,term:'2',duration:90,status:'completed'},
-    {id:'ex3',name:'End of Term Exam',type:'endterm',classId:'cls7',subjectId:'subj1',date:'2025-05-20',maxScore:100,term:'2',duration:120,status:'upcoming'},
-    {id:'ex4',name:'Class Quiz',type:'quiz',classId:'cls8',subjectId:'subj4',date:'2025-02-10',maxScore:50,term:'2',duration:30,status:'completed'},
-    {id:'ex5',name:'Assignment 1',type:'assignment',classId:'cls9',subjectId:'subj8',date:'2025-03-01',maxScore:30,term:'2',duration:0,status:'completed'},
-  ]);
-  DB.set('grades',[
-    {id:uid('g'),examId:'ex1',studentId:'stu1',score:82},{id:uid('g'),examId:'ex1',studentId:'stu2',score:74},
-    {id:uid('g'),examId:'ex2',studentId:'stu1',score:91},{id:uid('g'),examId:'ex2',studentId:'stu2',score:68},
-    {id:uid('g'),examId:'ex4',studentId:'stu3',score:38},{id:uid('g'),examId:'ex4',studentId:'stu4',score:42},
-    {id:uid('g'),examId:'ex5',studentId:'stu5',score:26},{id:uid('g'),examId:'ex5',studentId:'stu6',score:24},
-  ]);
+
+  // ── Attendance — current & prior school weeks with academicYear/term for term calc ──
   DB.set('attendance',[
-    {id:uid('a'),date:new Date().toISOString().split('T')[0],classId:'cls7',present:6,absent:1,late:1,total:8},
-    {id:uid('a'),date:new Date(Date.now()-86400000).toISOString().split('T')[0],classId:'cls7',present:7,absent:1,late:0,total:8},
-    {id:uid('a'),date:new Date(Date.now()-172800000).toISOString().split('T')[0],classId:'cls8',present:5,absent:2,late:1,total:8},
+    // Week before last
+    {id:uid('a'),date:_p2mon,classId:'cls7',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_p2wed,classId:'cls8',present:6,absent:2,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_p2fri,classId:'cls9',present:6,absent:1,late:0,total:7,academicYear:'2025/2026',term:'2'},
+    // Last school week (Mon–Fri)
+    {id:uid('a'),date:_pmon,classId:'cls7',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pmon,classId:'cls8',present:6,absent:2,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_ptue,classId:'cls7',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_ptue,classId:'cls9',present:7,absent:0,late:0,total:7,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pwed,classId:'cls7',present:6,absent:1,late:1,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pwed,classId:'cls8',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pthu,classId:'cls7',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pthu,classId:'cls8',present:5,absent:2,late:1,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pthu,classId:'cls9',present:7,absent:0,late:0,total:7,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pfri,classId:'cls7',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_pfri,classId:'cls8',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    // Current school week (Mon–Fri if weekday, else fills last school week)
+    {id:uid('a'),date:_mon,classId:'cls7',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_mon,classId:'cls8',present:6,absent:2,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_tue,classId:'cls7',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_tue,classId:'cls8',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_tue,classId:'cls9',present:6,absent:1,late:0,total:7,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_wed,classId:'cls7',present:6,absent:1,late:1,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_wed,classId:'cls9',present:7,absent:0,late:0,total:7,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_thu,classId:'cls7',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_thu,classId:'cls8',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_fri,classId:'cls7',present:8,absent:0,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_fri,classId:'cls8',present:6,absent:2,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_fri,classId:'cls9',present:5,absent:2,late:0,total:7,academicYear:'2025/2026',term:'2'},
+    // Today — drives "Absent Today" quick-view panel
+    {id:uid('a'),date:_today,classId:'cls7',present:6,absent:2,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_today,classId:'cls8',present:7,absent:1,late:0,total:8,academicYear:'2025/2026',term:'2'},
+    {id:uid('a'),date:_today,classId:'cls9',present:5,absent:2,late:0,total:7,academicYear:'2025/2026',term:'2'},
   ]);
+
+  // ── Exams — all upcoming relative to today ──
+  DB.set('exams',[
+    {id:'ex1',name:'Mathematics Class Quiz',type:'quiz',      classId:'cls7',subjectId:'subj2',date:_d(4), maxScore:50, term:'2',duration:45, status:'upcoming'},
+    {id:'ex2',name:'English Language Assignment',type:'assignment',classId:'cls9',subjectId:'subj8',date:_d(8), maxScore:30, term:'2',duration:0,  status:'upcoming'},
+    {id:'ex3',name:'Term 2 Mid-Term — English', type:'midterm',  classId:'cls7',subjectId:'subj1',date:_d(16),maxScore:100,term:'2',duration:90, status:'upcoming'},
+    {id:'ex4',name:'Term 2 Mid-Term — Mathematics',type:'midterm',classId:'cls7',subjectId:'subj2',date:_d(17),maxScore:100,term:'2',duration:90, status:'upcoming'},
+    {id:'ex5',name:'Integrated Science Test',  type:'quiz',      classId:'cls8',subjectId:'subj4',date:_d(22),maxScore:50, term:'2',duration:60, status:'upcoming'},
+    {id:'ex6',name:'End of Term 2 Examination',type:'endterm',   classId:'cls9',subjectId:'subj8',date:_d(45),maxScore:100,term:'2',duration:120,status:'upcoming'},
+  ]);
+
+  DB.set('grades',[
+    {id:uid('g'),examId:'ex1',studentId:'stu1',score:44},{id:uid('g'),examId:'ex1',studentId:'stu2',score:38},
+    {id:uid('g'),examId:'ex2',studentId:'stu1',score:88},{id:uid('g'),examId:'ex2',studentId:'stu2',score:72},
+    {id:uid('g'),examId:'ex3',studentId:'stu3',score:36},{id:uid('g'),examId:'ex3',studentId:'stu4',score:41},
+    {id:uid('g'),examId:'ex4',studentId:'stu5',score:26},{id:uid('g'),examId:'ex4',studentId:'stu6',score:24},
+  ]);
+
+  // ── Events — all future dates relative to today ──
   DB.set('events',[
-    {id:'ev1',title:"End of Term Exams",type:'exam',start:'2025-05-19',end:'2025-05-30',venue:'School Halls',desc:'End of Term 2 examinations for all classes.'},
-    {id:'ev2',title:"Parents' Day & Prize-Giving",type:'academic',start:'2025-06-07',venue:'School Auditorium',desc:'Annual parents day and prize-giving ceremony.'},
-    {id:'ev3',title:'Inter-School Sports Day',type:'sports',start:'2025-04-25',venue:'Sports Complex',desc:'Annual sports competition with neighboring schools.'},
-    {id:'ev4',title:'Easter Holiday',type:'holiday',start:'2025-04-18',end:'2025-04-21',venue:'',desc:'School closed for Easter holiday.'},
-    {id:'ev5',title:'All-Staff Monthly Meeting',type:'meeting',start:'2025-03-28',venue:'Conference Room',desc:'Monthly all-staff meeting and department reviews.'},
+    {id:'ev1',title:'All-Staff Monthly Meeting',     type:'meeting', start:_d(5),  venue:'Conference Room',  desc:'Monthly all-staff meeting with departmental reviews and performance updates.'},
+    {id:'ev2',title:'Science & Technology Fair',     type:'academic',start:_d(12), venue:'School Field',     desc:'Annual science and technology exhibition showcasing student projects from all JHS classes.'},
+    {id:'ev3',title:'Inter-School Sports Day',       type:'sports',  start:_d(20), venue:'Sports Complex',   desc:'Annual sports competition with neighboring schools. All students are invited to participate.'},
+    {id:'ev4',title:'Easter Holiday',               type:'holiday', start:_d(28), end:_d(31), venue:'',     desc:'School closed for Easter holiday. Classes resume the following Tuesday.'},
+    {id:'ev5',title:'End of Term 2 Examinations',   type:'exam',    start:_d(44), end:_d(55), venue:'All Classrooms', desc:'End of Term 2 examinations for all classes. Timetable to be distributed by class teachers.'},
+    {id:'ev6',title:"Parents' Day & Prize-Giving",  type:'academic',start:_d(65), venue:'School Auditorium', desc:'Annual parents day and prize-giving ceremony. All parents and guardians are warmly invited.'},
   ]);
+
   DB.set('messages',[
-    {id:'msg1',from:'Dr. Emmanuel Owusu',fromId:'admin',to:'all-staff',subject:'Staff Meeting — Friday 28th March',body:'This is a reminder that our monthly staff meeting will be held on Friday 28th March at 2:00 PM in the conference room.\n\nAll staff are required to attend. Please come prepared with your departmental reports and any issues to raise.',date:new Date().toISOString(),read:false,tab:'inbox'},
-    {id:'msg2',from:'Abena Asante',fromId:'stf1',to:'admin',subject:'Leave Application — April 5-7',body:'Dear Administrator,\n\nI respectfully apply for 3 days annual leave from April 5-7, 2025, due to a personal family commitment.\n\nI have arranged for Mrs. Nyarko to cover my classes during this period.\n\nThank you for your understanding.',date:new Date(Date.now()-86400000).toISOString(),read:true,tab:'inbox'},
-    {id:'msg3',from:'Dr. Emmanuel Owusu',fromId:'admin',to:'all-parents',subject:'Term 2 Fee Payment Reminder',body:"Dear Parent/Guardian,\n\nThis is a friendly reminder that Term 2 school fees are due by 28th February 2025.\n\nKindly ensure payment is made promptly to avoid any disruption to your ward's academic activities.\n\nBank: GCB Bank · Account: 1234567890 · Name: Bright Future Academy\n\nThank you.",date:new Date(Date.now()-172800000).toISOString(),read:true,tab:'sent'},
+    {id:'msg1',from:'Dr. Emmanuel Owusu',fromId:'admin',to:'all-staff',subject:'Staff Meeting — This Friday',body:'This is a reminder that our monthly staff meeting will be held this Friday at 2:00 PM in the conference room.\n\nAll staff are required to attend. Please come prepared with your departmental reports.',date:new Date().toISOString(),read:false,tab:'inbox'},
+    {id:'msg2',from:'Nana Acheampong',fromId:'stf8',to:'admin',subject:'Mathematics Mid-Term Schedule',body:'Dear Administrator,\n\nI have prepared the mid-term examination schedule for JHS 1 and JHS 2. Mathematics will be on Day 2.\n\nAll papers are ready for printing.',date:new Date(Date.now()-86400000).toISOString(),read:true,tab:'inbox'},
+    {id:'msg3',from:'Dr. Emmanuel Owusu',fromId:'admin',to:'all-parents',subject:'Term 2 Fee Payment Reminder',body:"Dear Parent/Guardian,\n\nThis is a friendly reminder that Term 2 school fees are due by end of this month.\n\nKindly ensure payment is made promptly to avoid any disruption to your ward's academic activities.\n\nBank: GCB Bank · Account: 1234567890 · Name: Bright Future Academy\n\nThank you.",date:new Date(Date.now()-172800000).toISOString(),read:true,tab:'sent'},
   ]);
+
+  // ── Leaves — stf2 currently on sick leave (active today), stf5 on maternity ──
   DB.set('leaves',[
-    {id:uid('l'),staffId:'stf1',type:'Annual',from:'2025-04-05',to:'2025-04-07',days:3,reason:'Family commitment',status:'pending',appliedDate:new Date().toISOString()},
-    {id:uid('l'),staffId:'stf2',type:'Sick',from:'2025-03-01',to:'2025-03-02',days:2,reason:'Medical treatment',status:'approved',appliedDate:'2025-02-28T10:00:00.000Z'},
-    {id:uid('l'),staffId:'stf5',type:'Maternity',from:'2025-06-01',to:'2025-08-31',days:90,reason:'Maternity leave',status:'approved',appliedDate:'2025-02-15T09:00:00.000Z'},
+    {id:uid('l'),staffId:'stf2',type:'Sick',     from:_d(-3),       to:_d(3),         days:6, reason:'Medical treatment and recovery',   status:'approved', appliedDate:new Date(Date.now()-4*86400000).toISOString()},
+    {id:uid('l'),staffId:'stf5',type:'Maternity',from:_mo(-1,1),   to:_mo(2,30),     days:90,reason:'Maternity leave',                   status:'approved', appliedDate:new Date(Date.now()-40*86400000).toISOString()},
+    {id:uid('l'),staffId:'stf1',type:'Annual',   from:_d(14),       to:_d(16),        days:3, reason:'Family commitment — Easter break',  status:'pending',  appliedDate:new Date().toISOString()},
   ]);
+
   DB.set('homework',[
-    {id:uid('hw'),title:'Chapter 5 Essay — My Future Career',classId:'cls7',subjectId:'subj1',dueDate:'2025-03-20',desc:'Write a 500-word essay on "My Future Career". Focus on language structure, vocabulary, and coherent paragraph formation.',status:'pending',assignedBy:'stf7',assignedDate:new Date().toISOString()},
-    {id:uid('hw'),title:'Algebra Problem Set — Exercises 1-20',classId:'cls7',subjectId:'subj2',dueDate:'2025-03-19',desc:'Complete exercises 1-20 on page 87 of your Mathematics textbook. Show all workings.',status:'submitted',assignedBy:'stf8',assignedDate:new Date(Date.now()-86400000).toISOString()},
-    {id:uid('hw'),title:'Science Lab Report',classId:'cls8',subjectId:'subj4',dueDate:'2025-03-22',desc:'Write a complete lab report for the photosynthesis experiment conducted in class.',status:'graded',assignedBy:'stf3',assignedDate:new Date(Date.now()-172800000).toISOString()},
+    {id:uid('hw'),title:'Essay — My Dream School',classId:'cls7',subjectId:'subj1',dueDate:_d(5),  desc:'Write a 400-word essay on "My Dream School". Focus on clear paragraph structure and vocabulary.',status:'pending',  assignedBy:'stf7',assignedDate:new Date().toISOString()},
+    {id:uid('hw'),title:'Algebra Problem Set — Chapter 7',classId:'cls7',subjectId:'subj2',dueDate:_d(3),  desc:'Complete exercises 1–20 on page 87. Show all workings clearly.',status:'submitted',assignedBy:'stf8',assignedDate:new Date(Date.now()-86400000).toISOString()},
+    {id:uid('hw'),title:'Science Lab Report — Photosynthesis',classId:'cls8',subjectId:'subj4',dueDate:_d(7),  desc:'Write a complete lab report for the photosynthesis experiment. Include hypothesis, method, results and conclusion.',status:'graded',   assignedBy:'stf3',assignedDate:new Date(Date.now()-172800000).toISOString()},
   ]);
+
   DB.set('books',[
-    {id:uid('b'),isbn:'978-0-06-112008-4',title:'To Kill a Mockingbird',author:'Harper Lee',category:'Literature',copies:5,available:3},
-    {id:uid('b'),isbn:'978-0-7432-7356-5',title:'The Alchemist',author:'Paulo Coelho',category:'Fiction',copies:8,available:6},
-    {id:uid('b'),isbn:'978-0-19-853453-4',title:'New Oxford Mathematics JHS',author:'Various',category:'Textbook',copies:40,available:32},
-    {id:uid('b'),isbn:'978-9988-0-1820-1',title:'Ghana Science for JHS',author:'CRDD',category:'Textbook',copies:35,available:35},
-    {id:uid('b'),isbn:'978-0-521-01234-5',title:'Cambridge English Grammar',author:'Cambridge Press',category:'Reference',copies:20,available:18},
-    {id:uid('b'),isbn:'978-1-4444-5555-6',title:'Social Studies for West Africa',author:'Macmillan',category:'Textbook',copies:30,available:28},
+    {id:uid('b'),isbn:'978-0-06-112008-4',title:'To Kill a Mockingbird',     author:'Harper Lee',     category:'Literature', copies:5, available:3},
+    {id:uid('b'),isbn:'978-0-7432-7356-5',title:'The Alchemist',             author:'Paulo Coelho',   category:'Fiction',    copies:8, available:6},
+    {id:uid('b'),isbn:'978-0-19-853453-4',title:'New Oxford Mathematics JHS',author:'Various',        category:'Textbook',   copies:40,available:32},
+    {id:uid('b'),isbn:'978-9988-0-1820-1',title:'Ghana Science for JHS',     author:'CRDD',           category:'Textbook',   copies:35,available:35},
+    {id:uid('b'),isbn:'978-0-521-01234-5',title:'Cambridge English Grammar', author:'Cambridge Press', category:'Reference',  copies:20,available:18},
+    {id:uid('b'),isbn:'978-1-4444-5555-6',title:'Social Studies for West Africa',author:'Macmillan',  category:'Textbook',   copies:30,available:28},
+    {id:uid('b'),isbn:'978-9988-1-2222-3',title:'ICT for Senior High',       author:'GES',            category:'Textbook',   copies:12,available:9},
+    {id:uid('b'),isbn:'978-0-333-12345-6',title:'RME for JHS',               author:'Adinkra Press',  category:'Textbook',   copies:22,available:19},
   ]);
+
   DB.set('expenses',[
-    {id:uid('e'),date:'2025-01-15',category:'Utilities',desc:'Electricity bill — January',amount:1200,paidTo:'ECG Ghana',approvedBy:'Admin'},
-    {id:uid('e'),date:'2025-02-01',category:'Supplies',desc:'Textbooks and stationery Term 2',amount:8500,paidTo:'Ghana Book Trust',approvedBy:'Admin'},
-    {id:uid('e'),date:'2025-02-15',category:'Maintenance',desc:'Roof repairs — Block A classroom',amount:3200,paidTo:'Mensah Contractors',approvedBy:'Admin'},
-    {id:uid('e'),date:'2025-03-01',category:'Sports',desc:'Sports equipment purchase',amount:2100,paidTo:'Sports Depot Ghana',approvedBy:'Admin'},
-    {id:uid('e'),date:'2025-03-10',category:'Utilities',desc:'Water bill — February',amount:450,paidTo:'GWCL',approvedBy:'Admin'},
-    {id:uid('e'),date:'2025-03-15',category:'Salaries',desc:'Staff salaries — March',amount:32000,paidTo:'All Staff',approvedBy:'Admin'},
+    {id:uid('e'),date:_mo(-3,15),category:'Utilities',   desc:'Electricity bill — monthly',           amount:1200,paidTo:'ECG Ghana',         approvedBy:'Admin'},
+    {id:uid('e'),date:_mo(-2,1), category:'Supplies',    desc:'Textbooks and stationery — Term 2',    amount:8500,paidTo:'Ghana Book Trust',   approvedBy:'Admin'},
+    {id:uid('e'),date:_mo(-2,15),category:'Maintenance', desc:'Roof repairs — Block A classroom',     amount:3200,paidTo:'Mensah Contractors', approvedBy:'Admin'},
+    {id:uid('e'),date:_mo(-1,1), category:'Sports',      desc:'Sports equipment purchase',            amount:2100,paidTo:'Sports Depot Ghana', approvedBy:'Admin'},
+    {id:uid('e'),date:_mo(-1,10),category:'Utilities',   desc:'Water bill — monthly',                 amount:450, paidTo:'GWCL',              approvedBy:'Admin'},
+    {id:uid('e'),date:_mo(0,1),  category:'Salaries',    desc:'Staff salaries — current month',       amount:32000,paidTo:'All Staff',        approvedBy:'Admin'},
+    {id:uid('e'),date:_d(-5),    category:'Supplies',    desc:'Exam stationery — answer booklets',    amount:780, paidTo:'Office Supplies Ltd',approvedBy:'Admin'},
   ]);
+
   DB.set('auditLog',[]);
   DB.set('payroll',[]);
   DB.set('timetable',{
     cls7:{
-      Monday:{'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Social Studies',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
-      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
+      Monday:   {'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Social Studies',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Tuesday:  {'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
       Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'History',teacher:'A. Frimpong'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
-      Thursday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
-      Friday:{'7:30-8:30':{subject:'RME',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+      Thursday: {'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Friday:   {'7:30-8:30':{subject:'RME',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
     },
     cls8:{
-      Monday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Integrated Science',teacher:'A. Nyarko'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'ICT',teacher:'A. Darko'},'12:00-1:00':{subject:'Social Studies',teacher:'A. Frimpong'}},
-      Tuesday:{'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Creative Arts',teacher:'A. Darko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'RME',teacher:'A. Nyarko'}},
+      Monday:   {'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Integrated Science',teacher:'A. Nyarko'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'ICT',teacher:'A. Darko'},'12:00-1:00':{subject:'Social Studies',teacher:'A. Frimpong'}},
+      Tuesday:  {'7:30-8:30':{subject:'English',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Creative Arts',teacher:'A. Darko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Science',teacher:'A. Nyarko'},'12:00-1:00':{subject:'RME',teacher:'A. Nyarko'}},
       Wednesday:{'7:30-8:30':{subject:'Social Studies',teacher:'A. Frimpong'},'8:30-9:30':{subject:'English',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
-      Thursday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Mathematics',teacher:'N. Acheampong'},'12:00-1:00':{subject:'History',teacher:'A. Frimpong'}},
-      Friday:{'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+      Thursday: {'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'Social Studies',teacher:'A. Frimpong'},'9:30-10:30':{subject:'English',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Mathematics',teacher:'N. Acheampong'},'12:00-1:00':{subject:'History',teacher:'A. Frimpong'}},
+      Friday:   {'7:30-8:30':{subject:'PE',teacher:'Y. Amoah'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'Science',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English',teacher:'E. Owusu'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
     },
     cls9:{
-      Monday:{'7:30-8:30':{subject:'English Language',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'History',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'RME',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
-      Tuesday:{'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Science',teacher:'A. Nyarko'},'9:30-10:30':{subject:'English Language',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
+      Monday:   {'7:30-8:30':{subject:'English Language',teacher:'E. Owusu'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'History',teacher:'A. Frimpong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'RME',teacher:'A. Nyarko'},'12:00-1:00':{subject:'ICT',teacher:'A. Darko'}},
+      Tuesday:  {'7:30-8:30':{subject:'Mathematics',teacher:'N. Acheampong'},'8:30-9:30':{subject:'Science',teacher:'A. Nyarko'},'9:30-10:30':{subject:'English Language',teacher:'E. Owusu'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'Social Studies',teacher:'A. Frimpong'},'12:00-1:00':{subject:'Creative Arts',teacher:'A. Darko'}},
       Wednesday:{'7:30-8:30':{subject:'Science',teacher:'A. Nyarko'},'8:30-9:30':{subject:'English Language',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'ICT',teacher:'A. Darko'},'12:00-1:00':{subject:'PE',teacher:'Y. Amoah'}},
-      Thursday:{'7:30-8:30':{subject:'Social Studies',teacher:'A. Frimpong'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English Language',teacher:'E. Owusu'},'12:00-1:00':{subject:'Science',teacher:'A. Nyarko'}},
-      Friday:{'7:30-8:30':{subject:'History',teacher:'A. Frimpong'},'8:30-9:30':{subject:'English Language',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
+      Thursday: {'7:30-8:30':{subject:'Social Studies',teacher:'A. Frimpong'},'8:30-9:30':{subject:'Mathematics',teacher:'N. Acheampong'},'9:30-10:30':{subject:'RME',teacher:'A. Nyarko'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'English Language',teacher:'E. Owusu'},'12:00-1:00':{subject:'Science',teacher:'A. Nyarko'}},
+      Friday:   {'7:30-8:30':{subject:'History',teacher:'A. Frimpong'},'8:30-9:30':{subject:'English Language',teacher:'E. Owusu'},'9:30-10:30':{subject:'Mathematics',teacher:'N. Acheampong'},'10:30-11:00':{subject:'BREAK',teacher:''},'11:00-12:00':{subject:'PE',teacher:'Y. Amoah'},'12:00-1:00':{subject:'Assembly',teacher:'All'}},
     },
   });
+
   DB.set('seeded',true);
 }

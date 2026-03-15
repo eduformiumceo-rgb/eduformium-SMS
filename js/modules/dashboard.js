@@ -213,11 +213,12 @@ Object.assign(SMS, {
     // Keep hero date pill in sync — stays correct if dashboard is open past midnight
     const _htfDateEl=document.getElementById('dash-hero-today-full');
     if(_htfDateEl) _htfDateEl.textContent=new Date().toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-    // Hero always renders on dark navy — use fixed high-contrast colours (not CSS vars which target light bg)
+    // Hero now renders on a light surface — use semantic colors that work on both light and dark backgrounds.
+    // FIX: replaced rgba(255,255,255,.38) which was invisible on the new light-surface hero.
     const heroAtt=document.getElementById('dash-hero-att');
     if(heroAtt){
       heroAtt.textContent=attRate;
-      heroAtt.style.color=attNum===null?'rgba(255,255,255,.38)':attNum>=90?'#14b8a6':attNum>=75?'#fbbf24':'#ff6b6b';
+      heroAtt.style.color=attNum===null?'var(--t4)':attNum>=90?'var(--success)':attNum>=75?'var(--warn)':'var(--danger)';
     }
     const heroOutEl=document.getElementById('dash-hero-outstanding');
     if(heroOutEl){
@@ -225,7 +226,7 @@ Object.assign(SMS, {
       if(isFinance){
         if(_heroStatWrap) _heroStatWrap.style.display='';
         heroOutEl.textContent=fmt(totalOutstanding);
-        heroOutEl.style.color=totalOutstanding>0?'#ff6b6b':'#14b8a6';
+        heroOutEl.style.color=totalOutstanding>0?'var(--danger)':'var(--success)';
       } else {
         if(_heroStatWrap) _heroStatWrap.style.display='none';
       }

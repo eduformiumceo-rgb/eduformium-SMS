@@ -369,8 +369,12 @@ Object.assign(SMS, {
   _checkOTPComplete() {
     const boxes = document.querySelectorAll('#auth-otp .otp-box');
     const complete = [...boxes].every(b => b.value.length === 1);
+    // FIX: never re-enable verify button when the OTP countdown has already expired.
+    // Previously _checkOTPComplete ran on every input event regardless of expiry state,
+    // misleading users into clicking Verify after the server had already invalidated the code.
+    const expired = !!(this._otpState.expiresAt && Date.now() > this._otpState.expiresAt);
     const btn = document.getElementById('otp-verify-btn');
-    if (btn) btn.disabled = !complete;
+    if (btn) btn.disabled = !complete || expired;
   },
 
   _getOTPValue() {
@@ -428,6 +432,9 @@ Object.assign(SMS, {
     _hiReg('r-name',   !name);
     _hiReg('r-email',  !email);
     _hiReg('r-pwd',    !pwd);
+    // FIX: also highlight confirm-password when empty — previously only r-pwd was checked,
+    // so a blank r-cpwd showed no red border while the "Passwords do not match" error fired.
+    _hiReg('r-cpwd',   !cpwd);
     if (_regHasEmpty) { errEl.textContent = 'Please fill in the highlighted fields.'; errEl.style.display = 'flex'; return; }
     if (school.length > 100) { errEl.textContent = 'School name must be under 100 characters.'; errEl.style.display = 'flex'; return; }
     if (name.length > 80) { errEl.textContent = 'Name must be under 80 characters.'; errEl.style.display = 'flex'; return; }
@@ -836,8 +843,12 @@ Object.assign(SMS, {
   _checkResetOTPComplete() {
     const boxes = document.querySelectorAll('#auth-reset-otp .otp-box');
     const complete = [...boxes].every(b => b.value.length === 1);
+    // FIX: mirror the registration OTP fix — never re-enable the reset verify button
+    // after the countdown has expired. Server enforces expiry too, but the UI must
+    // not mislead the user into thinking a timed-out submission is valid.
+    const expired = !!(this._resetState.expiresAt && Date.now() > this._resetState.expiresAt);
     const btn = document.getElementById('rp-otp-verify-btn');
-    if (btn) btn.disabled = !complete;
+    if (btn) btn.disabled = !complete || expired;
   },
 
   _getResetOTPValue() {
@@ -1138,7 +1149,7 @@ Object.assign(SMS, {
       delete user.password;
       DB.set('users', users);
       this._resetState = {};
-      this._showResetSuccess();
+      this._showResetSuccess(email);
       return;
     }
 
@@ -1188,10 +1199,10 @@ Object.assign(SMS, {
 
     // ✅ Success
     this._resetState = {};
-    this._showResetSuccess();
+    this._showResetSuccess(email);
   },
 
-  _showResetSuccess() {
+  _showResetSuccess(email) {
     // Show all panels hidden, transition back to sign-in with a success toast
     ['auth-reset-email','auth-reset-otp','auth-reset-pw'].forEach(id => {
       const el = document.getElementById(id);
@@ -1201,6 +1212,9 @@ Object.assign(SMS, {
     // Clear the password field on sign-in
     const lpass = document.getElementById('l-pass');
     if (lpass) lpass.value = '';
+    // FIX: pre-fill the email so the user does not have to retype it after a reset.
+    // email is passed in because _resetState has already been cleared by the caller.
+    if (email) { const luEl = document.getElementById('l-user'); if (luEl) luEl.value = email; }
     this.toast('Password updated! Please sign in with your new password.', 'success');
   },
 

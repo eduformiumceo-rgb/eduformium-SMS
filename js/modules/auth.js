@@ -487,7 +487,7 @@ Object.assign(SMS, {
   _startOTPCountdown() {
     clearInterval(this._otpCountdownTimer);
     const el = document.getElementById('otp-countdown');
-    const row = document.querySelector('.otp-timer-row');
+    const row = document.querySelector('#auth-otp .otp-timer-row');
     const tick = () => {
       const remaining = this._otpState.expiresAt - Date.now();
       if (remaining <= 0) {

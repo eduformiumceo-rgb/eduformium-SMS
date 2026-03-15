@@ -3321,273 +3321,227 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="dark"] .otp-box { color: #f1f5f9; }
 
 /* ═══════════════════════════════════════════════════════════════════
-   EDUFORMIUM — DASHBOARD PREMIUM OVERRIDES
-   World-class professional design using brand colors.
-   Scoped to light-mode and #page-dashboard to prevent bleed.
-   Append order matters — these override earlier declarations.
+   EDUFORMIUM — DASHBOARD PROFESSIONAL OVERRIDES v2
+   Philosophy: restraint. Color lives in data, not decoration.
+   No colored borders on cards. No glows. No gradients on cards.
+   Elevation through shadow. Hierarchy through typography.
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────
-   1. HERO CARD — Dark premium command center
-      Dark navy gradient, ambient teal glow, white text.
-      Makes the hero unmistakably the page's focal point.
+   1. HERO — Clean dark navy. No glow. No gradient drama.
+      Flat brand color, white text, one clean shadow.
 ───────────────────────────────────────────────────────────────── */
 [data-theme="light"] .dash-hero {
-  background: linear-gradient(135deg, #1b3d70 0%, #102d58 52%, #0c2347 100%);
-  border: 1px solid rgba(255,255,255,.06);
-  box-shadow:
-    0 14px 48px rgba(12,35,71,.32),
-    0 4px 14px rgba(0,0,0,.14),
-    inset 0 1px 0 rgba(255,255,255,.07);
+  background: #1a3a6b;
+  border: none;
+  box-shadow: 0 2px 12px rgba(0,0,0,.14);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
 }
-/* Ambient teal glow — top-right corner */
-[data-theme="light"] .dash-hero::before {
-  content: '';
-  position: absolute; top: -70px; right: -50px;
-  width: 380px; height: 380px;
-  background: radial-gradient(circle, rgba(13,148,136,.17) 0%, transparent 65%);
-  pointer-events: none; z-index: 0;
-}
-/* Subtle lighter fill — bottom-left for layered depth */
-[data-theme="light"] .dash-hero::after {
-  content: '';
-  position: absolute; bottom: -90px; left: -60px;
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(255,255,255,.035) 0%, transparent 70%);
-  pointer-events: none; z-index: 0;
-}
-/* Lift content above pseudo-elements */
-[data-theme="light"] .dash-hero > * { position: relative; z-index: 1; }
+/* Kill pseudo-elements from any previous pass */
+[data-theme="light"] .dash-hero::before,
+[data-theme="light"] .dash-hero::after { display: none; }
 
-/* School name eyebrow */
 [data-theme="light"] .dash-hero-eyebrow {
-  color: rgba(255,255,255,.58);
-  font-size: .73rem; font-weight: 600; letter-spacing: .01em;
+  color: rgba(255,255,255,.5);
+  font-size: .72rem; font-weight: 600;
 }
 [data-theme="light"] .dash-hero-eyebrow::before {
-  background: #2dd4bf; opacity: 1; width: 7px; height: 7px;
+  background: #0d9488; opacity: .9;
 }
-/* Greeting headline */
 [data-theme="light"] .dash-hero-greeting {
   color: #ffffff;
-  font-size: 1.42rem; font-weight: 700;
+  font-size: 1.38rem; font-weight: 700;
 }
-/* Date / year / term pills */
 [data-theme="light"] .dash-hero-meta-pill {
-  background: rgba(255,255,255,.09);
-  border-color: rgba(255,255,255,.13);
-  color: rgba(255,255,255,.7);
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.14);
+  color: rgba(255,255,255,.65);
 }
-/* KPI stats block — glass surface */
 [data-theme="light"] .dash-hero-stats-row {
-  background: rgba(255,255,255,.07);
+  background: rgba(0,0,0,.15);
   border-color: rgba(255,255,255,.1);
+  border-radius: 10px;
 }
 [data-theme="light"] .dash-hero-stat { background: transparent; }
-[data-theme="light"] .dash-hero-stat:hover { background: rgba(255,255,255,.07); }
+[data-theme="light"] .dash-hero-stat:hover { background: rgba(255,255,255,.06); }
 [data-theme="light"] .dash-hero-stat-val {
   color: #ffffff;
-  font-size: clamp(.82rem, 1.75vw, 1.12rem);
   font-feature-settings: 'tnum' 1;
 }
-[data-theme="light"] .dash-hero-stat-lbl { color: rgba(255,255,255,.42); }
-/* Action buttons — glass pills on dark */
+[data-theme="light"] .dash-hero-stat-lbl { color: rgba(255,255,255,.38); }
 [data-theme="light"] .dash-hero .btn-white {
   background: rgba(255,255,255,.1);
-  color: rgba(255,255,255,.88);
-  border: 1px solid rgba(255,255,255,.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255,255,255,.85);
+  border: 1px solid rgba(255,255,255,.14);
   font-weight: 600;
+  transition: background .15s, border-color .15s;
 }
 [data-theme="light"] .dash-hero .btn-white:hover {
-  background: rgba(255,255,255,.19);
-  border-color: rgba(255,255,255,.3);
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.26);
   color: #ffffff;
   transform: none; box-shadow: none;
 }
-[data-theme="light"] .dash-hero .btn-white:active { background: rgba(255,255,255,.13); }
-/* Historical badge stays readable on dark hero */
+[data-theme="light"] .dash-hero .btn-white:active {
+  background: rgba(255,255,255,.12);
+}
 [data-theme="light"] .dash-hero-hist-badge {
   background: rgba(252,211,77,.14);
-  border-color: rgba(252,211,77,.35);
+  border-color: rgba(252,211,77,.3);
   color: #fcd34d;
 }
-/* Mobile stacked hero */
 @media (max-width: 760px) {
-  [data-theme="light"] .dash-hero::before { width: 220px; height: 220px; top: -30px; right: -25px; }
   [data-theme="light"] .dash-hero-actions .btn-white {
-    background: rgba(255,255,255,.11);
-    border-color: rgba(255,255,255,.16);
-    color: rgba(255,255,255,.88);
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.14);
+    color: rgba(255,255,255,.85);
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   2. SECTION LABELS — stronger typographic authority
+   2. SECTION LABELS — uppercase, tight tracking, no colored bar
 ───────────────────────────────────────────────────────────────── */
 .dash-section-label {
-  font-size: .67rem;
+  font-size: .66rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: .1em;
+  letter-spacing: .09em;
   color: var(--t4);
-  margin-top: 2.1rem;
-  margin-bottom: .9rem;
-  gap: .65rem;
+  margin-top: 2rem;
+  margin-bottom: .85rem;
+  gap: .6rem;
 }
-[data-theme="light"] .dash-section-label::before {
-  background: var(--brand);
+.dash-section-label::before {
+  display: none;
+}
+.dash-section-label::after {
   opacity: .5;
-  width: 2.5px; height: 13px;
 }
-.dash-section-label::after { opacity: .6; }
 
 /* ─────────────────────────────────────────────────────────────────
-   3. TODAY AT A GLANCE — left-border accent + depth
+   3. TODAY AT A GLANCE — clean uniform white cards, no side borders
 ───────────────────────────────────────────────────────────────── */
-.dash-today-tile {
-  border-left: 3px solid transparent;
+[data-theme="light"] .dash-today-tile {
+  border: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
   border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(26,58,107,.055);
+  background: #ffffff;
+  transition: box-shadow .15s, transform .15s;
 }
-.dash-today-tile:hover {
-  box-shadow: 0 5px 18px rgba(0,0,0,.09), 0 2px 6px rgba(26,58,107,.1);
-  transform: translateY(-2px);
+[data-theme="light"] .dash-today-tile:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  transform: translateY(-1px);
+  border-color: var(--border-2);
 }
-[data-theme="light"] .dash-today-tile.dash-tile-teal { border-left-color: #0d9488; }
-[data-theme="light"] .dash-today-tile.dash-tile-navy { border-left-color: var(--brand); }
-.dash-today-icon { width: 40px; height: 40px; border-radius: 10px; }
+.dash-today-icon { width: 38px; height: 38px; border-radius: 9px; }
 .dash-today-val {
-  font-size: 1.18rem; font-weight: 800;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   4. KPI CARDS — white, uniform border, clean shadow.
+      No colored borders anywhere. The numbers are the design.
+───────────────────────────────────────────────────────────────── */
+[data-theme="light"] #page-dashboard .kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  padding: 1.15rem 1.2rem 1rem;
+  transition: box-shadow .15s, transform .15s, border-color .15s;
+}
+[data-theme="light"] #page-dashboard .kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.09);
+  transform: translateY(-1px);
+  border-color: var(--border-2);
+}
+[data-theme="light"] #page-dashboard .kpi-card.kpi-featured {
+  border-color: var(--border);
+}
+[data-theme="light"] #page-dashboard .kpi-card.kpi-featured:hover {
+  border-color: var(--border-2);
+}
+/* Icon */
+#page-dashboard .kpi-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  margin-bottom: .8rem;
+}
+/* Value — strong number hierarchy */
+#page-dashboard .kpi-val {
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -.05em;
+  font-feature-settings: 'tnum' 1;
+  line-height: 1;
+}
+#page-dashboard .kpi-label {
+  font-size: .68rem;
+  font-weight: 500;
+  margin-top: .28rem;
+  letter-spacing: 0;
+}
+.kpi-sub-line {
+  font-size: .65rem;
+  margin-top: .2rem;
+  line-height: 1.4;
+}
+/* Trend pill — understated */
+.kpi-trend {
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  border-radius: 4px;
+  padding: .15rem .45rem;
+  margin-top: .35rem;
+  display: inline-block;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   5. CHART CARDS — consistent with KPI cards
+───────────────────────────────────────────────────────────────── */
+[data-theme="light"] .dash-chart-main,
+[data-theme="light"] .dash-charts-side .card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+[data-theme="light"] .dash-chart-main:hover,
+[data-theme="light"] .dash-charts-side .card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  border-color: var(--border-2);
+}
+.dash-chart-title {
+  font-size: .85rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.dash-chart-stat {
+  font-size: 1.22rem;
+  font-weight: 700;
   letter-spacing: -.04em;
   font-feature-settings: 'tnum' 1;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   4. KPI METRIC CARDS — colored top-border category system
-      Blue = neutral data (students, staff, classes, library)
-      Teal = performance metrics (fees, attendance)
+   6. QUICK VIEW PANELS — same card system
 ───────────────────────────────────────────────────────────────── */
-[data-theme="light"] #page-dashboard .kpi-card {
-  border-top: 3px solid transparent;
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 4px rgba(0,0,0,.04), 0 3px 12px rgba(26,58,107,.065);
-  padding: 1.2rem 1.25rem 1.05rem;
+[data-theme="light"] #page-dashboard .dash-panels .card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
-[data-theme="light"] #page-dashboard .kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(0,0,0,.09), 0 2px 8px rgba(26,58,107,.1);
-  border-top-color: var(--brand) !important;
-}
-/* Blue-category cards: brand navy top border */
-[data-theme="light"] #page-dashboard .kpi-card:has(.kpi-icon.blue) {
-  border-top-color: var(--brand);
-}
-/* Teal / featured cards: teal top border */
-[data-theme="light"] #page-dashboard .kpi-card:has(.kpi-icon.teal),
-[data-theme="light"] #page-dashboard .kpi-card.kpi-featured {
-  border-top-color: #0d9488;
-}
-/* Icon — slightly larger */
-#page-dashboard .kpi-icon {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  margin-bottom: .85rem;
-}
-/* Value — bigger, tighter, tabular for numbers */
-#page-dashboard .kpi-val {
-  font-size: 1.72rem;
-  font-weight: 800;
-  letter-spacing: -.055em;
-  font-feature-settings: 'tnum' 1;
-  line-height: 1;
-}
-/* Label */
-#page-dashboard .kpi-label {
-  font-size: .69rem;
-  font-weight: 500;
-  letter-spacing: -.005em;
-  margin-top: .3rem;
-}
-/* Sub/trend */
-.kpi-sub-line {
-  font-size: .66rem;
-  margin-top: .22rem;
-  line-height: 1.4;
-}
-/* Trend badges — slightly more presence */
-.kpi-trend {
-  font-size: .63rem;
-  font-weight: 700;
-  letter-spacing: -.01em;
-  border-radius: 5px;
-  padding: .16rem .5rem;
-  margin-top: .4rem;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   5. ANALYTICS CHARTS — refined headers + depth
-───────────────────────────────────────────────────────────────── */
-.dash-chart-title {
-  font-size: .88rem;
-  font-weight: 700;
-  letter-spacing: -.02em;
-}
-.dash-chart-stat {
-  font-size: 1.28rem;
-  font-weight: 800;
-  letter-spacing: -.05em;
-  font-feature-settings: 'tnum' 1;
-}
-[data-theme="light"] .dash-chart-main,
-[data-theme="light"] .dash-charts-side .card {
-  box-shadow: 0 1px 4px rgba(0,0,0,.04), 0 3px 12px rgba(26,58,107,.065);
-}
-[data-theme="light"] .dash-chart-main:hover,
-[data-theme="light"] .dash-charts-side .card:hover {
-  box-shadow: 0 5px 22px rgba(0,0,0,.09), 0 2px 8px rgba(26,58,107,.09);
+[data-theme="light"] #page-dashboard .dash-panels .card:hover {
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+  border-color: var(--border-2);
   transform: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   6. QUICK VIEW PANELS — consistent card depth
-───────────────────────────────────────────────────────────────── */
-[data-theme="light"] #page-dashboard .dash-panels .card {
-  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(26,58,107,.055);
-}
-[data-theme="light"] #page-dashboard .dash-panels .card:hover {
-  box-shadow: 0 4px 18px rgba(0,0,0,.08), 0 2px 6px rgba(26,58,107,.09);
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   7. GETTING STARTED CARD — style if shown for new schools
-───────────────────────────────────────────────────────────────── */
-[data-theme="light"] .dash-getting-started {
-  background: linear-gradient(135deg, #1b3d70 0%, #0c2347 100%);
-  border: none;
-  box-shadow: 0 8px 32px rgba(12,35,71,.22), 0 3px 8px rgba(0,0,0,.1);
-  border-radius: var(--radius-xl);
-}
-[data-theme="light"] .dash-gs-title { color: #ffffff; }
-[data-theme="light"] .dash-gs-sub   { color: rgba(255,255,255,.62); }
-[data-theme="light"] .dash-gs-step  {
-  background: rgba(255,255,255,.1);
-  border: 1px solid rgba(255,255,255,.15);
-  color: rgba(255,255,255,.88);
-}
-[data-theme="light"] .dash-gs-step:hover {
-  background: rgba(255,255,255,.17);
-  color: #ffffff;
-}
-[data-theme="light"] .dash-gs-step-num {
-  background: var(--brand-teal);
-  color: #ffffff;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   END DASHBOARD PREMIUM OVERRIDES
+   END DASHBOARD PROFESSIONAL OVERRIDES
 ───────────────────────────────────────────────────────────────── */

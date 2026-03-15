@@ -96,7 +96,7 @@ Object.assign(SMS, {
       const le=document.getElementById('l-err'); if(le){le.style.display='none';le.textContent='';}
     });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; const e=document.getElementById('l-err'); if(e){e.style.display='none';e.textContent='';} });
-    document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; const e=document.getElementById('r-err'); if(e){e.style.display='none';e.textContent='';} });
+    document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; const e=document.getElementById('r-err'); if(e){e.style.display='none';e.textContent='';} ['r-school','r-name','r-email','r-pwd'].forEach(id=>{const f=document.getElementById(id);if(f){f.style.borderColor='';f.style.boxShadow='';}});});
     document.getElementById('register-btn')?.addEventListener('click',()=>this.startOTPFlow());
     // Enter key navigation on register form
     document.getElementById('r-school')?.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('r-motto')?.focus(); });
@@ -116,6 +116,10 @@ Object.assign(SMS, {
     document.getElementById('otp-resend-btn')?.addEventListener('click',()=>this.resendOTP());
     document.getElementById('otp-back-btn')?.addEventListener('click',()=>{ document.getElementById('auth-otp').style.display='none'; document.getElementById('auth-register').style.display='block'; this.clearOTPState(); const rb=document.getElementById('register-btn'); if(rb){rb.disabled=false;rb.querySelector('span').textContent='Create School Account';} });
     this.initOTPBoxes();
+    // ── Registration form — example placeholders ──
+    (()=>{ const e=document.getElementById('r-school'); if(e) e.placeholder='GLORY LAND SCHOOL'; })();
+    (()=>{ const e=document.getElementById('r-motto');  if(e) e.placeholder='The Future Is Bright'; })();
+    (()=>{ const e=document.getElementById('r-name');   if(e) e.placeholder='Samuel Boateng'; })();
     document.getElementById('add-student-btn')?.addEventListener('click',()=>this.openStudentModal());
     document.getElementById('save-student-btn')?.addEventListener('click',()=>this.saveStudent());
     ['s-search','s-class-f','s-status-f','s-gender-f'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>this.renderStudents()));
@@ -297,7 +301,7 @@ Object.assign(SMS, {
     const result=await FAuth.login(email,pass);
     if(!result.success){
       const rem = this._recordLoginFail(email);
-      const msg = rem > 0 ? `Incorrect email or password. (${rem} attempt${rem!==1?'s':''} left before lockout)` : 'Too many failed attempts. Please try again in 15 minutes.';
+      const msg = rem > 0 ? `${result.error} (${rem} attempt${rem!==1?'s':''} left before lockout)` : 'Too many failed attempts. Please try again in 15 minutes.';
       errEl.style.display='flex'; errEl.textContent=msg; btn.disabled=false; btn.removeAttribute('data-loading'); const _sp3=btn.querySelector('.btn-spinner'); if(_sp3) _sp3.remove(); const _bs3=btn.querySelector('span'); if(_bs3) _bs3.textContent='Sign In to Dashboard'; errEl.classList.remove('form-shake'); void errEl.offsetWidth; errEl.classList.add('form-shake'); return;
     }
     this._clearLoginFail(email);
@@ -408,7 +412,23 @@ Object.assign(SMS, {
     // Guard: prevent double-send from Enter key + click firing simultaneously
     if (btn?.disabled) return;
 
-    if (!school || !name || !email || !pwd) { errEl.textContent = 'Please fill in all required fields.'; errEl.style.display = 'flex'; return; }
+    // Highlight every empty required field individually and bail if any are missing
+    let _regHasEmpty = false;
+    const _hiReg = (id, empty) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (empty) {
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow   = '0 0 0 3px rgba(239,68,68,0.18)';
+        el.addEventListener('input', () => { el.style.borderColor = ''; el.style.boxShadow = ''; }, { once: true });
+        _regHasEmpty = true;
+      }
+    };
+    _hiReg('r-school', !school);
+    _hiReg('r-name',   !name);
+    _hiReg('r-email',  !email);
+    _hiReg('r-pwd',    !pwd);
+    if (_regHasEmpty) { errEl.textContent = 'Please fill in the highlighted fields.'; errEl.style.display = 'flex'; return; }
     if (school.length > 100) { errEl.textContent = 'School name must be under 100 characters.'; errEl.style.display = 'flex'; return; }
     if (name.length > 80) { errEl.textContent = 'Name must be under 80 characters.'; errEl.style.display = 'flex'; return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'flex'; return; }
@@ -750,13 +770,6 @@ Object.assign(SMS, {
 
       if (data.reason === 'rate_limited') {
         errEl.textContent = 'Too many reset attempts. Please wait 30 minutes before trying again.';
-        errEl.style.display = 'flex';
-        btn.disabled = false;
-        btn.querySelector('span').textContent = 'Send Reset Code';
-        return;
-      }
-      if (data.reason === 'user_not_found') {
-        errEl.textContent = 'This email is not registered in our system. Please check your email or register a new school.';
         errEl.style.display = 'flex';
         btn.disabled = false;
         btn.querySelector('span').textContent = 'Send Reset Code';

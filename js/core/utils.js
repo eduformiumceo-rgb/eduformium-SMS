@@ -49,9 +49,9 @@ const DB = {
     const cols=['students','staff','classes','subjects','feePayments','feeStructure',
       'exams','grades','attendance','events','messages','leaves','homework','books','expenses','payroll','auditLog','users'];
     const results=await Promise.all(cols.map(c=>FDB.getAll(sid,c).then(d=>({c,d}))));
-    results.forEach(({c,d})=>{ if(d.length>0) localStorage.setItem('sms_'+c,JSON.stringify(d)); });
+    results.forEach(({c,d})=>{ if(d.length>0) try{ localStorage.setItem('sms_'+c,JSON.stringify(d)); }catch(e){} });
     const school=await FDB.getSchoolProfile(sid);
-    if(school) localStorage.setItem('sms_school',JSON.stringify(school));
+    if(school) try{ localStorage.setItem('sms_school',JSON.stringify(school)); }catch(e){}
   },
 };
 

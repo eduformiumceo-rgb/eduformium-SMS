@@ -597,7 +597,7 @@ const SMS = {
     clearTimeout(this._sessionTimer);
     const _logoutName = this.currentUser?.name || 'User'; // capture before clearing
     if(window.FAuth) await FAuth.logout().catch(()=>{}); // 1. Revoke Supabase session FIRST
-    DB.del('session'); this.currentUser=null; this.schoolId=null; this._formsBound=false; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase)
+    DB.del('session'); this.currentUser=null; this.schoolId=null; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase) — NOTE: _formsBound intentionally NOT reset here; login/app DOM listeners persist across logout and must not be duplicated by re-binding
     // Clear reset flow state — wipes any in-memory reset_token between sessions
     this._resetState={}; clearInterval(this._resetOTPCountdownTimer); clearInterval(this._resetResendTimer);
     this.audit('Logout','login',`${_logoutName} signed out`); // 3. Audit after — writes to localStorage only, no Supabase (no session, no 401)

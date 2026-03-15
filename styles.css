@@ -3379,21 +3379,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border: 1.5px solid #b0ccc9; background: #fff;
   cursor: pointer; flex-shrink: 0;
   transition: border-color .15s, background .15s, box-shadow .15s;
-  display: flex; align-items: center; justify-content: center;
-  position: relative;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px 10px;
 }
 .l-remember-label input[type="checkbox"]:checked {
-  background: #0d9488; border-color: #0d9488;
+  background-color: #0d9488;
+  border-color: #0d9488;
   box-shadow: 0 0 0 3px rgba(13,148,136,.15);
-}
-.l-remember-label input[type="checkbox"]:checked::after {
-  content: '';
-  position: absolute;
-  left: 4px; top: 1.5px;
-  width: 5px; height: 9px;
-  border: 2px solid white;
-  border-top: none; border-left: none;
-  transform: rotate(45deg);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4l3 3 5-6' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
 }
 .l-remember-label input[type="checkbox"]:focus-visible {
   outline: none; box-shadow: 0 0 0 3px rgba(13,148,136,.25);

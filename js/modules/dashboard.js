@@ -55,7 +55,14 @@ Object.assign(SMS, {
     },30000);
     const _activeCount=d.students.filter(s=>s.status==='active').length;
     const _fp=`${d.students.length}|${_activeCount}|${d.classes.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
-    if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role); }
+    if(_fp!==this._dashDataFingerprint){
+      this._dashDataFingerprint=_fp;
+      // Defer one animation frame so the browser completes layout before Chart.js
+      // queries canvas dimensions. Without this, charts render with width=0 on first
+      // load (e.g. demo entry) because the app container was just made visible in the
+      // same JS tick and layout hasn't been calculated yet.
+      requestAnimationFrame(()=>this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role));
+    }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
         if(document.getElementById('page-dashboard')?.classList.contains('active')){ this.loadDashboard(); }

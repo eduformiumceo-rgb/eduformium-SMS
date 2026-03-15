@@ -2026,7 +2026,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background: var(--surface-2);
   padding: .6rem 1rem;
   text-align: center;
-  min-width: 90px;
+  min-width: 115px;
+  overflow: hidden;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -2036,11 +2037,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   transition: background .15s;
 }
 .dash-hero-stat:hover { background: var(--surface-3); }
-/* No per-child border-radius needed — container overflow:hidden handles clipping */
+/* Overflow clipped at card level — value font scales via clamp, no ellipsis */
 .dash-hero-stat-val {
-  font-size: 1.1rem; font-weight: 700; color: var(--t1);
+  font-size: clamp(.78rem, 1.6vw, 1.05rem); font-weight: 700; color: var(--t1);
   letter-spacing: -.03em; line-height: 1;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
   max-width: 100%;
 }
 .dash-hero-stat-lbl { font-size: .58rem; color: var(--t4); font-weight: 500; white-space: nowrap; letter-spacing: 0; line-height: 1; }
@@ -2358,8 +2359,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .dash-hero-greeting           { font-size: 1.1rem; white-space: normal; margin-bottom: .3rem; }
   .dash-hero-right              { align-items: flex-start; width: 100%; }
   .dash-hero-stats-row          { width: 100%; }
-  .dash-hero-stat               { padding: .5rem .7rem; min-width: 70px; }
-  .dash-hero-stat-val           { font-size: 1rem; }
+  .dash-hero-stat               { padding: .5rem .7rem; min-width: 90px; }
+  .dash-hero-stat-val           { font-size: clamp(.75rem, 3.5vw, 1rem); }
   .dash-hero-stat-lbl           { font-size: .55rem; }
   .dash-hero-actions            { width: 100%; }
   .dash-hero-actions .btn-white { flex: 1; justify-content: center; font-size: .67rem; }
@@ -2385,7 +2386,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 /* ── 480px: mobile single column ── */
 @media (max-width:480px) {
   .dash-hero-stat               { padding: .45rem .6rem; }
-  .dash-hero-stat-val           { font-size: .95rem; letter-spacing: -.03em; }
+  .dash-hero-stat-val           { font-size: clamp(.72rem, 3.2vw, .9rem); letter-spacing: -.03em; }
   .dash-hero-stat-lbl           { font-size: .54rem; }
   .dash-today-strip,
   .dash-today-strip[data-cols="2"],

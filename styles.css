@@ -1058,8 +1058,7 @@ img { max-width: 100%; }
 .main { grid-area: main; overflow-y: auto; overflow-x: hidden; padding: 0; contain: strict; }
 /* Subtle dot-grid — CSS only, no JS, no images, imperceptible performance cost */
 [data-theme="light"] .main {
-  background-image: radial-gradient(circle, rgba(0,0,0,.028) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image: none;
 }
 [data-theme="dark"] .main {
   background-image: radial-gradient(circle, rgba(255,255,255,.022) 1px, transparent 1px);
@@ -1163,6 +1162,8 @@ img { max-width: 100%; }
   border: 1px solid transparent; transition: background .15s, color .15s, border-color .15s, box-shadow .15s;
   white-space: nowrap; text-decoration: none;
 }
+/* SVGs inside buttons: prevent shrink and fix browser baseline shift */
+.btn svg { flex-shrink: 0; display: block; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
 .btn-primary { background: var(--brand); color: white; }
@@ -3327,26 +3328,85 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 ═══════════════════════════════════════════════════════════════════ */
 
 /* ─────────────────────────────────────────────────────────────────
-   1. HERO — Flat navy, one shadow, correct semantic colors on dark.
-   JS sets inline style.color = 'var(--danger)' etc on stat values.
-   Override those variables scoped to .dash-hero so they resolve
-   to bright/light versions readable against dark navy.
+   1. HERO — Login-hero background ported to dashboard card.
+      Same layered treatment: deep navy base, diagonal teal slab,
+      bottom-right glow pool, dot-grid texture, right-edge seam.
 ───────────────────────────────────────────────────────────────── */
 [data-theme="light"] .dash-hero {
-  background: #1a3a6b;
+  background: #071830;
   border: none;
-  box-shadow: 0 2px 12px rgba(0,0,0,.14);
+  box-shadow: 0 2px 12px rgba(0,0,0,.22);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  /* Bright variants — only active when an element inside hero
-     references these vars via inline style                        */
+  position: relative;
+  /* Bright semantic color overrides for stat values on dark bg */
   --success: #6ee7b7;
   --warn:    #fcd34d;
   --danger:  #fca5a5;
 }
-[data-theme="light"] .dash-hero::before,
-[data-theme="light"] .dash-hero::after { display: none; }
 
+/* Layer 1 — diagonal teal depth slab (::before) */
+[data-theme="light"] .dash-hero::before {
+  display: block;
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(148deg,
+    rgba(13,148,136,.14) 0%,
+    rgba(10,32,64,.85)   40%,
+    #071830              75%);
+  pointer-events: none; z-index: 0;
+}
+
+/* Layer 2 — bottom-right teal glow pool (::after) */
+[data-theme="light"] .dash-hero::after {
+  display: block;
+  content: '';
+  position: absolute;
+  bottom: -20%; right: -5%;
+  width: 55%; height: 140%;
+  background: radial-gradient(ellipse at center,
+    rgba(13,148,136,.22) 0%,
+    rgba(13,148,136,.06) 50%,
+    transparent          75%);
+  pointer-events: none; z-index: 0;
+}
+
+/* Layer 3 — dot-grid texture */
+[data-theme="light"] .dash-hero .dash-hero-left::before {
+  content: '';
+  position: absolute; inset: -100px;
+  background-image: radial-gradient(circle, rgba(255,255,255,.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none; z-index: 0;
+}
+
+/* Layer 4 — right-edge teal vertical seam */
+[data-theme="light"] .dash-hero-right::after {
+  display: none; /* seam sits between left/right — use hero::after instead */
+}
+
+/* Lift all direct children above layers */
+[data-theme="light"] .dash-hero > * { position: relative; z-index: 1; }
+[data-theme="light"] .dash-hero-left { position: relative; }
+
+/* Right-edge teal seam — on the hero itself via outline trick */
+[data-theme="light"] .dash-hero-right {
+  position: relative;
+}
+[data-theme="light"] .dash-hero-right::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; right: 0;
+  width: 1px; z-index: 2;
+  background: linear-gradient(to bottom,
+    transparent               0%,
+    rgba(13,148,136,.6)      30%,
+    rgba(20,184,166,.4)      65%,
+    transparent              100%);
+  pointer-events: none;
+}
+
+/* Typography on dark */
 [data-theme="light"] .dash-hero-eyebrow {
   color: rgba(255,255,255,.5);
   font-size: .72rem; font-weight: 600;
@@ -3354,34 +3414,35 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="light"] .dash-hero-eyebrow::before { background: #0d9488; opacity: .9; }
 [data-theme="light"] .dash-hero-greeting { color: #ffffff; font-size: 1.38rem; font-weight: 700; }
 [data-theme="light"] .dash-hero-meta-pill {
-  background: rgba(255,255,255,.1);
-  border-color: rgba(255,255,255,.14);
-  color: rgba(255,255,255,.65);
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.62);
 }
 [data-theme="light"] .dash-hero-stats-row {
-  background: rgba(0,0,0,.15);
-  border-color: rgba(255,255,255,.1);
+  background: rgba(0,0,0,.2);
+  border-color: rgba(255,255,255,.08);
   border-radius: 10px;
 }
 [data-theme="light"] .dash-hero-stat { background: transparent; }
-[data-theme="light"] .dash-hero-stat:hover { background: rgba(255,255,255,.06); }
-/* Base stat value: white. JS will override color for att/outstanding. */
+[data-theme="light"] .dash-hero-stat:hover { background: rgba(255,255,255,.05); }
 [data-theme="light"] .dash-hero-stat-val { color: #ffffff; font-feature-settings: 'tnum' 1; }
-[data-theme="light"] .dash-hero-stat-lbl { color: rgba(255,255,255,.38); }
+[data-theme="light"] .dash-hero-stat-lbl { color: rgba(255,255,255,.35); }
+
+/* Action buttons */
 [data-theme="light"] .dash-hero .btn-white {
-  background: rgba(255,255,255,.1);
-  color: rgba(255,255,255,.85);
-  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.09);
+  color: rgba(255,255,255,.82);
+  border: 1px solid rgba(255,255,255,.13);
   font-weight: 600;
   transition: background .15s, border-color .15s;
 }
 [data-theme="light"] .dash-hero .btn-white:hover {
-  background: rgba(255,255,255,.18);
-  border-color: rgba(255,255,255,.26);
+  background: rgba(13,148,136,.22);
+  border-color: rgba(13,148,136,.5);
   color: #ffffff;
   transform: none; box-shadow: none;
 }
-[data-theme="light"] .dash-hero .btn-white:active { background: rgba(255,255,255,.12); }
+[data-theme="light"] .dash-hero .btn-white:active { background: rgba(13,148,136,.15); }
 [data-theme="light"] .dash-hero-hist-badge {
   background: rgba(252,211,77,.14);
   border-color: rgba(252,211,77,.3);
@@ -3389,10 +3450,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 @media (max-width: 760px) {
   [data-theme="light"] .dash-hero-actions .btn-white {
-    background: rgba(255,255,255,.1);
-    border-color: rgba(255,255,255,.14);
-    color: rgba(255,255,255,.85);
+    background: rgba(255,255,255,.09);
+    border-color: rgba(255,255,255,.13);
+    color: rgba(255,255,255,.82);
   }
+  [data-theme="light"] .dash-hero-right::before { display: none; }
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -3431,6 +3493,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="light"] .dash-tile-navy .dash-today-icon {
   background: none;
   width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+[data-theme="light"] .dash-tile-teal .dash-today-icon svg,
+[data-theme="light"] .dash-tile-navy .dash-today-icon svg {
+  display: block; flex-shrink: 0;
 }
 .dash-today-val {
   font-size: 1.12rem;
@@ -3467,6 +3535,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   width: 28px; height: 28px;
   border-radius: 0;
   margin-bottom: .7rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+[data-theme="light"] #page-dashboard .kpi-icon svg {
+  display: block; flex-shrink: 0;
 }
 
 /* Value — strong but controlled; clamp prevents overflow in 2-col mobile */
@@ -3504,7 +3577,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 .kpi-trend-up   { color: #0d9488; }
 .kpi-trend-down { color: var(--danger); }
-.kpi-trend-flat { color: var(--t4); }
+.kpi-trend-flat { color: var(--t4); font-weight: 500; }
 [data-theme="dark"] .kpi-trend-up   { color: #2dd4bf; }
 [data-theme="dark"] .kpi-trend-down { color: #fc8181; }
 [data-theme="dark"] .kpi-trend-flat { color: var(--t4); }
@@ -3518,13 +3591,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 @media (max-width: 760px) {
   #page-dashboard .kpi-card  { padding: .9rem 1rem .85rem; }
   #page-dashboard .kpi-val   { font-size: clamp(1rem, 5.5vw, 1.35rem); }
-  .dash-today-val            { font-size: 1rem; }
+  .dash-today-val            { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-today-label          { font-size: .64rem; }
+  .dash-today-sub            { font-size: .6rem; }
 }
 @media (max-width: 480px) {
   #page-dashboard .kpi-val   { font-size: clamp(.95rem, 5vw, 1.2rem); }
   #page-dashboard .kpi-label { font-size: .64rem; }
   .kpi-sub-line              { font-size: .62rem; }
   .dash-today-val            { font-size: .95rem; }
+  .dash-today-tile           { padding: .65rem .75rem; gap: .55rem; }
 }
 
 /* ─────────────────────────────────────────────────────────────────

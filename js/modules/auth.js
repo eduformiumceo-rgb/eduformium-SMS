@@ -19,6 +19,9 @@ Object.assign(SMS, {
         DB.set('users', users);
         DB.set('session', {userId: demoUser.id});
         this.currentUser = demoUser;
+        // Reset fingerprint so charts always re-render on demo entry,
+        // even if data is identical to a previous session.
+        this._dashDataFingerprint = null;
         this.boot();
       } else {
         this._demoMode = false;
@@ -370,8 +373,8 @@ Object.assign(SMS, {
     const boxes = document.querySelectorAll('#auth-otp .otp-box');
     const complete = [...boxes].every(b => b.value.length === 1);
     // FIX: never re-enable verify button when the OTP countdown has already expired.
-    // Previously _checkOTPComplete ran on every input event regardless of expiry state,
-    // misleading users into clicking Verify after the server had already invalidated the code.
+    // The countdown timer disables the button on expiry, but if the user types into a
+    // box at that exact moment this guard prevents a race that would briefly re-enable it.
     const expired = !!(this._otpState.expiresAt && Date.now() > this._otpState.expiresAt);
     const btn = document.getElementById('otp-verify-btn');
     if (btn) btn.disabled = !complete || expired;
@@ -844,8 +847,7 @@ Object.assign(SMS, {
     const boxes = document.querySelectorAll('#auth-reset-otp .otp-box');
     const complete = [...boxes].every(b => b.value.length === 1);
     // FIX: mirror the registration OTP fix — never re-enable the reset verify button
-    // after the countdown has expired. Server enforces expiry too, but the UI must
-    // not mislead the user into thinking a timed-out submission is valid.
+    // after the countdown has expired. Same race condition applies here.
     const expired = !!(this._resetState.expiresAt && Date.now() > this._resetState.expiresAt);
     const btn = document.getElementById('rp-otp-verify-btn');
     if (btn) btn.disabled = !complete || expired;
@@ -1149,7 +1151,7 @@ Object.assign(SMS, {
       delete user.password;
       DB.set('users', users);
       this._resetState = {};
-      this._showResetSuccess(email);
+      this._showResetSuccess();
       return;
     }
 
@@ -1199,10 +1201,10 @@ Object.assign(SMS, {
 
     // ✅ Success
     this._resetState = {};
-    this._showResetSuccess(email);
+    this._showResetSuccess();
   },
 
-  _showResetSuccess(email) {
+  _showResetSuccess() {
     // Show all panels hidden, transition back to sign-in with a success toast
     ['auth-reset-email','auth-reset-otp','auth-reset-pw'].forEach(id => {
       const el = document.getElementById(id);
@@ -1212,9 +1214,6 @@ Object.assign(SMS, {
     // Clear the password field on sign-in
     const lpass = document.getElementById('l-pass');
     if (lpass) lpass.value = '';
-    // FIX: pre-fill the email so the user does not have to retype it after a reset.
-    // email is passed in because _resetState has already been cleared by the caller.
-    if (email) { const luEl = document.getElementById('l-user'); if (luEl) luEl.value = email; }
     this.toast('Password updated! Please sign in with your new password.', 'success');
   },
 

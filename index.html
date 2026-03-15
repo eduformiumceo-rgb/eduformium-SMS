@@ -282,17 +282,17 @@
       <div id="auth-otp" style="display:none">
         <div class="l-eyebrow"><span class="l-eyebrow-dot"></span>Email Verification</div>
         <h2 class="l-title">Check your inbox</h2>
-        <p class="l-subtitle">We sent a 6-digit code to<br><strong id="otp-email-display" style="font-weight:600"></strong></p>
+        <p class="l-subtitle">We sent a 6-digit code to<br><strong id="otp-email-display" style="font-weight:600;color:var(--brand)"></strong></p>
 
         <!-- OTP Input Boxes -->
         <div class="otp-boxes">
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-0" autocomplete="one-time-code"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-1" autocomplete="off"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-2" autocomplete="off"/>
-          <div class="otp-sep">—</div>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-3" autocomplete="off"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-4" autocomplete="off"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-5" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-0" autocomplete="one-time-code" aria-label="Digit 1 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-1" autocomplete="off" aria-label="Digit 2 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-2" autocomplete="off" aria-label="Digit 3 of 6"/>
+          <div class="otp-sep" aria-hidden="true">—</div>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-3" autocomplete="off" aria-label="Digit 4 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-4" autocomplete="off" aria-label="Digit 5 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="otp-5" autocomplete="off" aria-label="Digit 6 of 6"/>
         </div>
 
         <!-- Expiry countdown -->
@@ -373,13 +373,13 @@
         <p class="l-subtitle">We sent a 6-digit code to<br><strong id="rp-otp-email-display" style="font-weight:600;color:var(--brand)"></strong></p>
 
         <div class="otp-boxes">
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-0" autocomplete="one-time-code"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-1" autocomplete="off"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-2" autocomplete="off"/>
-          <div class="otp-sep">—</div>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-3" autocomplete="off"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-4" autocomplete="off"/>
-          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-5" autocomplete="off"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-0" autocomplete="one-time-code" aria-label="Digit 1 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-1" autocomplete="off" aria-label="Digit 2 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-2" autocomplete="off" aria-label="Digit 3 of 6"/>
+          <div class="otp-sep" aria-hidden="true">—</div>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-3" autocomplete="off" aria-label="Digit 4 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-4" autocomplete="off" aria-label="Digit 5 of 6"/>
+          <input class="otp-box" type="text" inputmode="numeric" maxlength="1" id="rp-otp-5" autocomplete="off" aria-label="Digit 6 of 6"/>
         </div>
 
         <div class="otp-timer-row">

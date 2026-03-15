@@ -229,7 +229,6 @@ Object.assign(SMS, {
   // private window. For real brute-force protection, enable server-side rate limiting
   // in your Supabase dashboard: Authentication → Rate Limits → "Sign in attempts".
   // Recommended: 5 attempts per 15 minutes. No code change needed — Supabase handles it.
-  _loginAttempts: {},
   _isLoginLocked(email){
     const k = 'sms_lock_' + btoa(email);
     try {
@@ -1151,17 +1150,24 @@ Object.assign(SMS, {
       };
       errEl.textContent = msgs[result.reason] || 'Could not update password. Please try again.';
       errEl.style.display = 'flex';
-      btn.disabled = false;
-      btn.querySelector('span').textContent = 'Update Password';
-      // If token expired, send back to screen 1
+      // If token expired/invalid, keep btn disabled during the 2-second transition window.
+      // Re-enabling it here would allow the user to click again, stacking multiple setTimeout
+      // calls and causing the screen to flicker between panels on each repeated click.
       if (result.reason === 'token_expired' || result.reason === 'invalid_token') {
+        btn.querySelector('span').textContent = 'Update Password';
         setTimeout(() => {
           document.getElementById('auth-reset-pw').style.display = 'none';
           document.getElementById('auth-reset-email').style.display = 'block';
-          // FIX: re-enable Send button — it was disabled when the OTP was first sent
+          // Re-enable Send button for the new attempt
           const sb = document.getElementById('rp-send-btn');
           if(sb){ sb.disabled=false; sb.querySelector('span').textContent='Send Reset Code'; }
+          // Re-enable Update Password btn in case user navigates back to this screen
+          btn.disabled = false;
+          btn.querySelector('span').textContent = 'Update Password';
         }, 2000);
+      } else {
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Update Password';
       }
       return;
     }

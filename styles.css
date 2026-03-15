@@ -717,6 +717,7 @@ img { max-width: 100%; }
 [data-theme="dark"] .l-title { color: #f1f5f9; }
 [data-theme="dark"] .l-subtitle { color: #94a3b8; }
 [data-theme="dark"] .l-panel-inner .form-label { color: #cbd5e1; }
+[data-theme="dark"] .l-remember-label { color: #94a3b8; }
 [data-theme="dark"] .l-btn-outline { border-color: rgba(13,148,136,.25); color: #94a3b8; }
 [data-theme="dark"] .l-btn-outline:hover { border-color: #0d9488; color: #14b8a6; background: rgba(13,148,136,.08); }
 [data-theme="dark"] .l-divider::before, [data-theme="dark"] .l-divider::after { background: rgba(13,148,136,.18); }

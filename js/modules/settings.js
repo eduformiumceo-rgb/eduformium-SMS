@@ -66,6 +66,10 @@ Object.assign(SMS, {
     if(emailEl){ emailEl.value=u.email||''; emailEl.readOnly=true; emailEl.title='Email cannot be changed here — contact your administrator.'; emailEl.style.opacity='0.65'; emailEl.style.cursor='not-allowed'; }
     document.getElementById('p-phone').value=u.phone||'';
     document.getElementById('p-role').value=this.roleLabel(u.role);
+    // Restore avatar preview — without this it reverts to initials on every tab revisit
+    const initials=(u.name||'User').split(' ').map(n=>n[0]||'').join('').slice(0,2).toUpperCase()||'U';
+    const av=document.getElementById('av-preview');
+    if(av){ av.textContent=initials; if(u.avatar&&u.avatar.startsWith('data:image/')){ const img=document.createElement('img'); img.src=u.avatar; img.style.cssText='width:100%;height:100%;border-radius:99px;object-fit:cover'; av.textContent=''; av.appendChild(img); } }
   },
 
   saveProfile(){

@@ -57,6 +57,7 @@ Object.assign(SMS, {
       document.getElementById('auth-reset-email').style.display='none';
       document.getElementById('auth-signin').style.display='block';
       const e=document.getElementById('rp-email-err'); if(e){e.style.display='none';e.textContent='';}
+      const le=document.getElementById('l-err'); if(le){le.style.display='none';le.textContent='';}
     });
     // ── Reset screen 2: OTP ──
     this._initResetOTPBoxes();
@@ -92,6 +93,7 @@ Object.assign(SMS, {
       clearInterval(this._resetResendTimer);
       document.getElementById('auth-reset-pw').style.display='none';
       document.getElementById('auth-signin').style.display='block';
+      const le=document.getElementById('l-err'); if(le){le.style.display='none';le.textContent='';}
     });
     document.getElementById('go-register')?.addEventListener('click',()=>{ document.getElementById('auth-signin').style.display='none'; document.getElementById('auth-register').style.display='block'; const e=document.getElementById('l-err'); if(e){e.style.display='none';e.textContent='';} });
     document.getElementById('go-signin')?.addEventListener('click',()=>{ document.getElementById('auth-register').style.display='none'; document.getElementById('auth-signin').style.display='block'; const e=document.getElementById('r-err'); if(e){e.style.display='none';e.textContent='';} });
@@ -470,6 +472,11 @@ Object.assign(SMS, {
         console.error('OTP worker error:', err);
         return false;
       }
+      const data = await res.json().catch(() => ({}));
+      if (!data.success) {
+        console.error('OTP worker rejected request:', data);
+        return false;
+      }
       return true;
     } catch (e) {
       console.error('OTP send error:', e);
@@ -698,7 +705,7 @@ Object.assign(SMS, {
     // Pre-fill email if user already typed it
     const typed = document.getElementById('l-user')?.value.trim().toLowerCase();
     const rpEmail = document.getElementById('rp-email');
-    if (rpEmail && typed) rpEmail.value = typed;
+    if (rpEmail) rpEmail.value = typed || '';
     const err = document.getElementById('rp-email-err');
     if (err) { err.style.display = 'none'; err.textContent = ''; }
     // FIX: always re-enable Send button — may be disabled from a previous reset attempt
@@ -1057,10 +1064,12 @@ Object.assign(SMS, {
   },
 
   async _applyPasswordReset() {
-    const newPw  = document.getElementById('rp-new-pw')?.value  || '';
-    const confPw = document.getElementById('rp-confirm-pw')?.value || '';
     const errEl  = document.getElementById('rp-pw-err');
     const btn    = document.getElementById('rp-apply-btn');
+    // Guard: prevent double-submit from rapid clicks or Enter+click race
+    if (btn?.disabled) return;
+    const newPw  = document.getElementById('rp-new-pw')?.value  || '';
+    const confPw = document.getElementById('rp-confirm-pw')?.value || '';
     const { email, token } = this._resetState;
 
     errEl.style.display = 'none'; errEl.textContent = '';

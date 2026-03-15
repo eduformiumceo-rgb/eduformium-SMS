@@ -11,17 +11,17 @@
   --radius-sm:  7px;
   --radius-lg:  14px;
   --radius-xl:  18px;
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow:     0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.05);
-  --shadow-lg:  0 12px 36px rgba(0,0,0,.14), 0 4px 12px rgba(0,0,0,.08);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(26,58,107,.04);
+  --shadow:     0 4px 14px rgba(0,0,0,.08), 0 2px 6px rgba(26,58,107,.06);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,.13), 0 4px 14px rgba(26,58,107,.1);
 }
 
 /* ── LIGHT THEME (default) ── */
 [data-theme="light"] {
   /* Surfaces */
   --surface:    #ffffff;
-  --surface-2:  #f8fafc;
-  --surface-3:  #f1f5f9;
+  --surface-2:  #edf1f7;
+  --surface-3:  #e4eaf3;
 
   /* Text */
   --t1: #0f172a;
@@ -3319,3 +3319,275 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 [data-theme="dark"] .l-subtitle { color: #7a9cb0; }
 [data-theme="dark"] .otp-box { color: #f1f5f9; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   EDUFORMIUM — DASHBOARD PREMIUM OVERRIDES
+   World-class professional design using brand colors.
+   Scoped to light-mode and #page-dashboard to prevent bleed.
+   Append order matters — these override earlier declarations.
+═══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────
+   1. HERO CARD — Dark premium command center
+      Dark navy gradient, ambient teal glow, white text.
+      Makes the hero unmistakably the page's focal point.
+───────────────────────────────────────────────────────────────── */
+[data-theme="light"] .dash-hero {
+  background: linear-gradient(135deg, #1b3d70 0%, #102d58 52%, #0c2347 100%);
+  border: 1px solid rgba(255,255,255,.06);
+  box-shadow:
+    0 14px 48px rgba(12,35,71,.32),
+    0 4px 14px rgba(0,0,0,.14),
+    inset 0 1px 0 rgba(255,255,255,.07);
+}
+/* Ambient teal glow — top-right corner */
+[data-theme="light"] .dash-hero::before {
+  content: '';
+  position: absolute; top: -70px; right: -50px;
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, rgba(13,148,136,.17) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+/* Subtle lighter fill — bottom-left for layered depth */
+[data-theme="light"] .dash-hero::after {
+  content: '';
+  position: absolute; bottom: -90px; left: -60px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,.035) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+}
+/* Lift content above pseudo-elements */
+[data-theme="light"] .dash-hero > * { position: relative; z-index: 1; }
+
+/* School name eyebrow */
+[data-theme="light"] .dash-hero-eyebrow {
+  color: rgba(255,255,255,.58);
+  font-size: .73rem; font-weight: 600; letter-spacing: .01em;
+}
+[data-theme="light"] .dash-hero-eyebrow::before {
+  background: #2dd4bf; opacity: 1; width: 7px; height: 7px;
+}
+/* Greeting headline */
+[data-theme="light"] .dash-hero-greeting {
+  color: #ffffff;
+  font-size: 1.42rem; font-weight: 700;
+}
+/* Date / year / term pills */
+[data-theme="light"] .dash-hero-meta-pill {
+  background: rgba(255,255,255,.09);
+  border-color: rgba(255,255,255,.13);
+  color: rgba(255,255,255,.7);
+}
+/* KPI stats block — glass surface */
+[data-theme="light"] .dash-hero-stats-row {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.1);
+}
+[data-theme="light"] .dash-hero-stat { background: transparent; }
+[data-theme="light"] .dash-hero-stat:hover { background: rgba(255,255,255,.07); }
+[data-theme="light"] .dash-hero-stat-val {
+  color: #ffffff;
+  font-size: clamp(.82rem, 1.75vw, 1.12rem);
+  font-feature-settings: 'tnum' 1;
+}
+[data-theme="light"] .dash-hero-stat-lbl { color: rgba(255,255,255,.42); }
+/* Action buttons — glass pills on dark */
+[data-theme="light"] .dash-hero .btn-white {
+  background: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.88);
+  border: 1px solid rgba(255,255,255,.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-weight: 600;
+}
+[data-theme="light"] .dash-hero .btn-white:hover {
+  background: rgba(255,255,255,.19);
+  border-color: rgba(255,255,255,.3);
+  color: #ffffff;
+  transform: none; box-shadow: none;
+}
+[data-theme="light"] .dash-hero .btn-white:active { background: rgba(255,255,255,.13); }
+/* Historical badge stays readable on dark hero */
+[data-theme="light"] .dash-hero-hist-badge {
+  background: rgba(252,211,77,.14);
+  border-color: rgba(252,211,77,.35);
+  color: #fcd34d;
+}
+/* Mobile stacked hero */
+@media (max-width: 760px) {
+  [data-theme="light"] .dash-hero::before { width: 220px; height: 220px; top: -30px; right: -25px; }
+  [data-theme="light"] .dash-hero-actions .btn-white {
+    background: rgba(255,255,255,.11);
+    border-color: rgba(255,255,255,.16);
+    color: rgba(255,255,255,.88);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   2. SECTION LABELS — stronger typographic authority
+───────────────────────────────────────────────────────────────── */
+.dash-section-label {
+  font-size: .67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--t4);
+  margin-top: 2.1rem;
+  margin-bottom: .9rem;
+  gap: .65rem;
+}
+[data-theme="light"] .dash-section-label::before {
+  background: var(--brand);
+  opacity: .5;
+  width: 2.5px; height: 13px;
+}
+.dash-section-label::after { opacity: .6; }
+
+/* ─────────────────────────────────────────────────────────────────
+   3. TODAY AT A GLANCE — left-border accent + depth
+───────────────────────────────────────────────────────────────── */
+.dash-today-tile {
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(26,58,107,.055);
+}
+.dash-today-tile:hover {
+  box-shadow: 0 5px 18px rgba(0,0,0,.09), 0 2px 6px rgba(26,58,107,.1);
+  transform: translateY(-2px);
+}
+[data-theme="light"] .dash-today-tile.dash-tile-teal { border-left-color: #0d9488; }
+[data-theme="light"] .dash-today-tile.dash-tile-navy { border-left-color: var(--brand); }
+.dash-today-icon { width: 40px; height: 40px; border-radius: 10px; }
+.dash-today-val {
+  font-size: 1.18rem; font-weight: 800;
+  letter-spacing: -.04em;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   4. KPI METRIC CARDS — colored top-border category system
+      Blue = neutral data (students, staff, classes, library)
+      Teal = performance metrics (fees, attendance)
+───────────────────────────────────────────────────────────────── */
+[data-theme="light"] #page-dashboard .kpi-card {
+  border-top: 3px solid transparent;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 4px rgba(0,0,0,.04), 0 3px 12px rgba(26,58,107,.065);
+  padding: 1.2rem 1.25rem 1.05rem;
+}
+[data-theme="light"] #page-dashboard .kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0,0,0,.09), 0 2px 8px rgba(26,58,107,.1);
+  border-top-color: var(--brand) !important;
+}
+/* Blue-category cards: brand navy top border */
+[data-theme="light"] #page-dashboard .kpi-card:has(.kpi-icon.blue) {
+  border-top-color: var(--brand);
+}
+/* Teal / featured cards: teal top border */
+[data-theme="light"] #page-dashboard .kpi-card:has(.kpi-icon.teal),
+[data-theme="light"] #page-dashboard .kpi-card.kpi-featured {
+  border-top-color: #0d9488;
+}
+/* Icon — slightly larger */
+#page-dashboard .kpi-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  margin-bottom: .85rem;
+}
+/* Value — bigger, tighter, tabular for numbers */
+#page-dashboard .kpi-val {
+  font-size: 1.72rem;
+  font-weight: 800;
+  letter-spacing: -.055em;
+  font-feature-settings: 'tnum' 1;
+  line-height: 1;
+}
+/* Label */
+#page-dashboard .kpi-label {
+  font-size: .69rem;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  margin-top: .3rem;
+}
+/* Sub/trend */
+.kpi-sub-line {
+  font-size: .66rem;
+  margin-top: .22rem;
+  line-height: 1.4;
+}
+/* Trend badges — slightly more presence */
+.kpi-trend {
+  font-size: .63rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  border-radius: 5px;
+  padding: .16rem .5rem;
+  margin-top: .4rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   5. ANALYTICS CHARTS — refined headers + depth
+───────────────────────────────────────────────────────────────── */
+.dash-chart-title {
+  font-size: .88rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.dash-chart-stat {
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -.05em;
+  font-feature-settings: 'tnum' 1;
+}
+[data-theme="light"] .dash-chart-main,
+[data-theme="light"] .dash-charts-side .card {
+  box-shadow: 0 1px 4px rgba(0,0,0,.04), 0 3px 12px rgba(26,58,107,.065);
+}
+[data-theme="light"] .dash-chart-main:hover,
+[data-theme="light"] .dash-charts-side .card:hover {
+  box-shadow: 0 5px 22px rgba(0,0,0,.09), 0 2px 8px rgba(26,58,107,.09);
+  transform: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   6. QUICK VIEW PANELS — consistent card depth
+───────────────────────────────────────────────────────────────── */
+[data-theme="light"] #page-dashboard .dash-panels .card {
+  box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 2px 8px rgba(26,58,107,.055);
+}
+[data-theme="light"] #page-dashboard .dash-panels .card:hover {
+  box-shadow: 0 4px 18px rgba(0,0,0,.08), 0 2px 6px rgba(26,58,107,.09);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   7. GETTING STARTED CARD — style if shown for new schools
+───────────────────────────────────────────────────────────────── */
+[data-theme="light"] .dash-getting-started {
+  background: linear-gradient(135deg, #1b3d70 0%, #0c2347 100%);
+  border: none;
+  box-shadow: 0 8px 32px rgba(12,35,71,.22), 0 3px 8px rgba(0,0,0,.1);
+  border-radius: var(--radius-xl);
+}
+[data-theme="light"] .dash-gs-title { color: #ffffff; }
+[data-theme="light"] .dash-gs-sub   { color: rgba(255,255,255,.62); }
+[data-theme="light"] .dash-gs-step  {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.88);
+}
+[data-theme="light"] .dash-gs-step:hover {
+  background: rgba(255,255,255,.17);
+  color: #ffffff;
+}
+[data-theme="light"] .dash-gs-step-num {
+  background: var(--brand-teal);
+  color: #ffffff;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   END DASHBOARD PREMIUM OVERRIDES
+───────────────────────────────────────────────────────────────── */

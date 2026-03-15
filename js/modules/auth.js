@@ -693,6 +693,10 @@ Object.assign(SMS, {
     this._resetState = {};
     clearInterval(this._resetOTPCountdownTimer);
     clearInterval(this._resetResendTimer);
+    // Clear registration OTP state — user may have been mid-registration when they
+    // clicked "Forgot password?". Without this, _otpCountdownTimer and _otpResendTimer
+    // keep firing in the background as orphaned intervals with no way to be cleared.
+    this.clearOTPState();
     // Hide all other panels
     document.getElementById('auth-signin').style.display = 'none';
     document.getElementById('auth-register').style.display = 'none';
@@ -918,6 +922,9 @@ Object.assign(SMS, {
     const errEl = document.getElementById('rp-otp-err');
     const btn   = document.getElementById('rp-otp-verify-btn');
     const { email, expiresAt } = this._resetState;
+
+    // Guard: prevent double-submit from rapid clicks before the first await yields
+    if (btn?.disabled) return;
 
     // Guard: Enter key calls this directly and bypasses the disabled button state.
     // If boxes aren't all filled yet, do nothing silently.

@@ -117,7 +117,7 @@ Object.assign(SMS, {
     document.getElementById('otp-back-btn')?.addEventListener('click',()=>{ document.getElementById('auth-otp').style.display='none'; document.getElementById('auth-register').style.display='block'; this.clearOTPState(); const rb=document.getElementById('register-btn'); if(rb){rb.disabled=false;rb.querySelector('span').textContent='Create School Account';} });
     this.initOTPBoxes();
     // ── Registration form — example placeholders ──
-    (()=>{ const e=document.getElementById('r-school'); if(e) e.placeholder='GLORY LAND SCHOOL'; })();
+    (()=>{ const e=document.getElementById('r-school'); if(e) e.placeholder='Glory Land School'; })();
     (()=>{ const e=document.getElementById('r-motto');  if(e) e.placeholder='The Future Is Bright'; })();
     (()=>{ const e=document.getElementById('r-name');   if(e) e.placeholder='Samuel Boateng'; })();
     document.getElementById('add-student-btn')?.addEventListener('click',()=>this.openStudentModal());

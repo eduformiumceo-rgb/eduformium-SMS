@@ -2213,17 +2213,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   grid-template-columns: 1fr minmax(260px, 300px);
   gap: .85rem;
   margin-bottom: 0;
-  align-items: stretch;
+  align-items: start;
 }
 .dash-charts-layout .card { margin-bottom: 0; }
-/* Main fee chart — stretch to full column height */
+/* Main fee chart — flex column so chart box fills remaining card height */
 .dash-chart-main {
   display: flex;
   flex-direction: column;
 }
 .dash-charts-side { display: flex; flex-direction: column; gap: .85rem; }
-/* Tall chart box fills all remaining height after the header */
-.dash-chart-box-tall { padding: .5rem 1rem 1.1rem; flex: 1; min-height: 220px; }
+/* Tall box height = 2 × (sm-card header + sm-box) + gap between them
+   ≈ 2 × (68px + 152px) + 14px = 454px total, minus fee header 68px = 386px */
+.dash-chart-box-tall { padding: .5rem 1rem 1.1rem; height: 386px; }
 .dash-chart-box-tall canvas { width: 100% !important; height: 100% !important; }
 .dash-chart-box-sm   { padding: .5rem 1rem 1.1rem; height: 152px; }
 .dash-chart-box-sm   canvas { width: 100% !important; height: 100% !important; }

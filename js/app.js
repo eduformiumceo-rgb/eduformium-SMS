@@ -597,9 +597,16 @@ const SMS = {
     clearTimeout(this._sessionTimer);
     const _logoutName = this.currentUser?.name || 'User'; // capture before clearing
     if(window.FAuth) await FAuth.logout().catch(()=>{}); // 1. Revoke Supabase session FIRST
-    DB.del('session'); this.currentUser=null; this.schoolId=null; this._formsBound=false; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase)
+    DB.del('session'); this.currentUser=null; this.schoolId=null; // 2. Clear state (schoolId=null stops DB.set syncing to Supabase) — NOTE: _formsBound intentionally NOT reset here; login/app DOM listeners persist across logout and must not be duplicated by re-binding
     // Clear reset flow state — wipes any in-memory reset_token between sessions
     this._resetState={}; clearInterval(this._resetOTPCountdownTimer); clearInterval(this._resetResendTimer);
+    // Clear dashboard timers — prevents ghost renders and stale freshness ticks after logout
+    clearInterval(this._dashRefreshTimer); this._dashRefreshTimer=null;
+    clearInterval(this._freshTimer);       this._freshTimer=null;
+    // Destroy Chart.js instances — frees canvas memory between sessions
+    ['fees','enrollment','att'].forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; } });
+    // Reset fingerprint — forces charts to re-render on next login even with identical data
+    this._dashDataFingerprint=null;
     this.audit('Logout','login',`${_logoutName} signed out`); // 3. Audit after — writes to localStorage only, no Supabase (no session, no 401)
     const syncEl=document.getElementById('sync-status');
     if(syncEl) syncEl.style.display='none';

@@ -46,16 +46,29 @@ Object.assign(SMS, {
     this._dashRefreshedAt=Date.now();
     const _fEl=document.getElementById('dash-freshness');
     if(_fEl) _fEl.textContent='Updated just now';
-    clearInterval(this._freshTimer);
-    this._freshTimer=setInterval(()=>{
-      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); return; }
-      const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
-      const fe=document.getElementById('dash-freshness');
-      if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
-    },30000);
+    // Start freshness ticker once — guard prevents it being killed and restarted by every
+    // 60s auto-refresh, which previously stopped the "Updated Xm ago" label ever appearing.
+    // nav() and logout() still clear it when leaving the dashboard or signing out.
+    if(!this._freshTimer){
+      this._freshTimer=setInterval(()=>{
+        if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); this._freshTimer=null; return; }
+        const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
+        const fe=document.getElementById('dash-freshness');
+        if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
+      },30000);
+    }
     const _activeCount=d.students.filter(s=>s.status==='active').length;
-    const _fp=`${d.students.length}|${_activeCount}|${d.classes.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
-    if(_fp!==this._dashDataFingerprint){ this._dashDataFingerprint=_fp; this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role); }
+    const _paySum=d.yearPayments.reduce((s,p)=>s+(+p.amount||0),0);
+    const _attSum=d.attRecords.reduce((s,a)=>s+(+a.present||0),0);
+    const _fp=`${d.students.length}|${_activeCount}|${d.classes.length}|${d.yearPayments.length}|${_paySum}|${d.attRecords.length}|${_attSum}|${_academicYear}|${_currentTerm}`;
+    if(_fp!==this._dashDataFingerprint){
+      this._dashDataFingerprint=_fp;
+      // Defer one animation frame so the browser completes layout before Chart.js
+      // queries canvas dimensions. Without this, charts render with width=0 on first
+      // load (e.g. demo entry) because the app container was just made visible in the
+      // same JS tick and layout hasn't been calculated yet.
+      requestAnimationFrame(()=>this.renderDashCharts(d.students,d.classes,d.attRecords,d.role,d._sparkData));
+    }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
         if(document.getElementById('page-dashboard')?.classList.contains('active')){ this.loadDashboard(); }
@@ -211,13 +224,14 @@ Object.assign(SMS, {
     const _dwEl=document.getElementById('dash-welcome');
     if(_dwEl) _dwEl.textContent=`${_g}, ${(this.currentUser?.name||'User').split(' ')[0]}! Here's your school overview.`;
     // Keep hero date pill in sync — stays correct if dashboard is open past midnight
-    const _htfDateEl=document.getElementById('dash-hero-today-full');
-    if(_htfDateEl) _htfDateEl.textContent=new Date().toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
-    // Hero always renders on dark navy — use fixed high-contrast colours (not CSS vars which target light bg)
+    const _htfEl=document.getElementById('dash-hero-today-full');
+    if(_htfEl) _htfEl.textContent=new Date().toLocaleDateString('default',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+    // Hero now renders on a light surface — use semantic colors that work on both light and dark backgrounds.
+    // FIX: replaced rgba(255,255,255,.38) which was invisible on the new light-surface hero.
     const heroAtt=document.getElementById('dash-hero-att');
     if(heroAtt){
       heroAtt.textContent=attRate;
-      heroAtt.style.color=attNum===null?'rgba(255,255,255,.38)':attNum>=90?'#14b8a6':attNum>=75?'#fbbf24':'#ff6b6b';
+      heroAtt.style.color=attNum===null?'var(--t4)':attNum>=90?'var(--success)':attNum>=75?'var(--warn)':'var(--danger)';
     }
     const heroOutEl=document.getElementById('dash-hero-outstanding');
     if(heroOutEl){
@@ -225,13 +239,12 @@ Object.assign(SMS, {
       if(isFinance){
         if(_heroStatWrap) _heroStatWrap.style.display='';
         heroOutEl.textContent=fmt(totalOutstanding);
-        heroOutEl.style.color=totalOutstanding>0?'#ff6b6b':'#14b8a6';
+        heroOutEl.style.color=totalOutstanding>0?'var(--danger)':'var(--success)';
       } else {
         if(_heroStatWrap) _heroStatWrap.style.display='none';
       }
     }
-    // Dim date when viewing historical year/term
-    const _htfEl=document.getElementById('dash-hero-today-full');
+    // Distinguish live vs historical viewing — make it unmistakable
     if(_htfEl){
       const _todayMs=Date.now();
       const _allYrs=school.academicYears||[];
@@ -244,8 +257,38 @@ Object.assign(SMS, {
       const _termEnd=_curYrAyInfo[`${_termKey}End`]?new Date(_curYrAyInfo[`${_termKey}End`]+'T23:59:59'):null;
       const _todayInTerm=_termStart&&_termEnd?(_todayMs>=_termStart.getTime()&&_todayMs<=_termEnd.getTime()):null;
       const _isLive=!_viewingHistoricalYear&&(_todayInTerm===null||_todayInTerm);
-      _htfEl.style.opacity=_isLive?'1':'0.42';
-      _htfEl.title=_isLive?'':`Viewing historical data — ${_academicYear} Term ${_currentTerm}`;
+
+      // Date pill: normal when live, strikethrough + muted when historical
+      _htfEl.style.opacity=_isLive?'1':'0.5';
+      _htfEl.style.textDecoration=_isLive?'none':'line-through';
+      _htfEl.title=_isLive?'':`Today's date — you are viewing historical data for ${_academicYear} Term ${_currentTerm}`;
+
+      // Historical badge — created once, reused on every render, never duplicated
+      let _histBadge=document.getElementById('dash-hero-hist-badge');
+      if(!_histBadge){
+        const _metaEl=_htfEl.closest('.dash-hero-meta');
+        if(_metaEl){
+          _histBadge=document.createElement('span');
+          _histBadge.id='dash-hero-hist-badge';
+          _histBadge.className='dash-hero-hist-badge';
+          _metaEl.appendChild(_histBadge);
+        }
+      }
+      if(_histBadge){
+        if(_isLive){
+          _histBadge.style.display='none';
+        } else {
+          _histBadge.style.display='inline-flex';
+          // Only rewrite innerHTML when the displayed year/term has actually changed —
+          // prevents an SVG + text rebuild on every 60s auto-refresh tick
+          const _badgeKey=`${_academicYear}|${_currentTerm}`;
+          if(_histBadge.dataset.key!==_badgeKey){
+            _histBadge.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="10" height="10"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>\u00a0Historical \u2014 ${_academicYear} Term ${_currentTerm}`;
+            _histBadge.title=`You are viewing past data. Switch to the current year/term to see live figures.`;
+            _histBadge.dataset.key=_badgeKey;
+          }
+        }
+      }
     }
   },
 
@@ -295,7 +338,7 @@ Object.assign(SMS, {
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:enrollTrend,color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
-      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:false},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?`${attSub} · ${attNum}% avg`:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
@@ -328,7 +371,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:${colLt};color:${col}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${sanitize(this.className(s.classId))}</span> · ${s.studentId}</div>
+          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${sanitize(this.className(s.classId))}</span> · ${sanitize(s.studentId)}</div>
         </div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`;
@@ -337,7 +380,7 @@ Object.assign(SMS, {
 
   // ── Upcoming Events panel ──
   _renderDashEvents(d){
-    const {events,now,_todayStart} = d;
+    const {events,_todayStart} = d;
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=_todayStart).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     // Use CSS variables for event type colours — theme-aware where possible; purple has no CSS var so kept literal
     const evColors={exam:'var(--brand)',academic:'var(--brand-teal)',sports:'var(--success)',holiday:'var(--warn)',meeting:'#7c3aed',cultural:'var(--danger)'};
@@ -360,7 +403,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:${bg};color:${col}">${_evSvg[e.type]||_evFallback}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.title)}</div>
-          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
+          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+sanitize(e.venue):''}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;
@@ -399,7 +442,7 @@ Object.assign(SMS, {
 
   // ── Upcoming Exams panel ──
   _renderDashExams(d){
-    const {exams,now,_todayStart} = d;
+    const {exams,_todayStart} = d;
     const _parseExamDate=dt=>new Date(dt.includes('T')?dt:dt+'T00:00:00');
     const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=_todayStart).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
@@ -477,7 +520,7 @@ Object.assign(SMS, {
       const toDate=new Date(l.to+'T00:00:00');
       const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
       const _returnDate=new Date(toDate); _returnDate.setDate(_returnDate.getDate()+1);
-      const _returnStr=_returnDate.toISOString().split('T')[0];
+      const _returnStr=localDateStr(_returnDate);
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -502,8 +545,26 @@ Object.assign(SMS, {
 
 
 
-  renderDashCharts(students,classes,payments,attRecords,role='admin'){
-    if(typeof Chart==='undefined') return; // Chart.js not loaded yet (offline/CDN fail) — skip silently
+  renderDashCharts(students,classes,attRecords,role='admin',precomputedFeeData=null){
+    // Chart.js availability — stats update regardless; only canvas rendering requires it.
+    // If Chart.js hasn't loaded yet (CDN slow/blocked), attempt a one-shot dynamic load
+    // from the fallback CDN, then re-render once it arrives.
+    const _chartAvail=typeof Chart!=='undefined';
+    if(!_chartAvail){
+      if(!this._chartLoadAttempted){
+        this._chartLoadAttempted=true;
+        const _s=document.createElement('script');
+        _s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+        _s.onload=()=>{
+          // Chart.js now available — force re-render by clearing fingerprint
+          this._dashDataFingerprint=null;
+          this.loadDashboard();
+        };
+        _s.onerror=()=>{ console.warn('Chart.js could not be loaded from either CDN. Charts unavailable.'); };
+        document.head.appendChild(_s);
+      }
+      // Stats already updated above — return here, charts render after CDN loads
+    }
     const isFinance=(role==='admin'||role==='accountant');
     // Hide fee collection chart panel for non-finance roles
     const feeChartCard=document.getElementById('dash-fee-chart-card');
@@ -511,118 +572,128 @@ Object.assign(SMS, {
     const isDark=document.documentElement.getAttribute('data-theme')==='dark';
     const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
     const tickColor=isDark?'#64748b':'#94a3b8';
-    const emptyBarColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
 
-    // Shared plugin defaults
-    Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
+    // Set shared font default — only when Chart.js is available, only when value differs
+    if(_chartAvail&&Chart.defaults.font.family!=="'Inter','DM Sans',system-ui,sans-serif"){
+      Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
+    }
 
     // ── Fee Collection — gradient area line chart ──
     const ctx2=document.getElementById('chart-fees');
-    if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
+    if(ctx2){
+      if(_chartAvail&&this._charts.fees) this._charts.fees.destroy();
       const now2=new Date();
-      const feeKeys=[],feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
+      const feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
         const d=new Date(now2.getFullYear(),now2.getMonth()-i,1);
-        feeKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-        feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));            // "Oct" "Nov" etc
-        feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'})); // "October 2025"
-        feeData.push(0);
+        feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));
+        feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'}));
+        feeData.push(precomputedFeeData?.[5-i] ?? 0);
       }
-      payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
       const hasAnyFee=feeData.some(v=>v>0);
-      const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
-      const tealLine=isDark?'#2dd4bf':'#0d9488';
-      const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
-      grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
-      grad2.addColorStop(1,'rgba(0,0,0,0)');
       const totalCollected=feeData.reduce((a,b)=>a+b,0);
+      // ── Stat: always update regardless of Chart.js ──
       const feeStatEl=document.getElementById('dash-fee-total-stat');
       if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';
-      this._charts.fees=new Chart(ctx2,{
-        type:'line',
-        data:{labels:feeAxisLabels,datasets:[{
-          data:feeData, borderColor:tealLine, backgroundColor:grad2,
-          borderWidth:2.5, tension:0.42, fill:true,
-          pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
-          pointBorderWidth:2, pointRadius:5, pointHoverRadius:7,
-          pointHoverBackgroundColor:tealLine, pointHoverBorderWidth:2.5,
-        }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          animation:{duration:700,easing:'easeInOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:'#94a3b8', bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
-              padding:{top:10,bottom:10,left:14,right:14}, cornerRadius:10,
-              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
-              callbacks:{
-                label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
-                title:items=>`${feeTooltipLabels[items[0].dataIndex]}  •  Fee Collection`,
-              }
-            }
-          },
-          scales:{
-            y:{
-              beginAtZero:true, grid:{color:gridColor,drawBorder:false},
-              border:{display:false},
-              ticks:{callback:v=>sym+(v>=1000?(v/1000).toFixed(v%1000?1:0)+'k':v),color:tickColor,font:{size:11},maxTicksLimit:5},
-            },
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
-          },
-        }
-      });
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
+      // ── Chart: only when Chart.js is loaded ──
+      if(_chartAvail){
+        const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
+        const tealLine=isDark?'#2dd4bf':'#0d9488';
+        const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
+        grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
+        grad2.addColorStop(1,'rgba(0,0,0,0)');
+        this._charts.fees=new Chart(ctx2,{
+          type:'line',
+          data:{labels:feeAxisLabels,datasets:[{
+            data:feeData, borderColor:tealLine, backgroundColor:grad2,
+            borderWidth:2.5, tension:0.42, fill:true,
+            pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
+            pointBorderWidth:2, pointRadius:5, pointHoverRadius:7,
+            pointHoverBackgroundColor:tealLine, pointHoverBorderWidth:2.5,
+          }]},
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            animation:{duration:700,easing:'easeInOutQuart'},
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              tooltip:{
+                backgroundColor:isDark?'#1e293b':'#0f172a',
+                titleColor:'#94a3b8', bodyColor:'#fff',
+                borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+                padding:{top:10,bottom:10,left:14,right:14}, cornerRadius:10,
+                titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+                callbacks:{
+                  label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
+                  title:items=>`${feeTooltipLabels[items[0].dataIndex]}  •  Fee Collection`,
+                }
+              }
+            },
+            scales:{
+              y:{
+                beginAtZero:true, grid:{color:gridColor,drawBorder:false},
+                border:{display:false},
+                ticks:{callback:v=>sym+(v>=1000?(v/1000).toFixed(v%1000?1:0)+'k':v),color:tickColor,font:{size:11},maxTicksLimit:5},
+              },
+              x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
+            },
+          }
+        });
+      }
     }
 
     // ── Enrollment by Class — horizontal bar ──
     const ctx1=document.getElementById('chart-enrollment');
-    if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
+    if(ctx1){
+      if(_chartAvail&&this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id&&s.status==='active').length);
       const total=data.reduce((a,b)=>a+b,0);
+      // ── Stat: always update regardless of Chart.js ──
       const enrollStatEl=document.getElementById('dash-enroll-total-stat');
       if(enrollStatEl) enrollStatEl.textContent=total||'—';
-      const _enrBox=ctx1.closest('.dash-chart-box-sm'); if(_enrBox){ let _enrEmp=_enrBox.querySelector('.dash-chart-empty'); if(!_enrEmp){ _enrEmp=document.createElement('div'); _enrEmp.className='dash-chart-empty'; _enrBox.style.position='relative'; _enrBox.appendChild(_enrEmp); } _enrEmp.style.display=labels.length===0?'flex':'none'; _enrEmp.innerHTML=labels.length===0?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg><span>No classes added yet</span>':''; }
-      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
-      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
-      this._charts.enrollment=new Chart(ctx1,{
-        type:'bar',
-        data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          animation:{duration:600,easing:'easeInOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:'#94a3b8', bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
-              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
-              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
-              callbacks:{
-                label:ctx=>`  ${ctx.parsed.y} student${ctx.parsed.y!==1?'s':''}`,
-                title:items=>`${items[0].label}`,
+      const _enrBox=ctx1.closest('.dash-chart-box-sm'); if(_enrBox){ let _enrEmp=_enrBox.querySelector('.dash-chart-empty'); if(!_enrEmp){ _enrEmp=document.createElement('div'); _enrEmp.className='dash-chart-empty'; _enrBox.appendChild(_enrEmp); } const _enrNoData=labels.length===0; _enrEmp.style.display=_enrNoData?'flex':'none'; if(_enrNoData&&!_enrEmp.hasChildNodes()) _enrEmp.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg><span>No classes added yet</span>'; }
+      // ── Chart: only when Chart.js is loaded ──
+      if(_chartAvail){
+        const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
+        const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
+        this._charts.enrollment=new Chart(ctx1,{
+          type:'bar',
+          data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            animation:{duration:600,easing:'easeInOutQuart'},
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              tooltip:{
+                backgroundColor:isDark?'#1e293b':'#0f172a',
+                titleColor:'#94a3b8', bodyColor:'#fff',
+                borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+                padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+                titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+                callbacks:{
+                  label:ctx=>`  ${ctx.parsed.y} student${ctx.parsed.y!==1?'s':''}`,
+                  title:items=>`${items[0].label}`,
+                }
               }
-            }
-          },
-          scales:{
-            y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
-          },
-        }
-      });
+            },
+            scales:{
+              y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
+              x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
+            },
+          }
+        });
+      }
     }
 
     // ── Attendance — Mon–Fri school week, future days dimmed, headcount format ──
     const ctx3=document.getElementById('chart-attendance');
-    if(ctx3){ if(this._charts.att) this._charts.att.destroy();
-      const recs=attRecords||DB.get('attendance',[]);
+    if(ctx3){
+      if(_chartAvail&&this._charts.att) this._charts.att.destroy();
+      const recs=attRecords;
       const _today=new Date();
       const _dow=_today.getDay(); // 0=Sun,1=Mon,...,6=Sat
       // Find Monday of current week; if weekend show last completed week
@@ -667,50 +738,54 @@ Object.assign(SMS, {
       const weekTotalPresent=attData.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
       const weekTotalPossible=attTotals.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
       const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
+      // ── Stat: always update regardless of Chart.js ──
       const attAvgEl=document.getElementById('dash-att-avg-stat');
       if(attAvgEl) attAvgEl.textContent=avgRate!==null?`${avgRate}%`:'—';
-      const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.style.position='relative'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; _attEmp.innerHTML=_noAtt?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>':''; }
-      const isLastWeek=(_dow===0||_dow===6);
-      const maxTotal=Math.max(...attTotals,1);
-      this._charts.att=new Chart(ctx3,{
-        type:'bar',
-        data:{labels:attAxisLabels,datasets:[{
-          data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
-          borderRadius:6, borderSkipped:false,
-        }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          animation:{duration:600,easing:'easeInOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:'#94a3b8', bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
-              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
-              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
-              callbacks:{
-                label:(ctx)=>{
-                  const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
-                  if(d>_today) return '  No school yet';
-                  const tot=attTotals[ctx.dataIndex];
-                  if(!ctx.parsed.y&&!tot) return '  Not recorded';
-                  const r=tot>0?Math.round(ctx.parsed.y/tot*100):0;
-                  return `  ${ctx.parsed.y}/${tot} present · ${r}%`;
-                },
-                title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
+      const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; if(_noAtt&&!_attEmp.hasChildNodes()) _attEmp.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>'; }
+      // ── Chart: only when Chart.js is loaded ──
+      if(_chartAvail){
+        const isLastWeek=(_dow===0||_dow===6);
+        const maxTotal=Math.max(...attTotals,1);
+        this._charts.att=new Chart(ctx3,{
+          type:'bar',
+          data:{labels:attAxisLabels,datasets:[{
+            data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
+            borderRadius:6, borderSkipped:false,
+          }]},
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            animation:{duration:600,easing:'easeInOutQuart'},
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              tooltip:{
+                backgroundColor:isDark?'#1e293b':'#0f172a',
+                titleColor:'#94a3b8', bodyColor:'#fff',
+                borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+                padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+                titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+                callbacks:{
+                  label:(ctx)=>{
+                    const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
+                    if(d>_today) return '  No school yet';
+                    const tot=attTotals[ctx.dataIndex];
+                    if(!ctx.parsed.y&&!tot) return '  Not recorded';
+                    const r=tot>0?Math.round(ctx.parsed.y/tot*100):0;
+                    return `  ${ctx.parsed.y}/${tot} present · ${r}%`;
+                  },
+                  title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
+                }
               }
-            }
-          },
-          scales:{
-            y:{min:0,suggestedMax:maxTotal,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11},maxTicksLimit:5}},
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
-          },
-        }
-      });
-      const sub3=document.getElementById('dash-att-sub');
-      if(sub3) sub3.textContent=isLastWeek?'Last school week (Mon–Fri)':'This week (Mon–Fri)';
+            },
+            scales:{
+              y:{min:0,suggestedMax:maxTotal,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11},maxTicksLimit:5}},
+              x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
+            },
+          }
+        });
+        const sub3=document.getElementById('dash-att-sub');
+        if(sub3) sub3.textContent=isLastWeek?'Last school week (Mon–Fri)':'This week (Mon–Fri)';
+      }
     }
   },
 

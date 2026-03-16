@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin/>
 <link rel="dns-prefetch" href="https://supabase.co"/>
 <!-- Single optimised font request -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet"/>
@@ -1308,6 +1309,7 @@
         </div>
 
         <!-- ── Today at a Glance Strip ── -->
+        <div class="dash-section-label">Today at a Glance</div>
         <div class="dash-today-strip" id="dash-today-strip"></div>
 
         <!-- ── KPI Cards ── -->
@@ -2920,6 +2922,9 @@
 
 <!-- DOMPurify: belt-and-suspenders XSS sanitization for innerHTML -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Chart.js: analytics charts on dashboard -->
+<!-- Primary CDN (cdnjs). onerror falls back to jsdelivr immediately if primary fails. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s);})()"></script>
 <script src="supabase.js"></script>
 <script src="js/core/utils.js"></script>
 <script src="js/app.js"></script>

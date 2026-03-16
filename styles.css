@@ -2213,11 +2213,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   grid-template-columns: 1fr minmax(260px, 300px);
   gap: .85rem;
   margin-bottom: 0;
-  align-items: start;
+  align-items: stretch;
 }
 .dash-charts-layout .card { margin-bottom: 0; }
+/* Main fee chart — stretch to full column height */
+.dash-chart-main {
+  display: flex;
+  flex-direction: column;
+}
 .dash-charts-side { display: flex; flex-direction: column; gap: .85rem; }
-.dash-chart-box-tall { padding: .5rem 1rem 1.1rem; height: 260px; }
+/* Tall chart box fills all remaining height after the header */
+.dash-chart-box-tall { padding: .5rem 1rem 1.1rem; flex: 1; min-height: 220px; }
 .dash-chart-box-tall canvas { width: 100% !important; height: 100% !important; }
 .dash-chart-box-sm   { padding: .5rem 1rem 1.1rem; height: 152px; }
 .dash-chart-box-sm   canvas { width: 100% !important; height: 100% !important; }
@@ -3389,21 +3395,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 [data-theme="light"] .dash-hero > * { position: relative; z-index: 1; }
 [data-theme="light"] .dash-hero-left { position: relative; }
 
-/* Right-edge teal seam — on the hero itself via outline trick */
+/* Right-edge teal seam removed — it was overlapping the action buttons */
 [data-theme="light"] .dash-hero-right {
   position: relative;
-}
-[data-theme="light"] .dash-hero-right::before {
-  content: '';
-  position: absolute;
-  top: 0; bottom: 0; right: 0;
-  width: 1px; z-index: 2;
-  background: linear-gradient(to bottom,
-    transparent               0%,
-    rgba(13,148,136,.6)      30%,
-    rgba(20,184,166,.4)      65%,
-    transparent              100%);
-  pointer-events: none;
 }
 
 /* Typography on dark */

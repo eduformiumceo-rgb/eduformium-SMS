@@ -54,14 +54,16 @@ Object.assign(SMS, {
       if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
     },30000);
     const _activeCount=d.students.filter(s=>s.status==='active').length;
-    const _fp=`${d.students.length}|${_activeCount}|${d.classes.length}|${d.yearPayments.length}|${d.attRecords.length}|${_academicYear}|${_currentTerm}`;
+    const _paySum=d.yearPayments.reduce((s,p)=>s+(+p.amount||0),0);
+    const _attSum=d.attRecords.reduce((s,a)=>s+(+a.present||0),0);
+    const _fp=`${d.students.length}|${_activeCount}|${d.classes.length}|${d.yearPayments.length}|${_paySum}|${d.attRecords.length}|${_attSum}|${_academicYear}|${_currentTerm}`;
     if(_fp!==this._dashDataFingerprint){
       this._dashDataFingerprint=_fp;
       // Defer one animation frame so the browser completes layout before Chart.js
       // queries canvas dimensions. Without this, charts render with width=0 on first
       // load (e.g. demo entry) because the app container was just made visible in the
       // same JS tick and layout hasn't been calculated yet.
-      requestAnimationFrame(()=>this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role));
+      requestAnimationFrame(()=>this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role,d._sparkData));
     }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
@@ -326,7 +328,7 @@ Object.assign(SMS, {
       {icon:'students',label:'Total Students',val:students.length,sub:`${active} active · ${students.length-active} inactive`,trend:enrollTrend,color:'blue',page:'students',roles:['admin','teacher','staff','accountant','librarian']},
       {icon:'staff',label:'Total Staff',val:staff.length,sub:`${staff.filter(s=>s.role==='teacher').length} teachers · ${staff.filter(s=>s.role!=='teacher').length} others`,trend:'',color:'blue',page:'staff',roles:['admin','accountant']},
       {icon:'classes',label:'Classes',val:classes.length,sub:`${subjects.length} subjects total`,trend:'',color:'blue',page:'classes',roles:['admin','teacher','staff']},
-      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:false},
+      {icon:'fees',label:`Fee Revenue (${_academicYear})`,val:fmt(totalRevenue),sub:`${defaulters.length} defaulter${defaulters.length!==1?'s':''}`,trend:trendBadge(feeThisMonth,feePrevMonth,true,true),color:'teal',warn:defaulters.length>0,featured:true,page:'fees',roles:['admin','accountant'],sparkline:true},
       {icon:'check',label:'Term Attendance',val:attRate,sub:attNum!==null?`${attSub} · ${attNum}% avg`:attSub,trend:attTrend,color:'teal',featured:true,page:'attendance',roles:['admin','teacher','staff','accountant']},
       {icon:'library',label:'Library Books',val:books.reduce((s,b)=>s+(+b.copies||0),0),sub:`${books.reduce((s,b)=>s+(+b.available||0),0)} available`,trend:'',color:'blue',page:'library',roles:['admin','librarian','staff']},
     ];
@@ -368,7 +370,7 @@ Object.assign(SMS, {
 
   // ── Upcoming Events panel ──
   _renderDashEvents(d){
-    const {events,now,_todayStart} = d;
+    const {events,_todayStart} = d;
     const upcomingEv=[...events].filter(e=>new Date(e.start)>=_todayStart).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,4);
     // Use CSS variables for event type colours — theme-aware where possible; purple has no CSS var so kept literal
     const evColors={exam:'var(--brand)',academic:'var(--brand-teal)',sports:'var(--success)',holiday:'var(--warn)',meeting:'#7c3aed',cultural:'var(--danger)'};
@@ -430,7 +432,7 @@ Object.assign(SMS, {
 
   // ── Upcoming Exams panel ──
   _renderDashExams(d){
-    const {exams,now,_todayStart} = d;
+    const {exams,_todayStart} = d;
     const _parseExamDate=dt=>new Date(dt.includes('T')?dt:dt+'T00:00:00');
     const upcomingExams=[...exams].filter(e=>e.date&&_parseExamDate(e.date)>=_todayStart).sort((a,b)=>_parseExamDate(a.date)-_parseExamDate(b.date)).slice(0,5);
     const examEl=document.getElementById('dash-exams');
@@ -508,7 +510,7 @@ Object.assign(SMS, {
       const toDate=new Date(l.to+'T00:00:00');
       const daysLeft=Math.ceil((toDate-now)/(1000*60*60*24))+1;
       const _returnDate=new Date(toDate); _returnDate.setDate(_returnDate.getDate()+1);
-      const _returnStr=_returnDate.toISOString().split('T')[0];
+      const _returnStr=localDateStr(_returnDate);
       return `<div class="mini-item" style="cursor:pointer" onclick="SMS.nav('leave')">
         <div class="mini-av" style="background:${bg};color:${col}">${(s?.fname||'?')[0]}${(s?.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -533,7 +535,7 @@ Object.assign(SMS, {
 
 
 
-  renderDashCharts(students,classes,payments,attRecords,role='admin'){
+  renderDashCharts(students,classes,payments,attRecords,role='admin',precomputedFeeData=null){
     if(typeof Chart==='undefined') return; // Chart.js not loaded yet (offline/CDN fail) — skip silently
     const isFinance=(role==='admin'||role==='accountant');
     // Hide fee collection chart panel for non-finance roles
@@ -542,24 +544,24 @@ Object.assign(SMS, {
     const isDark=document.documentElement.getAttribute('data-theme')==='dark';
     const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
     const tickColor=isDark?'#64748b':'#94a3b8';
-    const emptyBarColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
 
-    // Shared plugin defaults
-    Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
+    // Set shared font default once per render pass — only mutates if value has changed
+    if(Chart.defaults.font.family!=="'Inter','DM Sans',system-ui,sans-serif"){
+      Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
+    }
 
     // ── Fee Collection — gradient area line chart ──
     const ctx2=document.getElementById('chart-fees');
     if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
       const now2=new Date();
-      const feeKeys=[],feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
+      const feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
         const d=new Date(now2.getFullYear(),now2.getMonth()-i,1);
-        feeKeys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-        feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));            // "Oct" "Nov" etc
-        feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'})); // "October 2025"
-        feeData.push(0);
+        feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));
+        feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'}));
+        // Use precomputed totals passed from _dashComputeCore — avoids iterating payments twice
+        feeData.push(precomputedFeeData?.[5-i] ?? 0);
       }
-      payments.forEach(p=>{ if(!p.date) return; const k=p.date.substring(0,7); const idx=feeKeys.indexOf(k); if(idx>-1) feeData[idx]+=(+p.amount||0); });
       const hasAnyFee=feeData.some(v=>v>0);
       const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
       const tealLine=isDark?'#2dd4bf':'#0d9488';
@@ -653,7 +655,7 @@ Object.assign(SMS, {
     // ── Attendance — Mon–Fri school week, future days dimmed, headcount format ──
     const ctx3=document.getElementById('chart-attendance');
     if(ctx3){ if(this._charts.att) this._charts.att.destroy();
-      const recs=attRecords||DB.get('attendance',[]);
+      const recs=attRecords;
       const _today=new Date();
       const _dow=_today.getDay(); // 0=Sun,1=Mon,...,6=Sat
       // Find Monday of current week; if weekend show last completed week

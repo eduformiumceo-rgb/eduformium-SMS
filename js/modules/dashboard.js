@@ -546,8 +546,25 @@ Object.assign(SMS, {
 
 
   renderDashCharts(students,classes,attRecords,role='admin',precomputedFeeData=null){
-    // Chart.js availability — stats update regardless; only canvas rendering requires it
+    // Chart.js availability — stats update regardless; only canvas rendering requires it.
+    // If Chart.js hasn't loaded yet (CDN slow/blocked), attempt a one-shot dynamic load
+    // from the fallback CDN, then re-render once it arrives.
     const _chartAvail=typeof Chart!=='undefined';
+    if(!_chartAvail){
+      if(!this._chartLoadAttempted){
+        this._chartLoadAttempted=true;
+        const _s=document.createElement('script');
+        _s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+        _s.onload=()=>{
+          // Chart.js now available — force re-render by clearing fingerprint
+          this._dashDataFingerprint=null;
+          this.loadDashboard();
+        };
+        _s.onerror=()=>{ console.warn('Chart.js could not be loaded from either CDN. Charts unavailable.'); };
+        document.head.appendChild(_s);
+      }
+      // Stats already updated above — return here, charts render after CDN loads
+    }
     const isFinance=(role==='admin'||role==='accountant');
     // Hide fee collection chart panel for non-finance roles
     const feeChartCard=document.getElementById('dash-fee-chart-card');

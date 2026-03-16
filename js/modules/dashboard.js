@@ -546,7 +546,8 @@ Object.assign(SMS, {
 
 
   renderDashCharts(students,classes,attRecords,role='admin',precomputedFeeData=null){
-    if(typeof Chart==='undefined') return; // Chart.js not loaded yet (offline/CDN fail) — skip silently
+    // Chart.js availability — stats update regardless; only canvas rendering requires it
+    const _chartAvail=typeof Chart!=='undefined';
     const isFinance=(role==='admin'||role==='accountant');
     // Hide fee collection chart panel for non-finance roles
     const feeChartCard=document.getElementById('dash-fee-chart-card');
@@ -555,116 +556,126 @@ Object.assign(SMS, {
     const gridColor=isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)';
     const tickColor=isDark?'#64748b':'#94a3b8';
 
-    // Set shared font default once per render pass — only mutates if value has changed
-    if(Chart.defaults.font.family!=="'Inter','DM Sans',system-ui,sans-serif"){
+    // Set shared font default — only when Chart.js is available, only when value differs
+    if(_chartAvail&&Chart.defaults.font.family!=="'Inter','DM Sans',system-ui,sans-serif"){
       Chart.defaults.font.family="'Inter','DM Sans',system-ui,sans-serif";
     }
 
     // ── Fee Collection — gradient area line chart ──
     const ctx2=document.getElementById('chart-fees');
-    if(ctx2){ if(this._charts.fees) this._charts.fees.destroy();
+    if(ctx2){
+      if(_chartAvail&&this._charts.fees) this._charts.fees.destroy();
       const now2=new Date();
       const feeAxisLabels=[],feeTooltipLabels=[],feeData=[];
       for(let i=5;i>=0;i--){
         const d=new Date(now2.getFullYear(),now2.getMonth()-i,1);
         feeAxisLabels.push(d.toLocaleString('default',{month:'short'}));
         feeTooltipLabels.push(d.toLocaleString('default',{month:'long',year:'numeric'}));
-        // Use precomputed totals passed from _dashComputeCore — avoids iterating payments twice
         feeData.push(precomputedFeeData?.[5-i] ?? 0);
       }
       const hasAnyFee=feeData.some(v=>v>0);
-      const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
-      const tealLine=isDark?'#2dd4bf':'#0d9488';
-      const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
-      grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
-      grad2.addColorStop(1,'rgba(0,0,0,0)');
       const totalCollected=feeData.reduce((a,b)=>a+b,0);
+      // ── Stat: always update regardless of Chart.js ──
       const feeStatEl=document.getElementById('dash-fee-total-stat');
       if(feeStatEl) feeStatEl.textContent=hasAnyFee?fmt(totalCollected):'—';
-      this._charts.fees=new Chart(ctx2,{
-        type:'line',
-        data:{labels:feeAxisLabels,datasets:[{
-          data:feeData, borderColor:tealLine, backgroundColor:grad2,
-          borderWidth:2.5, tension:0.42, fill:true,
-          pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
-          pointBorderWidth:2, pointRadius:5, pointHoverRadius:7,
-          pointHoverBackgroundColor:tealLine, pointHoverBorderWidth:2.5,
-        }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          animation:{duration:700,easing:'easeInOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:'#94a3b8', bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
-              padding:{top:10,bottom:10,left:14,right:14}, cornerRadius:10,
-              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
-              callbacks:{
-                label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
-                title:items=>`${feeTooltipLabels[items[0].dataIndex]}  •  Fee Collection`,
-              }
-            }
-          },
-          scales:{
-            y:{
-              beginAtZero:true, grid:{color:gridColor,drawBorder:false},
-              border:{display:false},
-              ticks:{callback:v=>sym+(v>=1000?(v/1000).toFixed(v%1000?1:0)+'k':v),color:tickColor,font:{size:11},maxTicksLimit:5},
-            },
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
-          },
-        }
-      });
       const sub=document.getElementById('dash-fee-sub');
       if(sub) sub.textContent=hasAnyFee?'Last 6 months':'No payments recorded yet';
+      // ── Chart: only when Chart.js is loaded ──
+      if(_chartAvail){
+        const sym=_currency==='NGN'?'₦':_currency==='KES'?'KSh':_currency==='USD'?'$':_currency==='GBP'?'£':_currency==='ZAR'?'R':_currency==='EUR'?'€':'₵';
+        const tealLine=isDark?'#2dd4bf':'#0d9488';
+        const grad2=ctx2.getContext('2d').createLinearGradient(0,0,0,220);
+        grad2.addColorStop(0,isDark?'rgba(45,212,191,0.22)':'rgba(13,148,136,0.18)');
+        grad2.addColorStop(1,'rgba(0,0,0,0)');
+        this._charts.fees=new Chart(ctx2,{
+          type:'line',
+          data:{labels:feeAxisLabels,datasets:[{
+            data:feeData, borderColor:tealLine, backgroundColor:grad2,
+            borderWidth:2.5, tension:0.42, fill:true,
+            pointBackgroundColor:tealLine, pointBorderColor:isDark?'#1e293b':'#fff',
+            pointBorderWidth:2, pointRadius:5, pointHoverRadius:7,
+            pointHoverBackgroundColor:tealLine, pointHoverBorderWidth:2.5,
+          }]},
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            animation:{duration:700,easing:'easeInOutQuart'},
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              tooltip:{
+                backgroundColor:isDark?'#1e293b':'#0f172a',
+                titleColor:'#94a3b8', bodyColor:'#fff',
+                borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+                padding:{top:10,bottom:10,left:14,right:14}, cornerRadius:10,
+                titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+                callbacks:{
+                  label:ctx=>`  ${sym}${ctx.parsed.y.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}`,
+                  title:items=>`${feeTooltipLabels[items[0].dataIndex]}  •  Fee Collection`,
+                }
+              }
+            },
+            scales:{
+              y:{
+                beginAtZero:true, grid:{color:gridColor,drawBorder:false},
+                border:{display:false},
+                ticks:{callback:v=>sym+(v>=1000?(v/1000).toFixed(v%1000?1:0)+'k':v),color:tickColor,font:{size:11},maxTicksLimit:5},
+              },
+              x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11}}},
+            },
+          }
+        });
+      }
     }
 
     // ── Enrollment by Class — horizontal bar ──
     const ctx1=document.getElementById('chart-enrollment');
-    if(ctx1){ if(this._charts.enrollment) this._charts.enrollment.destroy();
+    if(ctx1){
+      if(_chartAvail&&this._charts.enrollment) this._charts.enrollment.destroy();
       const labels=classes.map(c=>c.name);
       const data=classes.map(c=>students.filter(s=>s.classId===c.id&&s.status==='active').length);
       const total=data.reduce((a,b)=>a+b,0);
+      // ── Stat: always update regardless of Chart.js ──
       const enrollStatEl=document.getElementById('dash-enroll-total-stat');
       if(enrollStatEl) enrollStatEl.textContent=total||'—';
       const _enrBox=ctx1.closest('.dash-chart-box-sm'); if(_enrBox){ let _enrEmp=_enrBox.querySelector('.dash-chart-empty'); if(!_enrEmp){ _enrEmp=document.createElement('div'); _enrEmp.className='dash-chart-empty'; _enrBox.appendChild(_enrEmp); } const _enrNoData=labels.length===0; _enrEmp.style.display=_enrNoData?'flex':'none'; if(_enrNoData&&!_enrEmp.hasChildNodes()) _enrEmp.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg><span>No classes added yet</span>'; }
-      const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
-      const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
-      this._charts.enrollment=new Chart(ctx1,{
-        type:'bar',
-        data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          animation:{duration:600,easing:'easeInOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:'#94a3b8', bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
-              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
-              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
-              callbacks:{
-                label:ctx=>`  ${ctx.parsed.y} student${ctx.parsed.y!==1?'s':''}`,
-                title:items=>`${items[0].label}`,
+      // ── Chart: only when Chart.js is loaded ──
+      if(_chartAvail){
+        const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
+        const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
+        this._charts.enrollment=new Chart(ctx1,{
+          type:'bar',
+          data:{labels,datasets:[{data,backgroundColor:barColor,hoverBackgroundColor:barHover,borderRadius:6,borderSkipped:false}]},
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            animation:{duration:600,easing:'easeInOutQuart'},
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              tooltip:{
+                backgroundColor:isDark?'#1e293b':'#0f172a',
+                titleColor:'#94a3b8', bodyColor:'#fff',
+                borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+                padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+                titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+                callbacks:{
+                  label:ctx=>`  ${ctx.parsed.y} student${ctx.parsed.y!==1?'s':''}`,
+                  title:items=>`${items[0].label}`,
+                }
               }
-            }
-          },
-          scales:{
-            y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
-          },
-        }
-      });
+            },
+            scales:{
+              y:{beginAtZero:true,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11}}},
+              x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11},maxRotation:20,minRotation:0}},
+            },
+          }
+        });
+      }
     }
 
     // ── Attendance — Mon–Fri school week, future days dimmed, headcount format ──
     const ctx3=document.getElementById('chart-attendance');
-    if(ctx3){ if(this._charts.att) this._charts.att.destroy();
+    if(ctx3){
+      if(_chartAvail&&this._charts.att) this._charts.att.destroy();
       const recs=attRecords;
       const _today=new Date();
       const _dow=_today.getDay(); // 0=Sun,1=Mon,...,6=Sat
@@ -710,50 +721,54 @@ Object.assign(SMS, {
       const weekTotalPresent=attData.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
       const weekTotalPossible=attTotals.reduce((s,v,i)=>{ const d=new Date(_monday); d.setDate(_monday.getDate()+i); return (v>0&&d<=_today)?s+v:s; },0);
       const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
+      // ── Stat: always update regardless of Chart.js ──
       const attAvgEl=document.getElementById('dash-att-avg-stat');
       if(attAvgEl) attAvgEl.textContent=avgRate!==null?`${avgRate}%`:'—';
       const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; if(_noAtt&&!_attEmp.hasChildNodes()) _attEmp.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>'; }
-      const isLastWeek=(_dow===0||_dow===6);
-      const maxTotal=Math.max(...attTotals,1);
-      this._charts.att=new Chart(ctx3,{
-        type:'bar',
-        data:{labels:attAxisLabels,datasets:[{
-          data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
-          borderRadius:6, borderSkipped:false,
-        }]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          animation:{duration:600,easing:'easeInOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:{
-              backgroundColor:isDark?'#1e293b':'#0f172a',
-              titleColor:'#94a3b8', bodyColor:'#fff',
-              borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
-              padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
-              titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
-              callbacks:{
-                label:(ctx)=>{
-                  const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
-                  if(d>_today) return '  No school yet';
-                  const tot=attTotals[ctx.dataIndex];
-                  if(!ctx.parsed.y&&!tot) return '  Not recorded';
-                  const r=tot>0?Math.round(ctx.parsed.y/tot*100):0;
-                  return `  ${ctx.parsed.y}/${tot} present · ${r}%`;
-                },
-                title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
+      // ── Chart: only when Chart.js is loaded ──
+      if(_chartAvail){
+        const isLastWeek=(_dow===0||_dow===6);
+        const maxTotal=Math.max(...attTotals,1);
+        this._charts.att=new Chart(ctx3,{
+          type:'bar',
+          data:{labels:attAxisLabels,datasets:[{
+            data:attData, backgroundColor:attColors, hoverBackgroundColor:attHover,
+            borderRadius:6, borderSkipped:false,
+          }]},
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            animation:{duration:600,easing:'easeInOutQuart'},
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+              legend:{display:false},
+              tooltip:{
+                backgroundColor:isDark?'#1e293b':'#0f172a',
+                titleColor:'#94a3b8', bodyColor:'#fff',
+                borderColor:isDark?'#2d3f55':'#1e293b', borderWidth:1,
+                padding:{top:9,bottom:9,left:13,right:13}, cornerRadius:10,
+                titleFont:{size:11,weight:'500'}, bodyFont:{size:13,weight:'700'},
+                callbacks:{
+                  label:(ctx)=>{
+                    const d=new Date(_monday); d.setDate(_monday.getDate()+ctx.dataIndex);
+                    if(d>_today) return '  No school yet';
+                    const tot=attTotals[ctx.dataIndex];
+                    if(!ctx.parsed.y&&!tot) return '  Not recorded';
+                    const r=tot>0?Math.round(ctx.parsed.y/tot*100):0;
+                    return `  ${ctx.parsed.y}/${tot} present · ${r}%`;
+                  },
+                  title:items=>`${attTooltipLabels[items[0].dataIndex]}`,
+                }
               }
-            }
-          },
-          scales:{
-            y:{min:0,suggestedMax:maxTotal,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11},maxTicksLimit:5}},
-            x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
-          },
-        }
-      });
-      const sub3=document.getElementById('dash-att-sub');
-      if(sub3) sub3.textContent=isLastWeek?'Last school week (Mon–Fri)':'This week (Mon–Fri)';
+            },
+            scales:{
+              y:{min:0,suggestedMax:maxTotal,grid:{color:gridColor,drawBorder:false},border:{display:false},ticks:{stepSize:1,color:tickColor,font:{size:11},maxTicksLimit:5}},
+              x:{grid:{display:false},border:{display:false},ticks:{color:tickColor,font:{size:11,weight:'600'}}},
+            },
+          }
+        });
+        const sub3=document.getElementById('dash-att-sub');
+        if(sub3) sub3.textContent=isLastWeek?'Last school week (Mon–Fri)':'This week (Mon–Fri)';
+      }
     }
   },
 

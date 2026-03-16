@@ -46,13 +46,17 @@ Object.assign(SMS, {
     this._dashRefreshedAt=Date.now();
     const _fEl=document.getElementById('dash-freshness');
     if(_fEl) _fEl.textContent='Updated just now';
-    clearInterval(this._freshTimer);
-    this._freshTimer=setInterval(()=>{
-      if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); return; }
-      const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
-      const fe=document.getElementById('dash-freshness');
-      if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
-    },30000);
+    // Start freshness ticker once — guard prevents it being killed and restarted by every
+    // 60s auto-refresh, which previously stopped the "Updated Xm ago" label ever appearing.
+    // nav() and logout() still clear it when leaving the dashboard or signing out.
+    if(!this._freshTimer){
+      this._freshTimer=setInterval(()=>{
+        if(!document.getElementById('page-dashboard')?.classList.contains('active')){ clearInterval(this._freshTimer); this._freshTimer=null; return; }
+        const ago=Math.round((Date.now()-this._dashRefreshedAt)/60000);
+        const fe=document.getElementById('dash-freshness');
+        if(fe) fe.textContent=ago<1?'Updated just now':`Updated ${ago}m ago`;
+      },30000);
+    }
     const _activeCount=d.students.filter(s=>s.status==='active').length;
     const _paySum=d.yearPayments.reduce((s,p)=>s+(+p.amount||0),0);
     const _attSum=d.attRecords.reduce((s,a)=>s+(+a.present||0),0);
@@ -275,8 +279,14 @@ Object.assign(SMS, {
           _histBadge.style.display='none';
         } else {
           _histBadge.style.display='inline-flex';
-          _histBadge.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="10" height="10"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>\u00a0Historical \u2014 ${_academicYear} Term ${_currentTerm}`;
-          _histBadge.title=`You are viewing past data. Switch to the current year/term to see live figures.`;
+          // Only rewrite innerHTML when the displayed year/term has actually changed —
+          // prevents an SVG + text rebuild on every 60s auto-refresh tick
+          const _badgeKey=`${_academicYear}|${_currentTerm}`;
+          if(_histBadge.dataset.key!==_badgeKey){
+            _histBadge.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="10" height="10"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>\u00a0Historical \u2014 ${_academicYear} Term ${_currentTerm}`;
+            _histBadge.title=`You are viewing past data. Switch to the current year/term to see live figures.`;
+            _histBadge.dataset.key=_badgeKey;
+          }
         }
       }
     }
@@ -361,7 +371,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:${colLt};color:${col}">${(s.fname||'?')[0]}${(s.lname||'?')[0]}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(s.fname)} ${sanitize(s.lname)}</div>
-          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${sanitize(this.className(s.classId))}</span> · ${s.studentId}</div>
+          <div class="mini-sub"><span style="background:${colLt};color:${col};font-weight:700;font-size:.65rem;padding:.1rem .4rem;border-radius:4px">${sanitize(this.className(s.classId))}</span> · ${sanitize(s.studentId)}</div>
         </div>
         <div class="mini-right">${statusBadge(s.status)}</div>
       </div>`;
@@ -393,7 +403,7 @@ Object.assign(SMS, {
         <div class="mini-av" style="background:${bg};color:${col}">${_evSvg[e.type]||_evFallback}</div>
         <div style="flex:1;min-width:0">
           <div class="mini-name">${sanitize(e.title)}</div>
-          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+e.venue:''}</div>
+          <div class="mini-sub">${fmtDate(e.start)}${e.venue?' · '+sanitize(e.venue):''}</div>
         </div>
         <div class="mini-right"><span style="font-size:.68rem;font-weight:700;color:${col};background:${bg};padding:.2rem .5rem;border-radius:5px;white-space:nowrap">${daysStr}</span></div>
       </div>`;

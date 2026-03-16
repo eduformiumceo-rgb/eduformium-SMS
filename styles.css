@@ -2226,7 +2226,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
    ≈ 2 × (68px + 152px) + 14px = 454px total, minus fee header 68px = 386px */
 .dash-chart-box-tall { padding: .5rem 1rem 1.1rem; height: 386px; }
 .dash-chart-box-tall canvas { width: 100% !important; height: 100% !important; }
-.dash-chart-box-sm   { padding: .5rem 1rem 1.1rem; height: 152px; }
+.dash-chart-box-sm   { padding: .5rem 1rem 1.1rem; height: 152px; position: relative; }
 .dash-chart-box-sm   canvas { width: 100% !important; height: 100% !important; }
 .dash-chart-empty {
   position: absolute; inset: 0;

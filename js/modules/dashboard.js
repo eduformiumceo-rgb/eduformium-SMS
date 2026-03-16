@@ -63,7 +63,7 @@ Object.assign(SMS, {
       // queries canvas dimensions. Without this, charts render with width=0 on first
       // load (e.g. demo entry) because the app container was just made visible in the
       // same JS tick and layout hasn't been calculated yet.
-      requestAnimationFrame(()=>this.renderDashCharts(d.students,d.classes,d.yearPayments,d.attRecords,d.role,d._sparkData));
+      requestAnimationFrame(()=>this.renderDashCharts(d.students,d.classes,d.attRecords,d.role,d._sparkData));
     }
     if(!this._dashRefreshTimer){
       this._dashRefreshTimer=setInterval(()=>{
@@ -535,7 +535,7 @@ Object.assign(SMS, {
 
 
 
-  renderDashCharts(students,classes,payments,attRecords,role='admin',precomputedFeeData=null){
+  renderDashCharts(students,classes,attRecords,role='admin',precomputedFeeData=null){
     if(typeof Chart==='undefined') return; // Chart.js not loaded yet (offline/CDN fail) — skip silently
     const isFinance=(role==='admin'||role==='accountant');
     // Hide fee collection chart panel for non-finance roles
@@ -620,7 +620,7 @@ Object.assign(SMS, {
       const total=data.reduce((a,b)=>a+b,0);
       const enrollStatEl=document.getElementById('dash-enroll-total-stat');
       if(enrollStatEl) enrollStatEl.textContent=total||'—';
-      const _enrBox=ctx1.closest('.dash-chart-box-sm'); if(_enrBox){ let _enrEmp=_enrBox.querySelector('.dash-chart-empty'); if(!_enrEmp){ _enrEmp=document.createElement('div'); _enrEmp.className='dash-chart-empty'; _enrBox.style.position='relative'; _enrBox.appendChild(_enrEmp); } _enrEmp.style.display=labels.length===0?'flex':'none'; _enrEmp.innerHTML=labels.length===0?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg><span>No classes added yet</span>':''; }
+      const _enrBox=ctx1.closest('.dash-chart-box-sm'); if(_enrBox){ let _enrEmp=_enrBox.querySelector('.dash-chart-empty'); if(!_enrEmp){ _enrEmp=document.createElement('div'); _enrEmp.className='dash-chart-empty'; _enrBox.appendChild(_enrEmp); } const _enrNoData=labels.length===0; _enrEmp.style.display=_enrNoData?'flex':'none'; if(_enrNoData&&!_enrEmp.hasChildNodes()) _enrEmp.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 6.67 1.67 10 0v-5"/></svg><span>No classes added yet</span>'; }
       const barColor=isDark?'rgba(59,130,246,0.75)':'rgba(5,41,95,0.8)';
       const barHover=isDark?'rgba(93,158,255,0.9)':'rgba(5,41,95,1)';
       this._charts.enrollment=new Chart(ctx1,{
@@ -702,7 +702,7 @@ Object.assign(SMS, {
       const avgRate=weekTotalPossible>0?Math.round(weekTotalPresent/weekTotalPossible*100):null;
       const attAvgEl=document.getElementById('dash-att-avg-stat');
       if(attAvgEl) attAvgEl.textContent=avgRate!==null?`${avgRate}%`:'—';
-      const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.style.position='relative'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; _attEmp.innerHTML=_noAtt?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>':''; }
+      const _attBox=ctx3.closest('.dash-chart-box-sm'); if(_attBox){ let _attEmp=_attBox.querySelector('.dash-chart-empty'); if(!_attEmp){ _attEmp=document.createElement('div'); _attEmp.className='dash-chart-empty'; _attBox.appendChild(_attEmp); } const _noAtt=weekTotalPossible===0; _attEmp.style.display=_noAtt?'flex':'none'; if(_noAtt&&!_attEmp.hasChildNodes()) _attEmp.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26" style="opacity:.3"><polyline points="20 6 9 17 4 12"/></svg><span>No attendance this week</span>'; }
       const isLastWeek=(_dow===0||_dow===6);
       const maxTotal=Math.max(...attTotals,1);
       this._charts.att=new Chart(ctx3,{

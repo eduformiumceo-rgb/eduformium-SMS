@@ -605,6 +605,8 @@ const SMS = {
     clearInterval(this._freshTimer);       this._freshTimer=null;
     // Destroy Chart.js instances — frees canvas memory between sessions
     ['fees','enrollment','att'].forEach(k=>{ if(this._charts[k]){ this._charts[k].destroy(); this._charts[k]=null; } });
+    // Reset fingerprint — forces charts to re-render on next login even with identical data
+    this._dashDataFingerprint=null;
     this.audit('Logout','login',`${_logoutName} signed out`); // 3. Audit after — writes to localStorage only, no Supabase (no session, no 401)
     const syncEl=document.getElementById('sync-status');
     if(syncEl) syncEl.style.display='none';
